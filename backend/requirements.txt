@@ -1,0 +1,32 @@
+# --- Core server ---
+quart==0.19.9
+Quart-Cors==0.6.0
+hypercorn==0.16.0
+limits>=3.10.1   # for rate limiting
+
+# --- Database ---
+aiosqlite==0.20.0
+
+# --- AI / Models ---
+openai>=1.13.0
+huggingface_hub>=0.22.2
+transformers>=4.40.0
+torch>=2.2.0
+textblob>=0.18.0.post0
+spacy>=3.7.4
+sumy>=0.11.0
+
+# --- Scraping / NLP helpers ---
+trafilatura>=1.7.0
+beautifulsoup4>=4.12.3
+requests>=2.32.2
+tqdm>=4.66.2
+tabulate>=0.9.0
+
+# --- Analytics / Visualization ---
+wordcloud>=1.9.3
+matplotlib>=3.8.3
+colorama>=0.4.6
+
+# --- Utils ---
+python-dotenv>=1.0.1

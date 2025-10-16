@@ -1,0 +1,68 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Analysis for: is social media good for society</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/wordcloud2.js/1.1.0/wordcloud2.min.js"></script>
+    <style>
+    body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;margin:0;display:flex;background:#e9ecef}
+    .sidebar{width:250px;background:#f8f9fa;padding:1em;height:100vh;overflow-y:auto;position:fixed;border-right:1px solid #dee2e6}
+    .sidebar h2{margin-top:0}.sidebar label{display:block;margin-bottom:0.5em;cursor:pointer}
+    .main-content{margin-left:270px;padding:2em;width:calc(100% - 290px)}
+    h1,h2{color:#343a40} a{color:#007bff;text-decoration:none} a:hover{text-decoration:underline}
+    .card{background:white;border-radius:8px;box-shadow:0 4px 6px rgba(0,0,0,0.05);padding:1.5em;margin-bottom:2em}
+    .article{border:1px solid #dee2e6;padding:1.5em;margin-bottom:1.5em;background:white;border-radius:8px;transition:all 0.3s ease}
+    .meta{font-size:0.9em;color:#6c757d;margin-bottom:1em} b{color:#495057}
+    .entity{cursor:pointer;padding:2px 5px;border-radius:4px;font-weight:bold;color:white;transition:opacity 0.2s ease}
+    .entity:hover{opacity:0.8}
+    #toc a{display:block;font-size:0.9em;margin-bottom:0.5em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:4px;border-radius:4px}
+    #toc a:hover{background:#dee2e6}
+    #filter-status{font-size:0.9em;color:#6c757d;margin:1em 0;font-style:italic}
+    .hide-summary .summary, .hide-sentiment .sentiment, .hide-keywords .keywords {display:none}
+    </style></head><body>
+    <div class="sidebar"> <h2>Controls</h2> <div id="toc"></div> <hr>
+        <label><input type="checkbox" id="toggle-summary" checked> Show Summaries</label>
+        <label><input type="checkbox" id="toggle-sentiment" checked> Show Sentiment</label>
+        <label><input type="checkbox" id="toggle-keywords" checked> Show Keywords</label>
+        <hr> <div id="filter-status">No filter active</div> <button id="clear-filter">Clear Filter</button>
+    </div>
+    <div class="main-content"><h1>Analysis for Topic: is social media good for society</h1>
+        <div class="card"><div id="wordcloud-container" style="height:300px;width:100%;"></div></div>
+        
+        <div id="articles-container"><div class="article" id="article-0" data-entities="">
+        <h2><a href="https://www.pewresearch.org/global/2022/12/06/views-of-social-media-and-its-impacts-on-society-in-advanced-economies-2022/" target="_blank" rel="noopener noreferrer">2. Views of social media and its impacts on society</a></h2>
+        <p class="meta"><b>Source:</b> www.pewresearch.org | <b>Published:</b> 2022-12-06</p>
+        <div class="content summary"><b>Summary:</b> N/A</div>
+        <div class="content sentiment"><b>Sentiment Polarity:</b> 0.00</div>
+        <div class="content keywords"><b>Keywords:</b> </div></div></div>
+    </div>
+    <script>
+        const wc_data = [];
+        if(wc_data.length > 0) WordCloud(document.getElementById('wordcloud-container'), { list: wc_data, click: (item) => filterByKeyword(item[0]) });
+        
+        const toc = document.getElementById('toc');
+        document.querySelectorAll('.article h2').forEach((h2, i) => {
+            const link = document.createElement('a'); link.href = `#article-${i}`;
+            link.textContent = h2.textContent.substring(0, 30) + '...'; toc.appendChild(link);
+        });
+
+        document.getElementById('toggle-summary').addEventListener('change', e => document.body.classList.toggle('hide-summary', !e.target.checked));
+        document.getElementById('toggle-sentiment').addEventListener('change', e => document.body.classList.toggle('hide-sentiment', !e.target.checked));
+        document.getElementById('toggle-keywords').addEventListener('change', e => document.body.classList.toggle('hide-keywords', !e.target.checked));
+
+        const allArticles = document.querySelectorAll('.article');
+        const filterStatus = document.getElementById('filter-status');
+        
+        function applyFilter(text, filterFn) {
+            filterStatus.textContent = text;
+            allArticles.forEach(article => article.style.display = filterFn(article) ? 'block' : 'none');
+        }
+        
+        function filterByKeyword(keyword) {
+            applyFilter(`Filtering by keyword: ${keyword}`, article => article.querySelector('.keywords').textContent.includes(keyword));
+        }
+
+        document.getElementById('clear-filter').addEventListener('click', () => applyFilter('No filter active', () => true));
+        document.addEventListener('click', e => {
+            if (e.target.classList.contains('entity')) {
+                const type = e.target.dataset.entityType; const name = e.target.dataset.entityName;
+                applyFilter(`Filtering by ${type}: ${name}`, article => article.dataset.entities.includes(`{type}:{name}`));
+            }
+        });
+    </script></body></html>

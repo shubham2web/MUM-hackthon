@@ -1,0 +1,17 @@
+{
+  "topic": "is social media good for society",
+  "articles": [
+    {
+      "url": "https://www.pewresearch.org/global/2022/12/06/views-of-social-media-and-its-impacts-on-society-in-advanced-economies-2022/",
+      "canonical_url": "https://www.pewresearch.org/global/2022/12/06/views-of-social-media-and-its-impacts-on-society-in-advanced-economies-2022/",
+      "url_hash": "df963c72fada78f849153fa3b3b8fc6f3f5999b180e495ec81cbf0c1c8350450",
+      "domain": "www.pewresearch.org",
+      "title": "2. Views of social media and its impacts on society",
+      "published_at": "2022-12-06T10:00:25-05:00",
+      "text": "",
+      "fetched_at": "2025-08-31T18:41:14.375228+00:00",
+      "extraction_method": "bs4",
+      "word_count": 0
+    }
+  ]
+}
