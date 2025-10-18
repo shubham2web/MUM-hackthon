@@ -9,10 +9,43 @@
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Audiowide&display=swap" rel="stylesheet">
     
     <!-- CSS Modules -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v=2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}?v=2">
+    
+    <style>
+        /* Force message alignment */
+        .message {
+            display: flex !important;
+            flex-direction: column !important;
+            margin-bottom: 24px !important;
+            width: 100% !important;
+        }
+        .user-message {
+            align-items: flex-end !important;
+        }
+        .ai-message {
+            align-items: flex-start !important;
+        }
+        .message-content {
+            max-width: 65% !important;
+        }
+        .user-message .message-content {
+            align-items: flex-end !important;
+        }
+        .ai-message .message-content {
+            align-items: flex-start !important;
+        }
+        .user-message .message-text {
+            background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
+            color: #ffffff !important;
+        }
+        .ai-message .message-text {
+            background: rgba(30, 30, 30, 0.95) !important;
+            color: #e5e7eb !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Starry Background -->
@@ -93,10 +126,14 @@
             </header>
 
             <div class="chat-messages" id="chatMessages">
-                <div class="message bot">
-                    <div class="message-bubble">
-                        Hello! I'm Atlas. Select a mode from the sidebar and ask me anything.
+                <div class="message ai-message">
+                    <div class="message-content">
+                        <div class="message-avatar">Atlas</div>
+                        <div class="message-text">
+                            Hello! I'm <strong>Atlas</strong>, your misinformation fighter. Ask me anything!
+                        </div>
                     </div>
+                    <div class="message-time">Just now</div>
                 </div>
             </div>
 

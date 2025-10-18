@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Test</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #0a0a0a;
+            font-family: Arial, sans-serif;
+        }
+        
+        .chat-messages {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: rgba(20, 20, 20, 0.8);
+            border-radius: 12px;
+        }
+
+        /* === MESSAGES === */
+        .message {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 24px;
+            width: 100%;
+            clear: both;
+        }
+
+        /* User messages on the RIGHT */
+        .user-message {
+            align-items: flex-end;
+        }
+
+        /* AI messages on the LEFT */
+        .ai-message {
+            align-items: flex-start;
+        }
+
+        .message-content {
+            display: flex;
+            flex-direction: column;
+            max-width: 65%;
+            position: relative;
+        }
+
+        .user-message .message-content {
+            align-items: flex-end;
+        }
+
+        .ai-message .message-content {
+            align-items: flex-start;
+        }
+
+        .message-avatar {
+            font-size: 11px;
+            font-weight: 600;
+            margin-bottom: 4px;
+            opacity: 0.7;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .user-message .message-avatar {
+            color: #60a5fa;
+        }
+
+        .ai-message .message-avatar {
+            color: #9ca3af;
+        }
+
+        .message-text {
+            padding: 12px 16px;
+            border-radius: 16px;
+            word-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        /* User message bubble - RIGHT side - BLUE */
+        .user-message .message-text {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            font-weight: 400;
+            box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+            border-radius: 16px 16px 2px 16px;
+        }
+
+        /* AI message bubble - LEFT side - DARK */
+        .ai-message .message-text {
+            background: rgba(30, 30, 30, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #e5e7eb;
+            border-radius: 16px 16px 16px 2px;
+        }
+
+        .message-time {
+            font-size: 10px;
+            color: rgba(255, 255, 255, 0.4);
+            margin-top: 4px;
+            margin-left: 4px;
+            margin-right: 4px;
+        }
+
+        .user-message .message-time {
+            text-align: right;
+        }
+
+        .ai-message .message-time {
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-messages">
+        <!-- AI Message (LEFT) -->
+        <div class="message ai-message">
+            <div class="message-content">
+                <div class="message-avatar">Atlas</div>
+                <div class="message-text">
+                    Hello! I'm <strong>Atlas</strong>, your misinformation fighter. Ask me anything!
+                </div>
+            </div>
+            <div class="message-time">04:48 PM</div>
+        </div>
+
+        <!-- User Message (RIGHT) -->
+        <div class="message user-message">
+            <div class="message-content">
+                <div class="message-avatar">You</div>
+                <div class="message-text">
+                    What is artificial intelligence?
+                </div>
+            </div>
+            <div class="message-time">04:49 PM</div>
+        </div>
+
+        <!-- AI Message (LEFT) -->
+        <div class="message ai-message">
+            <div class="message-content">
+                <div class="message-avatar">Atlas</div>
+                <div class="message-text">
+                    Artificial Intelligence (AI) refers to the simulation of human intelligence in machines that are programmed to think and learn like humans. It encompasses various technologies including machine learning, natural language processing, and neural networks.
+                </div>
+            </div>
+            <div class="message-time">04:49 PM</div>
+        </div>
+
+        <!-- User Message (RIGHT) -->
+        <div class="message user-message">
+            <div class="message-content">
+                <div class="message-avatar">You</div>
+                <div class="message-text">
+                    Thanks! That's helpful.
+                </div>
+            </div>
+            <div class="message-time">04:50 PM</div>
+        </div>
+    </div>
+</body>
+</html>
