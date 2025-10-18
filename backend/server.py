@@ -1,13 +1,14 @@
 ﻿import asyncio
 import json
 import logging
+import mimetypes
 import os
 import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 import sys
 
-from quart import Quart, Response, jsonify, render_template, request
+from quart import Quart, render_template, request, jsonify, send_from_directory, Response
 from quart_cors import cors
 from limits import parse
 from limits.storage import MemoryStorage
@@ -23,7 +24,9 @@ from utils import compute_advanced_analytics, format_sse
 # --------------------------
 # Setup Quart App & Executor
 # --------------------------
-app = Quart(__name__)
+app = Quart(__name__, 
+            static_folder='static',
+            static_url_path='/static')
 
 # --- CORS setup with environment variable ---
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")
@@ -71,9 +74,16 @@ def limit(rule: str):
 # -----------------------------
 @app.before_request
 async def check_api_key():
-    if request.endpoint in ['home', 'chat_page', 'healthz'] or not API_KEY or request.method == 'OPTIONS':
+    # Allow access without API key for these endpoints
+    if (request.endpoint in ['home', 'chat_page', 'healthz', 'analyze_topic'] or 
+        request.path.startswith('/static/') or
+        not API_KEY or 
+        request.method == 'OPTIONS'):
         return
-    if request.headers.get("X-API-Key") != API_KEY:
+
+    # Check API key for other endpoints
+    received_key = request.headers.get("X-API-Key")
+    if received_key != API_KEY:
         return jsonify({"error": "Unauthorized"}), 401
 
 @app.after_request
@@ -84,21 +94,32 @@ async def add_security_headers(response):
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
     return response
 
+# Add this to ensure correct MIME types
+@app.after_request
+async def add_header(response):
+    if request.path.endswith('.js'):
+        response.headers['Content-Type'] = 'application/javascript'
+    elif request.path.endswith('.css'):
+        response.headers['Content-Type'] = 'text/css'
+    return response
+
 # -----------------------------
 # Routes
 # -----------------------------
 @app.route("/")
 async def home():
-    return jsonify({"message": "AI Debate Server running (Quart)."})
+    """Landing/Hero page"""
+    return await render_template("homepage.html")
+
+@app.route("/chat")
+async def chat_page():
+    """Main chat interface"""
+    return await render_template("index.html")
 
 @app.route("/healthz")
 async def healthz():
     """Provides a simple health check endpoint."""
     return jsonify({"status": "ok"})
-
-@app.route("/chat")
-async def chat_page():
-    return await render_template("index.html")
 
 @app.route("/run_debate", methods=["POST"])
 @limit("5/minute")
@@ -121,6 +142,95 @@ async def run_debate_route():
 
     return Response(stream(), mimetype="text/event-stream")
 
+@app.route("/analyze_topic", methods=["POST"])
+async def analyze_topic():
+    """Analyze a topic and return insights"""
+    try:
+        data = await request.get_json()
+        topic = data.get("topic", "")
+        model = data.get("model", "llama3")
+        
+        if not topic:
+            return jsonify({"error": "No topic provided"}), 400
+        
+        logging.info(f"Analyzing topic: {topic}")
+        
+        loop = asyncio.get_running_loop()
+        
+        try:
+            # Get evidence with timeout
+            evidence_bundle = await asyncio.wait_for(
+                loop.run_in_executor(executor, get_diversified_evidence, topic),
+                timeout=30.0
+            )
+            logging.info(f"Found {len(evidence_bundle)} sources")
+            
+        except asyncio.TimeoutError:
+            logging.warning("Evidence gathering timed out")
+            evidence_bundle = []
+        
+        # Create context
+        if evidence_bundle:
+            context = "\n\n".join(
+                f"Source: {article.get('title', 'N/A')}\n{article.get('text', '')[:500]}"
+                for article in evidence_bundle[:3]
+            )
+            user_message = f"Question: {topic}\n\nEvidence:\n{context}"
+        else:
+            user_message = f"Question: {topic}"
+        
+        system_prompt = """You are Atlas, an AI misinformation fighter. 
+Analyze the user's question and provide a clear, factual response.
+Keep your response concise (2-3 paragraphs)."""
+        
+        # Generate response - FIX: Collect generator properly
+        ai_agent = AiAgent()
+        full_response = ""
+        
+        def collect_stream():
+            """Helper function to collect stream in thread"""
+            result = ""
+            try:
+                stream_gen = ai_agent.stream(
+                    user_message=user_message,
+                    system_prompt=system_prompt,
+                    max_tokens=500
+                )
+                for chunk in stream_gen:  # Use for loop instead of next()
+                    result += chunk
+            except Exception as e:
+                logging.error(f"Stream collection error: {e}")
+            return result
+        
+        # Run in executor with timeout
+        try:
+            full_response = await asyncio.wait_for(
+                loop.run_in_executor(executor, collect_stream),
+                timeout=60.0
+            )
+        except asyncio.TimeoutError:
+            full_response = "Response generation timed out. Please try a simpler question."
+        
+        if not full_response:
+            full_response = "I couldn't generate a response. Please try again."
+        
+        logging.info(f"Response generated: {len(full_response)} characters")
+        
+        return jsonify({
+            "success": True,
+            "topic": topic,
+            "analysis": full_response,
+            "model": model,
+            "sources_used": len(evidence_bundle)
+        })
+        
+    except Exception as e:
+        logging.error(f"Error in analyze_topic: {str(e)}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": str(e),
+            "analysis": "Sorry, I encountered an error processing your request."
+        }), 500
 
 # -----------------------------
 # Debate Generator

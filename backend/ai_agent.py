@@ -41,7 +41,7 @@ GROQ_API_KEY = "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" # Exam
 SUPPORTED_MODELS = {
     "default-model": {
         "huggingface": "mistralai/Mistral-7B-Instruct-v0.2",
-        "groq": "llama3-8b-8192",
+        "groq": "llama-3.1-8b-instant",
     }
 }
 DEFAULT_MODEL = "default-model"

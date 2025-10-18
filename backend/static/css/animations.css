@@ -1,0 +1,93 @@
+/* === STARRY BACKGROUND === */
+.starry-background {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: -1;
+    overflow: hidden;
+}
+
+.stars {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+}
+
+.star {
+    position: absolute;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s infinite;
+}
+
+.star.small { width: 1px; height: 1px; }
+.star.medium { width: 2px; height: 2px; }
+.star.large { width: 3px; height: 3px; }
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+}
+
+/* === MESSAGE ANIMATIONS === */
+@keyframes messageSlideIn {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === TYPING INDICATOR === */
+.typing-indicator {
+    display: flex;
+    gap: 4px;
+    padding: 16px 20px;
+}
+
+.typing-dot {
+    width: 8px;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 50%;
+    animation: typingPulse 1.5s infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes typingPulse {
+    0%, 60%, 100% {
+        opacity: 0.3;
+        transform: scale(1);
+    }
+    30% {
+        opacity: 1;
+        transform: scale(1.2);
+    }
+}
+
+/* === GLOW EFFECTS === */
+.chat-container.glow-green {
+    box-shadow: 0 0 20px #22c55e, 0 0 40px #16a34a;
+    border: 2px solid #22c55e;
+    animation: glowFade 8s ease-out forwards;
+}
+
+.chat-container.glow-yellow {
+    box-shadow: 0 0 20px #eab308, 0 0 40px #ca8a04;
+    border: 2px solid #eab308;
+    animation: glowFade 8s ease-out forwards;
+}
+
+.chat-container.glow-red {
+    box-shadow: 0 0 20px #ef4444, 0 0 40px #b91c1c;
+    border: 2px solid #ef4444;
+    animation: glowFade 8s ease-out forwards;
+}
+
+@keyframes glowFade {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}

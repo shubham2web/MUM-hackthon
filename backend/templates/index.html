@@ -1,1 +1,386 @@
-<h1>AI Debate Server Chat Interface</h1>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atlas Chat Interface</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Audiowide&display=swap" rel="stylesheet">
+    
+    <!-- CSS Modules -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}">
+</head>
+<body>
+    <!-- Starry Background -->
+    <div class="starry-background">
+        <div class="stars" id="stars"></div>
+    </div>
+
+    <!-- Main App -->
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar" id="sidebar">
+            <button class="toggle-btn" id="toggleBtn" aria-label="Toggle sidebar">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 18l-6-6 6-6"/>
+                </svg>
+            </button>
+
+            <div class="logo-section">
+                <div class="logo">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.5 3-9s-1.343-9-3-9m-9 9a9 9 0 019 9m-9-9a9 9 0 009-9m-9 9h12"/>
+                    </svg>
+                </div>
+                <span class="logo-text">Atlas</span>
+            </div>
+
+            <nav class="nav-section">
+                <div class="nav-item active" data-mode="chat">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span class="nav-text">Chat</span>
+                </div>
+                <div class="nav-item" data-mode="debate">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
+                    <span class="nav-text">Debate</span>
+                </div>
+                <div class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="nav-text">Tasks</span>
+                </div>
+                <div class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <polyline points="12 7 12 12 16 14"></polyline>
+                    </svg>
+                    <span class="nav-text">History</span>
+                </div>
+                <div class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                    <span class="nav-text">Settings</span>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Chat Container -->
+        <main class="chat-container">
+            <div class="mobile-header" style="display: none;">
+                <button class="menu-btn" id="mobileMenuBtn">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="6" x2="21" y2="6"/>
+                        <line x1="3" y1="12" x2="21" y2="12"/>
+                        <line x1="3" y1="18" x2="21" y2="18"/>
+                    </svg>
+                </button>
+                <span class="chat-title">Atlas Chat</span>
+            </div>
+
+            <header class="chat-header">
+                <h1 class="chat-title" id="chatTitle">Chat with Atlas</h1>
+            </header>
+
+            <div class="chat-messages" id="chatMessages">
+                <div class="message bot">
+                    <div class="message-bubble">
+                        Hello! I'm Atlas. Select a mode from the sidebar and ask me anything.
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-container">
+                <div id="attachmentArea" class="attachment-area"></div>
+                <div class="input-toolbar">
+                    <div class="toolbar-left">
+                        <div class="attachment-container">
+                            <button class="input-btn" id="attachBtn">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 5v14m-7-7h14" />
+                                </svg>
+                            </button>
+                            <div class="attachment-menu" id="attachmentMenu">
+                                <button class="menu-item" id="uploadFileBtn">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                                        <polyline points="17 8 12 3 7 8"/>
+                                        <line x1="12" y1="3" x2="12" y2="15"/>
+                                    </svg>
+                                    <span>Upload File</span>
+                                </button>
+                                <button class="menu-item" id="addLinkBtn">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.72"/>
+                                        <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.72-1.72"/>
+                                    </svg>
+                                    <span>Add Link</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="toolbar-right">
+                        <span class="model-name send-text">SEND</span>
+                        <button class="input-btn send-btn" id="sendBtn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="22" y1="2" x2="11" y2="13"/>
+                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="input-wrapper">
+                    <input type="text" class="message-input" id="messageInput" placeholder="Message Atlas..." />
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Link Modal -->
+    <div id="linkModal" class="modal-overlay">
+        <div class="modal-content">
+            <h2>Add a Link</h2>
+            <input type="text" id="linkInput" placeholder="https://example.com">
+            <div class="modal-buttons">
+                <button id="closeModalBtn">Cancel</button>
+                <button id="submitLinkBtn">Add Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script>
+    // API Module with detailed logging
+    const API = {
+        baseURL: 'http://127.0.0.1:5000', // Changed from 5000
+
+        async sendMessage(message, mode = 'analytical') {
+            console.log('=== API Call ===');
+            console.log('Message:', message);
+            console.log('Mode:', mode);
+            
+            try {
+                const response = await fetch(`${this.baseURL}/analyze_topic`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: message, model: 'llama3' })
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response ok:', response.ok);
+                
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
+                }
+                
+                const data = JSON.parse(responseText);
+                console.log('Parsed data:', data);
+                return data;
+                
+            } catch (error) {
+                console.error('=== API Error ===');
+                console.error('Error details:', error);
+                throw error;
+            }
+        }
+    };
+
+    // Messages Module
+    const Messages = {
+        container: null,
+
+        init(containerSelector) {
+            this.container = document.querySelector(containerSelector);
+        },
+
+        addUserMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar">You</div>
+                    <div class="message-text">${this.escapeHtml(text)}</div>
+                </div>
+                <div class="message-time">${this.getTimeString()}</div>
+            `;
+            this.container.appendChild(messageDiv);
+            this.scrollToBottom();
+        },
+
+        addAIMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar">Atlas</div>
+                    <div class="message-text">${this.formatMarkdown(text)}</div>
+                </div>
+                <div class="message-time">${this.getTimeString()}</div>
+            `;
+            this.container.appendChild(messageDiv);
+            this.scrollToBottom();
+        },
+
+        showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.className = 'message ai-message loading-message';
+            loadingDiv.id = 'loading-indicator';
+            loadingDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar">Atlas</div>
+                    <div class="message-text">
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            this.container.appendChild(loadingDiv);
+            this.scrollToBottom();
+        },
+
+        hideLoading() {
+            const loading = document.getElementById('loading-indicator');
+            if (loading) loading.remove();
+        },
+
+        scrollToBottom() {
+            this.container.scrollTop = this.container.scrollHeight;
+        },
+
+        formatMarkdown(text) {
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n/g, '<br>');
+        },
+
+        escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        },
+
+        getTimeString() {
+            return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        }
+    };
+
+    // Chat Module
+    const Chat = {
+        currentMode: 'analytical',
+        isProcessing: false,
+
+        init() {
+            Messages.init('#chatMessages');
+            this.setupEventListeners();
+            // Only add welcome message once
+            if (document.querySelectorAll('.message').length === 0) {
+                this.addWelcomeMessage();
+            }
+        },
+
+        setupEventListeners() {
+            const sendBtn = document.getElementById('sendBtn');
+            const input = document.getElementById('messageInput');
+
+            sendBtn?.addEventListener('click', () => this.handleSend());
+            input?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.handleSend();
+                }
+            });
+        },
+
+        async handleSend() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message || this.isProcessing) return;
+
+            this.isProcessing = true;
+            input.value = '';
+            
+            Messages.addUserMessage(message);
+            Messages.showLoading();
+
+            // Add timeout for the request (90 seconds)
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Request timed out')), 90000)
+            );
+
+            try {
+                console.log('Sending message:', message);
+                
+                // Race between actual request and timeout
+                const response = await Promise.race([
+                    API.sendMessage(message, this.currentMode),
+                    timeoutPromise
+                ]);
+                
+                console.log('Received response:', response);
+                
+                Messages.hideLoading();
+                
+                const aiMessage = response.analysis || 
+                                response.result || 
+                                response.answer ||
+                                'No response received.';
+                                
+                Messages.addAIMessage(aiMessage);
+                
+            } catch (error) {
+                Messages.hideLoading();
+                
+                if (error.message === 'Request timed out') {
+                    Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
+                } else {
+                    Messages.addAIMessage('❌ Error: ' + error.message);
+                }
+                
+                console.error('Chat error:', error);
+            } finally {
+                this.isProcessing = false;
+            }
+        },
+
+        addWelcomeMessage() {
+            Messages.addAIMessage('Hello! I\'m **Atlas**, your misinformation fighter. Ask me anything!');
+        }
+    };
+
+    // Sidebar Module
+    const Sidebar = {
+        init() {
+            const toggleBtn = document.getElementById('toggleBtn');
+            const sidebar = document.getElementById('sidebar');
+
+            toggleBtn?.addEventListener('click', () => {
+                sidebar?.classList.toggle('collapsed');
+            });
+        }
+    };
+
+    // Initialize on DOM ready
+    document.addEventListener('DOMContentLoaded', () => {
+        console.log('Initializing Atlas Chat...');
+        Chat.init();
+        Sidebar.init();
+    });
+    </script>
+</body>
+</html>

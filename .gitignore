@@ -1,129 +1,75 @@
-# OS
-.DS_Store
-Thumbs.db
-
 # Python
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
-.env
-.env.*
-venv/
-.venv/
-env/
-pip-wheel-metadata/
+.Python
 build/
+develop-eggs/
 dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
-.python-version
-.pytest_cache/
+.installed.cfg
+*.egg
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-error.log*
-yarn-debug.log*
-.pnpm-debug.log*
-.pnp.*
-dist/
-next-env.d.ts
+# Virtual Environment
+.venv/
+venv/
+ENV/
+env/
 
-# IDEs / editors
+# IDE
 .vscode/
 .idea/
-*.iml
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# Jupyter
-.ipynb_checkpoints
-
-# Logs / databases / temp
-*.log
-*.sqlite3
-*.db
-tmp/
-temp/
-*.tmp
-*.bak
 *.swp
+*.swo
+*~
 
-# Coverage
-htmlcov/
-.coverage
-.coverage.*
+# Database
+*.db
+*.sqlite
+*.sqlite3
 
-# Docker
-docker-compose.override.yml
+# Logs
+*.log
+logs/
 
-# Misc
-*.env.local
-secrets.json
-```# filepath: c:\ATLAS\.gitignore
+# Environment variables - IMPORTANT!
+.env
+.env.local
+backend/.env
+
 # OS
 .DS_Store
 Thumbs.db
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.env
-.env.*
-venv/
-.venv/
-env/
-pip-wheel-metadata/
-build/
-dist/
-*.egg-info/
-.python-version
-.pytest_cache/
+# API Keys
+config/secrets.json
+*.key
 
-# Node
-node_modules/
-npm-debug.log*
-yarn-error.log*
-yarn-debug.log*
-.pnpm-debug.log*
-.pnp.*
-dist/
-next-env.d.ts
-
-# IDEs / editors
-.vscode/
-.idea/
-*.iml
-*.suo
-*.user
-*.userosscache
-*.sln.docstates
-
-# Jupyter
-.ipynb_checkpoints
-
-# Logs / databases / temp
-*.log
-*.sqlite3
-*.db
+# Temporary files
 tmp/
 temp/
 *.tmp
-*.bak
-*.swp
 
-# Coverage
-htmlcov/
-.coverage
-.coverage.*
+# Node modules
+node_modules/
 
-# Docker
-docker-compose.override.yml
+# Cache
+.cache/
+*.cache
 
-# Misc
-*.env.local
-secrets.json
+# Jupyter Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Test files (optional - you might want to keep these)
+test_*.py
+*_test.py

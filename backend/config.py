@@ -28,7 +28,7 @@ CONFIG_HEALTH = False  # Will be set to True after validation.
 SUPPORTED_MODELS = {
     "llama3": {
         "huggingface": "meta-llama/Meta-Llama-3-8B-Instruct",
-        "groq": "llama3-8b-8192"
+        "groq": "llama-3.1-8b-instant"
     },
     "mistral": {
         "huggingface": "mistralai/Mistral-7B-Instruct-v0.2",

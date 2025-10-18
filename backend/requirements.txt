@@ -8,7 +8,9 @@ limits>=3.10.1   # for rate limiting
 aiosqlite==0.20.0
 
 # --- AI / Models ---
+groq>=0.4.0
 openai>=1.13.0
+anthropic>=0.21.0
 huggingface_hub>=0.22.2
 transformers>=4.40.0
 torch>=2.2.0
@@ -22,6 +24,7 @@ beautifulsoup4>=4.12.3
 requests>=2.32.2
 tqdm>=4.66.2
 tabulate>=0.9.0
+selenium>=4.0.0
 
 # --- Analytics / Visualization ---
 wordcloud>=1.9.3
@@ -30,3 +33,5 @@ colorama>=0.4.6
 
 # --- Utils ---
 python-dotenv>=1.0.1
+pydantic>=2.0.0
+tenacity>=8.2.0

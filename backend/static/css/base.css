@@ -1,0 +1,32 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #000000;
+    color: #ffffff;
+    overflow-x: hidden;
+    height: 100vh;
+}
+
+/* Scrollbar Styling */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #333;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #444;
+}
