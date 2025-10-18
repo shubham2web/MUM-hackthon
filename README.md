@@ -176,6 +176,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - **Shubham** - [GitHub](https://github.com/shubham2web)
 - **Yash** - [GitHub](https://github.com/yashhh-23)
 - **Yash** -[GitHub](https://github.com/RedRex101)
+- **Sahil** -[GitHub](https://github.com/CyberCodezilla)
 
 ## 🙏 Acknowledgments
 
@@ -189,6 +190,8 @@ For questions or suggestions, please open an issue or contact
 1. [@shubham2web](https://github.com/shubham2web)
 2. [@yashhh-23](https://github.com/yashhh-23)
 3. [@RedRex101](https://github.com/RedRex101)
+4. [@CyberCodeZilla](https://github.com/CyberCodezilla)
+   
 ---
 
 **⭐ If you find this project useful, please give it a star!**
