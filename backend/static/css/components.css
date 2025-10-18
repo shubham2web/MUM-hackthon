@@ -11,6 +11,7 @@
     transition: all 0.3s ease;
     color: rgba(255, 255, 255, 0.8);
     white-space: nowrap;
+    overflow: hidden;
 }
 
 .nav-item:hover,
@@ -18,14 +19,24 @@
     background: rgba(2, 17, 37, 0.534);
     color: #ffffff;
     box-shadow: 0 0 8px rgba(85, 211, 233, 0.87), 0 0 6px rgba(55, 152, 243, 0.5);
-    transform: translateX(6px);
+}
+
+.sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 13px 8px;
+    width: 100%;
+}
+
+.sidebar.collapsed .nav-item:hover,
+.sidebar.collapsed .nav-item.active {
+    transform: none;
 }
 
 .nav-item svg {
     width: 20px;
     height: 20px;
     margin-right: 12px;
-    transition: margin-right 0.3s ease;
+    transition: all 0.3s ease;
     flex-shrink: 0;
 }
 
@@ -36,10 +47,12 @@
 .nav-text {
     opacity: 1;
     transition: opacity 0.3s ease;
+    overflow: hidden;
 }
 
 .sidebar.collapsed .nav-text {
     opacity: 0;
+    width: 0;
 }
 
 /* === MESSAGES === */
