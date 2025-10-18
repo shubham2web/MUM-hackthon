@@ -1,3 +1,5 @@
+console.log('📦 homepage.js LOADED');
+
 // DOM Elements
 const promptInput = document.getElementById('prompt');
 const loader = document.getElementById('loader');
@@ -20,12 +22,23 @@ const errorOkBtn = document.getElementById('errorOkBtn');
 let currentMode = 'analytical';
 let attachedFiles = [];
 
+// REMOVE THE DUPLICATE ANIMATION CODE - it's now in inline script
+// The animation is handled by inline script in homepage.html
+
 // ===== INITIALIZATION =====
 window.addEventListener('pageshow', function(event) {
+    console.log('📄 Page show event');
     loader.style.opacity = '0';
     setTimeout(() => {
         loader.style.display = 'none';
     }, 500);
+});
+
+// Start animation as soon as DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        initAnimatedTagline();
+    }, 100);
 });
 
 // ===== MODE SELECTION =====
@@ -231,3 +244,11 @@ if (window.innerWidth > 480 && typeof VANTA !== 'undefined') {
         zoom: 0.2
     });
 }
+
+// ===== INITIALIZATION =====
+window.addEventListener('pageshow', function(event) {
+    loader.style.opacity = '0';
+    setTimeout(() => {
+        loader.style.display = 'none';
+    }, 500);
+});
