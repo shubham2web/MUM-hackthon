@@ -217,39 +217,6 @@ function updateSendButtonState() {
 promptInput.addEventListener('input', updateSendButtonState);
 updateSendButtonState();
 
-// ===== ATLAS ANIMATION =====
-const atlasLetters = document.querySelectorAll('.atlas span');
-let targetX = 0, targetY = 0;
-let currentX = 0, currentY = 0;
-const lerp = (a, b, n) => a + (b - a) * n;
-
-document.addEventListener('mousemove', (e) => {
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    targetX = (e.pageX - centerX) / 40;
-    targetY = (e.pageY - centerY) / 40;
-});
-
-function animateAtlas() {
-    currentX = lerp(currentX, targetX, 0.12);
-    currentY = lerp(currentY, targetY, 0.12);
-    atlasLetters.forEach((letter, i) => {
-        const delay = (i - atlasLetters.length / 2) * 5;
-        const x = currentX + delay;
-        const y = currentY;
-        letter.style.transform = `translate(${x}px, ${y}px) rotateY(${currentX}deg) rotateX(${-currentY}deg)`;
-        letter.style.textShadow = `${currentX}px ${currentY}px 12px #42b5eb, ${-currentX}px ${-currentY}px 24px #1f58f5`;
-    });
-    requestAnimationFrame(animateAtlas);
-}
-
-animateAtlas();
-
-document.addEventListener('mouseleave', () => {
-    targetX = 0;
-    targetY = 0;
-});
-
 // ===== VANTA FOG =====
 let vantaFog = null;
 

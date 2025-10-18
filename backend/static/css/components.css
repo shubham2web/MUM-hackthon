@@ -79,21 +79,31 @@
     align-items: flex-start;
 }
 
+/* Avatar styling with theme colors */
 .message-avatar {
-    font-size: 11px;
+    min-width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
     font-weight: 600;
-    margin-bottom: 4px;
-    opacity: 0.7;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    font-size: 14px;
+    flex-shrink: 0;
 }
 
+/* Atlas avatar - Deep blue gradient matching the theme */
+.ai-message .message-avatar,
+.bot .message-avatar {
+    background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%);
+    box-shadow: 0 0 10px rgba(30, 58, 138, 0.5);
+}
+
+/* User avatar - Cyan gradient matching the theme */
 .user-message .message-avatar {
-    color: #60a5fa;
-}
-
-.ai-message .message-avatar {
-    color: #9ca3af;
+    background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%);
+    box-shadow: 0 0 10px rgba(6, 182, 212, 0.5);
 }
 
 .message-text {

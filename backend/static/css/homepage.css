@@ -46,7 +46,7 @@ body {
     100% { transform: translateX(-50%) skew(0deg); }
 }
 
-/* Background text styling */
+/* Background text styling with STRONGER glowing effect */
 .background-text {
     position: absolute;
     top: 50%;
@@ -55,11 +55,50 @@ body {
     font-size: 35vw;
     font-weight: 700;
     color: #000000;
-    -webkit-text-stroke: 0.25px #fff;
+    -webkit-text-stroke: 1px rgba(255, 255, 255, 0.8); /* Thicker white stroke */
     z-index: 1;
     pointer-events: none;
     user-select: none;
     letter-spacing: -0.02em;
+    
+    /* MUCH STRONGER white light effect - multiple layers */
+    text-shadow: 
+        0 0 30px rgba(255, 255, 255, 0.9),
+        0 0 60px rgba(255, 255, 255, 0.7),
+        0 0 90px rgba(255, 255, 255, 0.6),
+        0 0 120px rgba(255, 255, 255, 0.5),
+        0 0 150px rgba(255, 255, 255, 0.4),
+        0 0 180px rgba(255, 255, 255, 0.3),
+        0 0 210px rgba(255, 255, 255, 0.2),
+        0 0 240px rgba(255, 255, 255, 0.1);
+    
+    /* Stronger glow animation */
+    animation: textGlow 3s ease-in-out infinite alternate;
+}
+
+@keyframes textGlow {
+    0% {
+        text-shadow: 
+            0 0 30px rgba(255, 255, 255, 0.9),
+            0 0 60px rgba(255, 255, 255, 0.7),
+            0 0 90px rgba(255, 255, 255, 0.6),
+            0 0 120px rgba(255, 255, 255, 0.5),
+            0 0 150px rgba(255, 255, 255, 0.4),
+            0 0 180px rgba(255, 255, 255, 0.3),
+            0 0 210px rgba(255, 255, 255, 0.2),
+            0 0 240px rgba(255, 255, 255, 0.1);
+    }
+    100% {
+        text-shadow: 
+            0 0 40px rgba(255, 255, 255, 1),
+            0 0 80px rgba(255, 255, 255, 0.8),
+            0 0 120px rgba(255, 255, 255, 0.7),
+            0 0 160px rgba(255, 255, 255, 0.6),
+            0 0 200px rgba(255, 255, 255, 0.5),
+            0 0 240px rgba(255, 255, 255, 0.4),
+            0 0 280px rgba(255, 255, 255, 0.3),
+            0 0 320px rgba(255, 255, 255, 0.2);
+    }
 }
 
 .background-text::after {
@@ -74,6 +113,39 @@ body {
     mask-image: linear-gradient(to bottom, white 70%, transparent 100%);
 }
 
+/* MUCH STRONGER radial glow behind the text */
+.background-text::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 150%;
+    height: 150%;
+    background: radial-gradient(
+        ellipse at center,
+        rgba(255, 255, 255, 0.25) 0%,
+        rgba(255, 255, 255, 0.15) 20%,
+        rgba(255, 255, 255, 0.10) 40%,
+        rgba(255, 255, 255, 0.05) 60%,
+        transparent 80%
+    );
+    z-index: -1;
+    animation: glowPulse 2.5s ease-in-out infinite alternate;
+    filter: blur(40px); /* Add blur for softer glow */
+}
+
+@keyframes glowPulse {
+    0% {
+        opacity: 0.8;
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        opacity: 1;
+        transform: translate(-50%, -50%) scale(1.15);
+    }
+}
+
 /* Main container */
 .container {
     position: relative;
@@ -84,21 +156,13 @@ body {
     max-width: 620px;
 }
 
-/* ATLAS title */
+/* ATLAS title - REMOVED */
 .atlas {
-    font-family: 'Audiowide', 'Orbitron', sans-serif;
-    font-size: 3rem;
-    display: flex;
-    justify-content: center;
-    gap: 8px;
-    color: #000;
-    letter-spacing: 5px;
-    text-shadow: 0 0 10px #42b5eb, 0 0 20px #1f58f5;
+    display: none; /* Hide the front ATLAS completely */
 }
 
 .atlas span {
-    display: inline-block;
-    transition: transform 0.15s ease, text-shadow 0.2s ease;
+    display: none;
 }
 
 /* AI tagline */

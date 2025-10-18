@@ -8,42 +8,104 @@
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Audiowide&display=swap" rel="stylesheet">
     
-    <!-- CSS Modules -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v=2">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}?v=2">
+    <!-- CSS Modules with cache busting -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v={{ range(1, 10000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v={{ range(1, 10000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v={{ range(1, 10000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}?v={{ range(1, 10000) | random }}">
     
     <style>
-        /* Force message alignment */
-        .message {
+        /* CRITICAL: Force message layout - OVERRIDE EVERYTHING */
+        .chat-messages {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 0 !important;
+            padding: 24px !important;
+        }
+        
+        .message,
+        .user-message,
+        .ai-message,
+        .bot {
             display: flex !important;
             flex-direction: column !important;
             margin-bottom: 24px !important;
             width: 100% !important;
+            align-items: flex-start !important;
         }
+        
         .user-message {
             align-items: flex-end !important;
         }
-        .ai-message {
-            align-items: flex-start !important;
-        }
+        
         .message-content {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: flex-start !important;
+            gap: 12px !important;
             max-width: 65% !important;
         }
+        
         .user-message .message-content {
-            align-items: flex-end !important;
+            flex-direction: row-reverse !important;
         }
-        .ai-message .message-content {
-            align-items: flex-start !important;
+        
+        .message-avatar {
+            width: 40px !important;
+            height: 40px !important;
+            min-width: 40px !important;
+            border-radius: 50% !important;
+            display: flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-weight: 600 !important;
+            font-size: 14px !important;
+            flex-shrink: 0 !important;
         }
+        
+        .ai-message .message-avatar {
+            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important; /* Deep blue gradient */
+            color: white !important;
+        }
+        
+        .user-message .message-avatar {
+            background: linear-gradient(135deg, #06b6d4 0%, #0891b2 100%) !important; /* Cyan gradient */
+            color: white !important;
+        }
+        
+        .message-text {
+            padding: 12px 16px !important;
+            border-radius: 16px !important;
+            line-height: 1.6 !important;
+            word-wrap: break-word !important;
+            flex: 1 !important;
+        }
+        
         .user-message .message-text {
             background: linear-gradient(135deg, #3b82f6, #2563eb) !important;
             color: #ffffff !important;
+            border-radius: 16px 16px 2px 16px !important;
         }
+        
         .ai-message .message-text {
             background: rgba(30, 30, 30, 0.95) !important;
             color: #e5e7eb !important;
+            border: 1px solid rgba(255, 255, 255, 0.08) !important;
+            border-radius: 16px 16px 16px 2px !important;
+        }
+        
+        .message-time {
+            display: block !important;
+            font-size: 10px !important;
+            color: rgba(255, 255, 255, 0.4) !important;
+            margin-top: 4px !important;
+            padding-left: 52px !important;
+        }
+        
+        .user-message .message-time {
+            padding-left: 0 !important;
+            padding-right: 52px !important;
+            text-align: right !important;
         }
     </style>
 </head>
