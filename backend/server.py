@@ -75,7 +75,7 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-    if (request.endpoint in ['home', 'chat_page', 'healthz', 'analyze_topic'] or 
+    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic'] or  # ← CHANGE 'chat_page' to 'chat'
         request.path.startswith('/static/') or
         not API_KEY or 
         request.method == 'OPTIONS'):
@@ -111,10 +111,10 @@ async def home():
     """Landing/Hero page"""
     return await render_template("homepage.html")
 
-@app.route("/chat")
-async def chat_page():
-    """Main chat interface"""
-    return await render_template("index.html")
+@app.route('/chat')
+async def chat():  # ← ADD 'async' here!
+    """Render the chat interface - NO LOGIN REQUIRED"""
+    return await render_template('index.html')  # ← ADD 'await' here!
 
 @app.route("/healthz")
 async def healthz():

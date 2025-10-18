@@ -286,9 +286,46 @@
 
         init() {
             Messages.init('#chatMessages');
-            this.setupEventListeners();
-            // Only add welcome message once
-            if (document.querySelectorAll('.message').length === 0) {
+            
+            // Check for initial prompt FIRST, before setupEventListeners
+            const initialPrompt = sessionStorage.getItem('initialPrompt');
+            const chatMode = sessionStorage.getItem('chatMode');
+            
+            console.log('🔍 Checking for initial prompt:', initialPrompt);
+            console.log('🔍 Chat mode:', chatMode);
+            
+            if (initialPrompt) {
+                // Clear storage immediately
+                sessionStorage.removeItem('initialPrompt');
+                sessionStorage.removeItem('chatMode');
+                
+                // Set mode if provided
+                if (chatMode === 'debate') {
+                    this.currentMode = 'debate';
+                    // Update UI to show debate mode selected
+                    const debateNavItem = document.querySelector('[data-mode="debate"]');
+                    if (debateNavItem) {
+                        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+                        debateNavItem.classList.add('active');
+                    }
+                }
+                
+                // Set up event listeners first
+                this.setupEventListeners();
+                
+                // IMMEDIATELY send the message (no timeout needed)
+                const input = document.getElementById('messageInput');
+                if (input) {
+                    console.log('✅ Found input, setting value and sending...');
+                    input.value = initialPrompt;
+                    // Force send immediately
+                    this.handleSend();
+                } else {
+                    console.error('❌ Input field not found!');
+                }
+            } else {
+                // Normal flow - setup listeners and show welcome
+                this.setupEventListeners();
                 this.addWelcomeMessage();
             }
         },

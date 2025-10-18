@@ -955,68 +955,22 @@ errorOkBtn.addEventListener('click', () => {
                 return; // Do nothing if there's no input
             }
 
-            // --- UPDATE: Handle submission based on the selected mode ---
+            console.log('📤 Submitting from homepage:', promptValue);
+            console.log('📤 Mode:', currentMode);
 
-            // For Debate mode, just redirect with the prompt. The index page handles the stream.
-            if (currentMode === 'debate') {
-                let redirectUrl = `./index.html?mode=debate&prompt=${encodeURIComponent(promptValue)}`;
-                // Add any attached file info to the URL as well
-                if (attachedFiles.length > 0) {
-                    attachedFiles.forEach(file => {
-                        if (file.type === 'link') {
-                            redirectUrl += `&link=${encodeURIComponent(file.originalUrl || file.name)}`;
-                        } else {
-                            redirectUrl += `&file=${encodeURIComponent(file.name)}`;
-                        }
-                    });
-                }
-                window.location.href = redirectUrl;
-                return; // Exit the function
-            }
+            // Store in sessionStorage for chat page
+            sessionStorage.setItem('initialPrompt', promptValue);
+            sessionStorage.setItem('chatMode', currentMode);
+            
+            console.log('✅ Stored in sessionStorage');
+            console.log('✅ Redirecting to /chat...');
 
-            // For Analytical mode, fetch the data first, then redirect.
-            if (currentMode === 'analytical') {
-                loader.style.display = 'flex';
-                setTimeout(() => loader.style.opacity = '1', 10);
-
-                try {
-                    const response = await fetch(`http://127.0.0.1:5000/analyze_topic`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            topic: promptValue,
-                            model: "llama3"
-                        })
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    
-                    // Store result in localStorage for the index page to pick up
-                    localStorage.setItem("atlas_result", JSON.stringify(data));
-                    
-                    let redirectUrl = `./index.html?mode=chat&prompt=${encodeURIComponent(promptValue)}`;
-                    // Add attachment info to URL
-                    if (attachedFiles.length > 0) {
-                        attachedFiles.forEach(file => {
-                            if (file.type === 'link') {
-                                redirectUrl += `&link=${encodeURIComponent(file.originalUrl || file.name)}`;
-                            } else {
-                                redirectUrl += `&file=${encodeURIComponent(file.name)}`;
-                            }
-                        });
-                    }
-                    window.location.href = redirectUrl;
-
-                } catch (error) {
-                    console.error("Error calling backend:", error);
-                    loader.style.display = 'none';
-                    alert("Failed to reach server. Is the backend running?");
-                }
-            }
+            // Show loader
+            loader.style.display = 'flex';
+            setTimeout(() => loader.style.opacity = '1', 10);
+            
+            // Redirect to chat
+            window.location.href = '/chat';
         }
 
         // Add event listener for the send button
