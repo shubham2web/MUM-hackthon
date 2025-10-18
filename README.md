@@ -184,8 +184,9 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 📧 Contact
 
-For questions or suggestions, please open an issue or contact [@shubham2web](https://github.com/shubham2web)
-
+For questions or suggestions, please open an issue or contact 
+1. [@shubham2web](https://github.com/shubham2web)
+2. [@yashhh-23](https://github.com/yashhh-23)
 ---
 
 **⭐ If you find this project useful, please give it a star!**
