@@ -1,81 +1,190 @@
-# ATLAS - Advanced Text Learning and Analysis System
+# 🛡️ ATLAS - AI-Powered Misinformation Fighter
 
-## Overview
-ATLAS is a comprehensive backend system featuring AI-powered document parsing, professional data scraping, social media analytics, and intelligent agent capabilities.
+ATLAS is an advanced AI system designed to combat misinformation through evidence-based analysis and multi-perspective debate simulation.
 
-## Features
-- 📄 **Document Parser**: Multi-format file parsing with OCR support
-- 🤖 **AI Agent**: Intelligent automation and analysis
-- 🔍 **Professional Scraper**: Extract professional profile data
-- 📊 **Social Media Analytics**: Generate detailed social media reports
-- 💾 **Database Management**: SQLite-based data persistence
-- 🔐 **API Key Management**: Secure API key generation and validation
+![ATLAS Banner](https://via.placeholder.com/1200x300/0a0e27/42b5eb?text=ATLAS+Misinformation+Fighter)
 
-## Project Structure
-```
-ATLAS/
-├── backend/
-│   ├── server.py              # Main Flask/FastAPI server
-│   ├── file_parser.py         # Document parsing engine
-│   ├── ai_agent.py            # AI agent logic
-│   ├── pro_scraper.py         # Professional profile scraper
-│   ├── db_manager.py          # Database operations
-│   ├── config.py              # Configuration management
-│   ├── utils.py               # Utility functions
-│   ├── requirements.txt       # Python dependencies
-│   └── templates/
-│       └── index.html         # Web interface
-```
+## ✨ Features
 
-## Installation
+- 🤖 **AI-Powered Analysis**: Leverages LLaMA models via Groq for fast, intelligent responses
+- 🔍 **Evidence Gathering**: Automatically scrapes and analyzes multiple sources
+- ⚡ **Real-Time Chat Interface**: Beautiful, responsive UI with glassmorphism design
+- 🎯 **Debate Simulation**: Multi-agent debate system for comprehensive analysis
+- 🌐 **Source Verification**: Cross-references claims with credible sources
+- 📊 **Credibility Scoring**: Evaluates information reliability
+
+## 🚀 Quick Start
 
 ### Prerequisites
-- Python 3.8+
-- pip
 
-### Setup
-1. **Clone the repository:**
+- Python 3.11+
+- API Keys for:
+  - [Groq](https://console.groq.com/)
+  - [Serper](https://serper.dev/)
+  - [Jina AI](https://jina.ai/)
+  - [HuggingFace](https://huggingface.co/) (optional)
+
+### Installation
+
+1. **Clone the repository**
    ```bash
    git clone https://github.com/shubham2web/MUM-hackthon.git
    cd MUM-hackthon
    ```
 
-2. **Create virtual environment:**
+2. **Create virtual environment**
    ```bash
    python -m venv .venv
    .venv\Scripts\activate  # Windows
+   # source .venv/bin/activate  # Linux/Mac
    ```
 
-3. **Install dependencies:**
+3. **Install dependencies**
    ```bash
-   cd backend
    pip install -r requirements.txt
    ```
 
-4. **Configure environment variables:**
-   Create a `.env` file in the `backend` directory:
-   ```env
-   # Add your configuration here
-   DATABASE_URL=sqlite:///database.db
-   SECRET_KEY=your_secret_key_here
+4. **Set up environment variables**
+   ```bash
+   # Copy the example file
+   copy backend\.env.example backend\.env
+   
+   # Edit backend\.env and add your API keys
    ```
 
-5. **Run the application:**
+5. **Run the server**
    ```bash
+   cd backend
    python server.py
    ```
 
-## Usage
-Access the application at `http://localhost:5000` (or the configured port)
+6. **Open your browser**
+   ```
+   http://127.0.0.1:5000
+   ```
 
-## Configuration
-Edit `backend/config.py` to customize settings.
+## 📁 Project Structure
 
-## Contributing
-Contributions are welcome! Please feel free to submit a Pull Request.
+```
+ATLAS/
+├── backend/
+│   ├── server.py           # Main Flask/Quart server
+│   ├── ai_agent.py         # AI agent with multi-provider support
+│   ├── pro_scraper.py      # Evidence gathering and web scraping
+│   ├── db_manager.py       # Database operations
+│   ├── config.py           # Configuration management
+│   ├── utils.py            # Utility functions
+│   ├── static/
+│   │   └── css/            # Modular CSS files
+│   │       ├── base.css
+│   │       ├── layout.css
+│   │       ├── components.css
+│   │       └── animations.css
+│   └── templates/
+│       ├── homepage.html   # Landing page
+│       └── index.html      # Chat interface
+├── .gitignore
+├── requirements.txt
+└── README.md
+```
 
-## License
-MIT License
+## 🎨 UI Features
 
-## Contact
-GitHub: [@shubham2web](https://github.com/shubham2web)
+- **Glassmorphism Design**: Modern, translucent UI elements
+- **Animated Background**: Interactive starry space theme
+- **Responsive Layout**: Works on desktop and mobile
+- **Real-Time Updates**: Streaming responses with typing indicators
+- **Dark Mode**: Eye-friendly dark theme
+
+## 🔧 Configuration
+
+Edit `backend/.env`:
+
+```env
+GROQ_API_KEY=your_key_here
+SERPER_API_KEY=your_key_here
+JINA_API_KEY=your_key_here
+ATLAS_API_KEY=optional_custom_key
+
+DATABASE_PATH=db/atlas.db
+DEBUG_MODE=False
+```
+
+## 🤝 API Endpoints
+
+### Chat Analysis
+```http
+POST /analyze_topic
+Content-Type: application/json
+
+{
+  "topic": "Your question here",
+  "model": "llama3"
+}
+```
+
+### Debate Generation
+```http
+POST /run_debate
+Content-Type: application/json
+
+{
+  "topic": "Debate topic",
+  "model": "llama-3.3-70b-versatile"
+}
+```
+
+## 🛠️ Technologies Used
+
+- **Backend**: Python, Quart (Async Flask)
+- **AI**: Groq (LLaMA 3), HuggingFace
+- **Web Scraping**: BeautifulSoup, Requests
+- **Database**: SQLite
+- **Frontend**: HTML5, CSS3, Vanilla JavaScript
+- **APIs**: Serper (Google Search), Jina (Reader)
+
+## 📊 How It Works
+
+1. **User Query**: User asks a question or submits a claim
+2. **Evidence Gathering**: System searches multiple sources using Serper API
+3. **Content Extraction**: Jina Reader extracts clean text from sources
+4. **AI Analysis**: LLaMA model analyzes evidence and generates response
+5. **Debate Mode**: Multiple AI agents debate different perspectives
+6. **Result**: User receives comprehensive, evidence-based answer
+
+## 🐛 Known Issues
+
+- [ ] Chat interface requires server restart for full functionality
+- [ ] Evidence gathering timeout on complex queries
+- [ ] Database initialization on first run
+
+## 🚧 Roadmap
+
+- [ ] Add user authentication
+- [ ] Implement chat history
+- [ ] Add export functionality (PDF/Markdown)
+- [ ] Multi-language support
+- [ ] Mobile app version
+- [ ] Browser extension
+
+## 📝 License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## 👥 Contributors
+
+- **Shubham** - [GitHub](https://github.com/shubham2web)
+
+## 🙏 Acknowledgments
+
+- MUM Hackathon organizers
+- Groq for fast LLaMA inference
+- Open-source community
+
+## 📧 Contact
+
+For questions or suggestions, please open an issue or contact [@shubham2web](https://github.com/shubham2web)
+
+---
+
+**⭐ If you find this project useful, please give it a star!**
