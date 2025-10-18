@@ -175,6 +175,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 - **Shubham** - [GitHub](https://github.com/shubham2web)
 - **Yash** - [GitHub](https://github.com/yashhh-23)
+- **Yash** -[GitHub](https://github.com/RedRex101)
 
 ## 🙏 Acknowledgments
 
