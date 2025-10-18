@@ -69,5 +69,6 @@ Go to the original repository and click "New Pull Request"
 ## Questions?
 
 Open an issue or reach out to [@shubham2web](https://github.com/shubham2web)
+                              [@yashhh-23](https://github.com/yashhh-23)
 
 Thank you for contributing! 🚀
