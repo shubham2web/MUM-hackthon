@@ -188,6 +188,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 For questions or suggestions, please open an issue or contact 
 1. [@shubham2web](https://github.com/shubham2web)
 2. [@yashhh-23](https://github.com/yashhh-23)
+3. [@RedRex101](https://github.com/RedRex101)
 ---
 
 **⭐ If you find this project useful, please give it a star!**
