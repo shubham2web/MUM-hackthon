@@ -5,8 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atlas - Misinformation Fighter</title>
     
-    <!-- External CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}">
+    <!-- External CSS with cache busting -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}?v={{ range(1, 10000) | random }}">
+    
+    <!-- Inline critical CSS to ensure glow effect loads -->
+    <style>
+        /* VERY SUBTLE white glow on ATLAS background text */
+        .background-text {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            font-size: 35vw !important;
+            font-weight: 700 !important;
+            color: #000000 !important;
+            -webkit-text-stroke: 0.3px rgba(255, 255, 255, 0.3) !important;
+            z-index: 1 !important;
+            pointer-events: none !important;
+            user-select: none !important;
+            letter-spacing: -0.02em !important;
+            
+            /* MINIMAL white light effect - very subtle */
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.25),
+                0 0 20px rgba(255, 255, 255, 0.18),
+                0 0 30px rgba(255, 255, 255, 0.12),
+                0 0 40px rgba(255, 255, 255, 0.08) !important;
+            
+            animation: textGlow 5s ease-in-out infinite alternate !important;
+        }
+
+        @keyframes textGlow {
+            0% {
+                text-shadow: 
+                    0 0 10px rgba(255, 255, 255, 0.25),
+                    0 0 20px rgba(255, 255, 255, 0.18),
+                    0 0 30px rgba(255, 255, 255, 0.12),
+                    0 0 40px rgba(255, 255, 255, 0.08);
+            }
+            100% {
+                text-shadow: 
+                    0 0 15px rgba(255, 255, 255, 0.3),
+                    0 0 25px rgba(255, 255, 255, 0.22),
+                    0 0 35px rgba(255, 255, 255, 0.15),
+                    0 0 45px rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        /* Very subtle radial glow behind text */
+        .background-text::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 120% !important;
+            height: 120% !important;
+            background: radial-gradient(
+                ellipse at center,
+                rgba(255, 255, 255, 0.08) 0%,
+                rgba(255, 255, 255, 0.05) 20%,
+                rgba(255, 255, 255, 0.03) 40%,
+                rgba(255, 255, 255, 0.02) 60%,
+                transparent 80%
+            ) !important;
+            z-index: -1 !important;
+            animation: glowPulse 4s ease-in-out infinite alternate !important;
+            filter: blur(25px) !important;
+        }
+
+        @keyframes glowPulse {
+            0% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0.7;
+                transform: translate(-50%, -50%) scale(1.05);
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="vanta-fog"></div>
