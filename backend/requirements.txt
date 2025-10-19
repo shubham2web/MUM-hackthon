@@ -1,37 +1,58 @@
-# --- Core server ---
-quart==0.19.9
-Quart-Cors==0.6.0
-hypercorn==0.16.0
-limits>=3.10.1   # for rate limiting
+# Core dependencies for pro_scraper.py
+requests==2.32.5
+beautifulsoup4==4.14.2
+fake-useragent==2.2.0
+trafilatura==2.0.0
+python-dateutil==2.9.0.post0
+python-dotenv==1.1.1
 
-# --- Database ---
+# Text processing and NLP
+textblob==0.19.0
+sumy==0.11.0
+
+# Data visualization and output
+tabulate==0.9.0
+tqdm==4.67.1
+wordcloud==1.9.4
+colorama==0.4.6
+matplotlib==3.10.7
+
+# Compatible NumPy version (avoid 2.x conflicts)
+numpy<2.0.0
+
+# ML libraries - commented out due to compatibility issues
+# Install manually if needed:
+# pip install "numpy<2" --force-reinstall
+# pip install spacy --no-deps
+# pip install transformers --no-deps
+# Then install missing dependencies as needed
+# spacy>=3.4,<3.8
+# transformers>=4.21,<4.30
+# torch>=1.13,<2.2
+
+# Web framework dependencies (if using API features)
+fastapi==0.104.1
+uvicorn==0.24.0
+starlette==0.27.0
+pydantic==2.12.3
+pydantic-settings==2.1.0
+Jinja2==3.1.6
+
+# Database
+SQLAlchemy==2.0.23
 aiosqlite==0.20.0
 
-# --- AI / Models ---
-groq>=0.4.0
-openai>=1.13.0
-anthropic>=0.21.0
-huggingface_hub>=0.22.2
-transformers>=4.40.0
-torch>=2.2.0
-textblob>=0.18.0.post0
-spacy>=3.7.4
-sumy>=0.11.0
+# Development tools
+pytest==8.4.2
+black==25.9.0
+flake8==7.3.0
+mypy==1.18.2
+isort==6.0.1
 
-# --- Scraping / NLP helpers ---
-trafilatura>=1.7.0
-beautifulsoup4>=4.12.3
-requests>=2.32.2
-tqdm>=4.66.2
-tabulate>=0.9.0
-selenium>=4.0.0
-
-# --- Analytics / Visualization ---
-wordcloud>=1.9.3
-matplotlib>=3.8.3
-colorama>=0.4.6
-
-# --- Utils ---
-python-dotenv>=1.0.1
-pydantic>=2.0.0
-tenacity>=8.2.0
+# Additional utilities
+lxml==5.4.0
+pillow==12.0.0
+certifi==2025.10.5
+charset-normalizer==3.4.4
+urllib3==2.5.0
+idna==3.11

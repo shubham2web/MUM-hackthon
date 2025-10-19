@@ -1,8 +1,6 @@
 """
 Professional, production-ready news/article scraper and analysis pipeline.
 
--- HACKATHON EDITION V4 (PROFESSIONAL) --
-
 Features:
   - Real-Time Topic Analysis & Advanced Post-Scrape Analysis/Ranking.
   - Interactive HTML Dashboard:
@@ -17,15 +15,6 @@ Features:
   - Polished CLI and Console Output with progress bar and color.
   - Robust Scraping: Includes an improved Google News scraper with multiple
     fallback selectors to handle changes in page structure.
-
-Usage for Hackathon Judges:
-  # First Run: Scrape, analyze, and create all reports
-  python pro_scraper_v2.py --topic "quantum computing breakthroughs" --num-results 10 \
-    --summarize --extract-entities --sentiment --summary-table --rank-by relevance \
-    --dashboard "quantum_report.html" --save-report "quantum_report.json" --db "cache.db"
-
-  # Second Run (Instant): Regenerate the dashboard from the saved report
-  python pro_scraper_v2.py --load-report "quantum_report.json" --dashboard "quantum_report_new.html"
 """
 
 from __future__ import annotations
@@ -40,9 +29,11 @@ import io
 import json
 import logging
 import os
+import random
 import sqlite3
 import sys
 import textwrap
+import time
 import urllib.parse as up
 from typing import Any, Dict, List, Optional, TypedDict, Tuple
 import re
@@ -50,6 +41,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter, Retry
+from fake_useragent import UserAgent
 
 # --- Optional Libraries ---
 # Install full suite: pip install spacy textblob sumy transformers tabulate tqdm wordcloud matplotlib colorama
@@ -71,7 +63,7 @@ except ImportError:
 try:
     import spacy
     from spacy.cli.download import download as spacy_download
-except ImportError:
+except Exception:
     spacy = None
 try:
     from textblob import TextBlob
@@ -85,7 +77,7 @@ except ImportError:
     PlaintextParser = None
 try:
     from transformers import pipeline as transformers_pipeline
-except ImportError:
+except Exception:
     transformers_pipeline = None
 try:
     from tabulate import tabulate
@@ -656,3 +648,441 @@ def main(argv: Optional[List[str]] = None) -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
+
+import asyncio
+import logging
+import os
+import random
+import time
+from typing import List, Dict, Optional
+
+import requests
+from bs4 import BeautifulSoup
+from fake_useragent import UserAgent
+from playwright.async_api import async_playwright
+
+logger = logging.getLogger(__name__)
+
+class JinaScraper:
+    """Original Jina Reader scraper - fastest method"""
+    
+    def __init__(self):
+        self.jina_api_key = os.getenv('JINA_API_KEY', '')
+        
+    async def scrape(self, url: str) -> str:
+        """Scrape using Jina Reader API"""
+        try:
+            jina_url = f"https://r.jina.ai/{url}"
+            headers = {
+                "Authorization": f"Bearer {self.jina_api_key}",
+                "X-Return-Format": "text"
+            }
+            
+            async with aiohttp.ClientSession() as session:
+                async with session.get(jina_url, headers=headers, timeout=30) as response:
+                    if response.status == 200:
+                        content = await response.text()
+                        logger.info(f"✅ Jina successfully scraped {url}")
+                        return content
+                    else:
+                        logger.warning(f"Jina failed for {url}: {response.status}")
+                        return ""
+        except Exception as e:
+            logger.error(f"Jina error for {url}: {e}")
+            return ""
+
+
+class PlaywrightScraper:
+    """Browser automation scraper - handles JS and most anti-bot"""
+    
+    def __init__(self):
+        self.timeout = 30000
+        
+    async def scrape(self, url: str, wait_for_selector: str = 'body') -> str:
+        """Scrape using Playwright with stealth techniques"""
+        try:
+            async with async_playwright() as p:
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--disable-blink-features=AutomationControlled',
+                        '--disable-dev-shm-usage',
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-web-security',
+                        '--disable-features=IsolateOrigins,site-per-process'
+                    ]
+                )
+                
+                context = await browser.new_context(
+                    viewport={'width': 1920, 'height': 1080},
+                    user_agent='Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    locale='en-US',
+                    timezone_id='America/New_York',
+                    permissions=['geolocation'],
+                    geolocation={'latitude': 40.7128, 'longitude': -74.0060}
+                )
+                
+                # Add stealth scripts
+                await context.add_init_script("""
+                    Object.defineProperty(navigator, 'webdriver', {
+                        get: () => undefined
+                    });
+                    
+                    window.chrome = {
+                        runtime: {}
+                    };
+                """)
+                
+                page = await context.new_page()
+                
+                # Navigate with retry logic
+                try:
+                    await page.goto(url, wait_until='networkidle', timeout=self.timeout)
+                except:
+                    await page.goto(url, wait_until='domcontentloaded', timeout=self.timeout)
+                
+                # Wait for content
+                try:
+                    await page.wait_for_selector(wait_for_selector, timeout=10000)
+                except:
+                    await asyncio.sleep(2)
+                
+                # Scroll to load lazy content
+                await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+                await asyncio.sleep(1)
+                
+                content = await page.content()
+                await browser.close()
+                
+                # Parse content
+                soup = BeautifulSoup(content, 'html.parser')
+                for tag in soup(["script", "style", "nav", "footer", "header", "aside"]):
+                    tag.decompose()
+                
+                text = soup.get_text(separator='\n', strip=True)
+                
+                if len(text) > 100:
+                    logger.info(f"✅ Playwright successfully scraped {url}")
+                    return text
+                else:
+                    logger.warning(f"Playwright got minimal content from {url}")
+                    return ""
+                    
+        except Exception as e:
+            logger.error(f"Playwright error for {url}: {e}")
+            return ""
+
+
+class StealthRequestsScraper:
+    """Enhanced requests with stealth headers and retries"""
+    
+    def __init__(self):
+        self.ua = UserAgent()
+        self.session = requests.Session()
+        
+    def get_headers(self) -> dict:
+        """Generate realistic browser headers"""
+        return {
+            'User-Agent': self.ua.random,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Accept-Encoding': 'gzip, deflate, br',
+            'DNT': '1',
+            'Connection': 'keep-alive',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Cache-Control': 'max-age=0',
+            'TE': 'trailers'
+        }
+    
+    def scrape(self, url: str, max_retries: int = 3) -> str:
+        """Scrape with retries and random delays"""
+        for attempt in range(max_retries):
+            try:
+                # Random delay to avoid rate limiting
+                time.sleep(random.uniform(1, 3))
+                
+                response = self.session.get(
+                    url,
+                    headers=self.get_headers(),
+                    timeout=15,
+                    allow_redirects=True,
+                    verify=True
+                )
+                
+                if response.status_code == 200:
+                    soup = BeautifulSoup(response.text, 'html.parser')
+                    for tag in soup(["script", "style", "nav", "footer", "header"]):
+                        tag.decompose()
+                    
+                    text = soup.get_text(separator='\n', strip=True)
+                    
+                    if len(text) > 100:
+                        logger.info(f"✅ Stealth requests succeeded for {url}")
+                        return text
+                        
+            except Exception as e:
+                logger.warning(f"Stealth requests attempt {attempt + 1} failed for {url}: {e}")
+                
+        return ""
+
+
+class ScraperAPIScraper:
+    """ScraperAPI - handles CAPTCHAs and complex anti-bot"""
+    
+    def __init__(self):
+        self.api_key = os.getenv('SCRAPERAPI_KEY', '')
+        
+    def scrape(self, url: str) -> str:
+        """Scrape using ScraperAPI"""
+        if not self.api_key:
+            logger.warning("ScraperAPI key not set")
+            return ""
+            
+        try:
+            api_url = f"http://api.scraperapi.com"
+            params = {
+                'api_key': self.api_key,
+                'url': url,
+                'render': 'true',  # Enable JavaScript rendering
+                'country_code': 'us'
+            }
+            
+            response = requests.get(api_url, params=params, timeout=60)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                for tag in soup(["script", "style", "nav", "footer", "header"]):
+                    tag.decompose()
+                
+                text = soup.get_text(separator='\n', strip=True)
+                logger.info(f"✅ ScraperAPI successfully scraped {url}")
+                return text
+            else:
+                logger.error(f"ScraperAPI failed for {url}: {response.status_code}")
+                return ""
+                
+        except Exception as e:
+            logger.error(f"ScraperAPI error for {url}: {e}")
+            return ""
+
+
+class ZenRowsScraper:
+    """ZenRows - alternative CAPTCHA solver"""
+    
+    def __init__(self):
+        self.api_key = os.getenv('ZENROWS_API_KEY', '')
+        
+    def scrape(self, url: str) -> str:
+        """Scrape using ZenRows"""
+        if not self.api_key:
+            logger.warning("ZenRows API key not set")
+            return ""
+            
+        try:
+            api_url = "https://api.zenrows.com/v1/"
+            params = {
+                'apikey': self.api_key,
+                'url': url,
+                'js_render': 'true',
+                'antibot': 'true',
+                'premium_proxy': 'true'
+            }
+            
+            response = requests.get(api_url, params=params, timeout=60)
+            
+            if response.status_code == 200:
+                soup = BeautifulSoup(response.text, 'html.parser')
+                for tag in soup(["script", "style", "nav", "footer", "header"]):
+                    tag.decompose()
+                
+                text = soup.get_text(separator='\n', strip=True)
+                logger.info(f"✅ ZenRows successfully scraped {url}")
+                return text
+            else:
+                logger.error(f"ZenRows failed for {url}: {response.status_code}")
+                return ""
+                
+        except Exception as e:
+            logger.error(f"ZenRows error for {url}: {e}")
+            return ""
+
+
+class HybridScraper:
+    """Combines all scraping methods with intelligent fallback"""
+    
+    def __init__(self):
+        self.jina = JinaScraper()
+        self.playwright = PlaywrightScraper()
+        self.stealth = StealthRequestsScraper()
+        self.scraper_api = ScraperAPIScraper()
+        self.zenrows = ZenRowsScraper()
+        
+        # Track success rates for optimization
+        self.success_stats = {
+            'jina': {'success': 0, 'total': 0},
+            'playwright': {'success': 0, 'total': 0},
+            'stealth': {'success': 0, 'total': 0},
+            'scraper_api': {'success': 0, 'total': 0},
+            'zenrows': {'success': 0, 'total': 0}
+        }
+        
+    async def scrape(self, url: str) -> Dict[str, str]:
+        """
+        Try multiple methods in order of preference
+        Returns dict with content and method used
+        """
+        logger.info(f"🔍 Starting scrape for: {url}")
+        
+        # Strategy 1: Try Jina (fastest, works for most sites)
+        self.success_stats['jina']['total'] += 1
+        content = await self.jina.scrape(url)
+        if self._is_valid_content(content):
+            self.success_stats['jina']['success'] += 1
+            return {'content': content, 'method': 'jina', 'url': url}
+        
+        # Strategy 2: Try stealth requests (fast, medium complexity)
+        self.success_stats['stealth']['total'] += 1
+        content = await asyncio.to_thread(self.stealth.scrape, url)
+        if self._is_valid_content(content):
+            self.success_stats['stealth']['success'] += 1
+            return {'content': content, 'method': 'stealth_requests', 'url': url}
+        
+        # Strategy 3: Try Playwright (handles JS, most anti-bot)
+        self.success_stats['playwright']['total'] += 1
+        content = await self.playwright.scrape(url)
+        if self._is_valid_content(content):
+            self.success_stats['playwright']['success'] += 1
+            return {'content': content, 'method': 'playwright', 'url': url}
+        
+        # Strategy 4: Try ScraperAPI (handles CAPTCHAs)
+        self.success_stats['scraper_api']['total'] += 1
+        content = await asyncio.to_thread(self.scraper_api.scrape, url)
+        if self._is_valid_content(content):
+            self.success_stats['scraper_api']['success'] += 1
+            return {'content': content, 'method': 'scraper_api', 'url': url}
+        
+        # Strategy 5: Last resort - ZenRows
+        self.success_stats['zenrows']['total'] += 1
+        content = await asyncio.to_thread(self.zenrows.scrape, url)
+        if self._is_valid_content(content):
+            self.success_stats['zenrows']['success'] += 1
+            return {'content': content, 'method': 'zenrows', 'url': url}
+        
+        # All methods failed
+        logger.error(f"❌ All scraping methods failed for {url}")
+        return {'content': '', 'method': 'failed', 'url': url}
+    
+    def _is_valid_content(self, content: str) -> bool:
+        """Check if scraped content is valid and substantial"""
+        if not content:
+            return False
+        
+        # Must have minimum length
+        if len(content) < 100:
+            return False
+        
+        # Check for common error indicators
+        error_indicators = [
+            'access denied',
+            'captcha',
+            'please verify',
+            'robot',
+            'blocked',
+            '403 forbidden',
+            '404 not found',
+            '503 service'
+        ]
+        
+        content_lower = content.lower()
+        if any(indicator in content_lower for indicator in error_indicators):
+            return False
+        
+        return True
+    
+    async def scrape_multiple(self, urls: List[str], max_concurrent: int = 3) -> List[Dict[str, str]]:
+        """Scrape multiple URLs with concurrency control"""
+        semaphore = asyncio.Semaphore(max_concurrent)
+        
+        async def scrape_with_semaphore(url):
+            async with semaphore:
+                return await self.scrape(url)
+        
+        tasks = [scrape_with_semaphore(url) for url in urls]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        # Handle exceptions
+        processed_results = []
+        for url, result in zip(urls, results):
+            if isinstance(result, Exception):
+                logger.error(f"Exception scraping {url}: {result}")
+                processed_results.append({'content': '', 'method': 'error', 'url': url})
+            else:
+                processed_results.append(result)
+        
+        return processed_results
+    
+    def get_stats(self) -> dict:
+        """Get success rate statistics"""
+        stats = {}
+        for method, data in self.success_stats.items():
+            if data['total'] > 0:
+                success_rate = (data['success'] / data['total']) * 100
+                stats[method] = {
+                    'success': data['success'],
+                    'total': data['total'],
+                    'success_rate': f"{success_rate:.1f}%"
+                }
+        return stats
+
+
+# Legacy ProScraper for backwards compatibility
+class ProScraper:
+    """Wrapper for backwards compatibility"""
+    
+    def __init__(self):
+        self.hybrid = HybridScraper()
+    
+    async def scrape(self, url: str) -> str:
+        """Scrape single URL - returns content only"""
+        result = await self.hybrid.scrape(url)
+        return result['content']
+    
+    async def scrape_multiple(self, urls: List[str]) -> Dict[str, str]:
+        """Scrape multiple URLs - returns dict of url: content"""
+        results = await self.hybrid.scrape_multiple(urls)
+        return {r['url']: r['content'] for r in results}
+
+
+# Example usage
+async def main():
+    scraper = HybridScraper()
+    
+    # Test URLs
+    test_urls = [
+        "https://www.bbc.com/news",
+        "https://www.theguardian.com",
+        "https://www.reuters.com"
+    ]
+    
+    results = await scraper.scrape_multiple(test_urls)
+    
+    for result in results:
+        print(f"\n{'='*80}")
+        print(f"URL: {result['url']}")
+        print(f"Method: {result['method']}")
+        print(f"Content length: {len(result['content'])} chars")
+        print(f"Preview: {result['content'][:200]}...")
+    
+    print(f"\n{'='*80}")
+    print("Statistics:")
+    print(scraper.get_stats())
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO)
+    asyncio.run(main())
