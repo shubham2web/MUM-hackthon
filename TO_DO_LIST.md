@@ -43,12 +43,3 @@
    - Define prompts for distinct personas or perspectives.
 
 ---
-
-## How to Use
-1. Save this file as `TO_DO_LIST.md`.
-2. Commit and push it to your GitHub repository:
-   ```bash
-   git add TO_DO_LIST.md
-   git commit -m "Add to-do list for remaining tasks"
-   git push origin main
-   ```
