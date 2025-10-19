@@ -286,13 +286,3 @@ Clients should handle reconnect/backoff and save transcripts atomically.
 * DB batch ops: O(B) per batch; streaming queries O(k) for k returned rows.
 
 ---
-
-If you want, I can:
-
-* Generate a separate `docs/` folder with `architecture.md`, `dev_setup.md`, `api_contract.md`, and `operational_checklist.md` files.
-* Create unit-test stubs for `ai_agent` token rotation and provider fallback.
-* Produce an OpenAPI-style spec for the server endpoints.
-
-Which of those should I generate next?
-cd C:\ATLAS\backend
-PS C:\ATLAS\backend> .\.venv\Scripts\activate
