@@ -5,8 +5,86 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Atlas - Misinformation Fighter</title>
     
-    <!-- External CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}">
+    <!-- External CSS with cache busting -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}?v={{ range(1, 10000) | random }}">
+    
+    <!-- Inline critical CSS to ensure glow effect loads -->
+    <style>
+        /* VERY SUBTLE white glow on ATLAS background text */
+        .background-text {
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            font-size: 35vw !important;
+            font-weight: 700 !important;
+            color: #000000 !important;
+            -webkit-text-stroke: 0.3px rgba(255, 255, 255, 0.3) !important;
+            z-index: 1 !important;
+            pointer-events: none !important;
+            user-select: none !important;
+            letter-spacing: -0.02em !important;
+            
+            /* MINIMAL white light effect - very subtle */
+            text-shadow: 
+                0 0 10px rgba(255, 255, 255, 0.25),
+                0 0 20px rgba(255, 255, 255, 0.18),
+                0 0 30px rgba(255, 255, 255, 0.12),
+                0 0 40px rgba(255, 255, 255, 0.08) !important;
+            
+            animation: textGlow 5s ease-in-out infinite alternate !important;
+        }
+
+        @keyframes textGlow {
+            0% {
+                text-shadow: 
+                    0 0 10px rgba(255, 255, 255, 0.25),
+                    0 0 20px rgba(255, 255, 255, 0.18),
+                    0 0 30px rgba(255, 255, 255, 0.12),
+                    0 0 40px rgba(255, 255, 255, 0.08);
+            }
+            100% {
+                text-shadow: 
+                    0 0 15px rgba(255, 255, 255, 0.3),
+                    0 0 25px rgba(255, 255, 255, 0.22),
+                    0 0 35px rgba(255, 255, 255, 0.15),
+                    0 0 45px rgba(255, 255, 255, 0.1);
+            }
+        }
+
+        /* Very subtle radial glow behind text */
+        .background-text::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            width: 120% !important;
+            height: 120% !important;
+            background: radial-gradient(
+                ellipse at center,
+                rgba(255, 255, 255, 0.08) 0%,
+                rgba(255, 255, 255, 0.05) 20%,
+                rgba(255, 255, 255, 0.03) 40%,
+                rgba(255, 255, 255, 0.02) 60%,
+                transparent 80%
+            ) !important;
+            z-index: -1 !important;
+            animation: glowPulse 4s ease-in-out infinite alternate !important;
+            filter: blur(25px) !important;
+        }
+
+        @keyframes glowPulse {
+            0% {
+                opacity: 0.5;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0.7;
+                transform: translate(-50%, -50%) scale(1.05);
+            }
+        }
+    </style>
 </head>
 <body>
     <div id="vanta-fog"></div>
@@ -14,15 +92,8 @@
     <div class="background-text">ATLAS</div>
 
     <div class="container">
-        <h1 class="atlas">
-            <span>A</span>
-            <span>T</span>
-            <span>L</span>
-            <span>A</span>
-            <span>S</span>
-        </h1>
-
-        <p class="ai-tagline">Evidence over noise</p>
+        <!-- Animated tagline - will be populated by inline script -->
+        <div class="ai-tagline" id="animated-tagline"></div>
         
         <div class="search-box-container">
             <div class="input-area-container">
@@ -61,6 +132,103 @@
             <a href="/chat" class="cta-button">Start Chatting</a>
         </div>
     </div>
+
+    <!-- INLINE SCRIPT - Runs immediately, before external scripts -->
+    <script>
+        console.log('🎬 INLINE SCRIPT STARTED');
+        
+        (function() {
+            console.log('🔧 Animation function loaded');
+            
+            const text = "EVIDENCE OVER NOISE";
+            const letterDelay = 80;
+            const holdDuration = 2000;
+            const fadeOutDelay = 40;
+            const restartDelay = 800;
+            
+            function startAnimation() {
+                console.log('🚀 startAnimation called');
+                
+                const taglineContainer = document.getElementById('animated-tagline');
+                
+                if (!taglineContainer) {
+                    console.error('❌ Tagline container NOT FOUND');
+                    return;
+                }
+                
+                console.log('✅ Tagline container found:', taglineContainer);
+
+                function createLetterElements() {
+                    console.log('📝 Creating letters...');
+                    taglineContainer.innerHTML = '';
+                    
+                    text.split('').forEach((char, index) => {
+                        const span = document.createElement('span');
+                        
+                        if (char === ' ') {
+                            span.className = 'space';
+                        } else {
+                            span.className = 'letter';
+                            span.textContent = char;
+                            span.style.animationDelay = `${index * letterDelay}ms`;
+                        }
+                        
+                        taglineContainer.appendChild(span);
+                    });
+                    
+                    console.log(`✅ Created ${taglineContainer.children.length} letter elements`);
+                }
+
+                function animateIn() {
+                    console.log('▶️ Animation IN started');
+                    taglineContainer.classList.remove('fade-out');
+                    createLetterElements();
+                    
+                    const letters = taglineContainer.querySelectorAll('.letter');
+                    const totalAppearTime = text.length * letterDelay;
+                    
+                    console.log(`⏱️ Will hold for ${holdDuration}ms after ${totalAppearTime}ms`);
+                    
+                    setTimeout(() => {
+                        animateOut(letters);
+                    }, totalAppearTime + holdDuration);
+                }
+
+                function animateOut(letters) {
+                    console.log('⏹️ Animation OUT started');
+                    taglineContainer.classList.add('fade-out');
+                    
+                    letters.forEach((letter, index) => {
+                        letter.style.animationDelay = `${index * fadeOutDelay}ms`;
+                    });
+                    
+                    const totalFadeTime = letters.length * fadeOutDelay;
+                    
+                    setTimeout(() => {
+                        console.log('🔄 Restarting animation loop');
+                        animateIn();
+                    }, totalFadeTime + restartDelay);
+                }
+
+                console.log('🎯 Starting first animation cycle');
+                animateIn();
+            }
+            
+            // Start immediately when DOM is ready
+            if (document.readyState === 'loading') {
+                console.log('⏳ Waiting for DOMContentLoaded...');
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('✅ DOMContentLoaded fired');
+                    startAnimation();
+                });
+            } else {
+                console.log('✅ DOM already ready');
+                startAnimation();
+            }
+        })();
+        
+        console.log('✅ INLINE SCRIPT COMPLETED');
+    </script>
 
     <!-- Loader -->
     <div id="loader" class="loader-overlay">
@@ -108,7 +276,7 @@
         </button>
     </div>
 
-    <!-- External Scripts -->
+    <!-- External Scripts - Load AFTER inline script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
     <script src="{{ url_for('static', filename='js/homepage.js') }}"></script>

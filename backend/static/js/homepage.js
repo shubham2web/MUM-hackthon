@@ -1,3 +1,5 @@
+console.log('📦 homepage.js LOADED');
+
 // DOM Elements
 const promptInput = document.getElementById('prompt');
 const loader = document.getElementById('loader');
@@ -20,12 +22,23 @@ const errorOkBtn = document.getElementById('errorOkBtn');
 let currentMode = 'analytical';
 let attachedFiles = [];
 
+// REMOVE THE DUPLICATE ANIMATION CODE - it's now in inline script
+// The animation is handled by inline script in homepage.html
+
 // ===== INITIALIZATION =====
 window.addEventListener('pageshow', function(event) {
+    console.log('📄 Page show event');
     loader.style.opacity = '0';
     setTimeout(() => {
         loader.style.display = 'none';
     }, 500);
+});
+
+// Start animation as soon as DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+    setTimeout(() => {
+        initAnimatedTagline();
+    }, 100);
 });
 
 // ===== MODE SELECTION =====
@@ -217,39 +230,6 @@ function updateSendButtonState() {
 promptInput.addEventListener('input', updateSendButtonState);
 updateSendButtonState();
 
-// ===== ATLAS ANIMATION =====
-const atlasLetters = document.querySelectorAll('.atlas span');
-let targetX = 0, targetY = 0;
-let currentX = 0, currentY = 0;
-const lerp = (a, b, n) => a + (b - a) * n;
-
-document.addEventListener('mousemove', (e) => {
-    const centerX = window.innerWidth / 2;
-    const centerY = window.innerHeight / 2;
-    targetX = (e.pageX - centerX) / 40;
-    targetY = (e.pageY - centerY) / 40;
-});
-
-function animateAtlas() {
-    currentX = lerp(currentX, targetX, 0.12);
-    currentY = lerp(currentY, targetY, 0.12);
-    atlasLetters.forEach((letter, i) => {
-        const delay = (i - atlasLetters.length / 2) * 5;
-        const x = currentX + delay;
-        const y = currentY;
-        letter.style.transform = `translate(${x}px, ${y}px) rotateY(${currentX}deg) rotateX(${-currentY}deg)`;
-        letter.style.textShadow = `${currentX}px ${currentY}px 12px #42b5eb, ${-currentX}px ${-currentY}px 24px #1f58f5`;
-    });
-    requestAnimationFrame(animateAtlas);
-}
-
-animateAtlas();
-
-document.addEventListener('mouseleave', () => {
-    targetX = 0;
-    targetY = 0;
-});
-
 // ===== VANTA FOG =====
 let vantaFog = null;
 
@@ -264,3 +244,11 @@ if (window.innerWidth > 480 && typeof VANTA !== 'undefined') {
         zoom: 0.2
     });
 }
+
+// ===== INITIALIZATION =====
+window.addEventListener('pageshow', function(event) {
+    loader.style.opacity = '0';
+    setTimeout(() => {
+        loader.style.display = 'none';
+    }, 500);
+});

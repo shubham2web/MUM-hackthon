@@ -43,28 +43,28 @@
 .typing-indicator {
     display: flex;
     gap: 4px;
-    padding: 16px 20px;
+    padding: 8px 0;
 }
 
-.typing-dot {
+.typing-indicator span {
     width: 8px;
     height: 8px;
-    background: rgba(255, 255, 255, 0.5);
+    background: rgba(255, 255, 255, 0.6);
     border-radius: 50%;
-    animation: typingPulse 1.5s infinite;
+    animation: typing 1.4s infinite ease-in-out;
 }
 
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+.typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
-@keyframes typingPulse {
+@keyframes typing {
     0%, 60%, 100% {
         opacity: 0.3;
-        transform: scale(1);
+        transform: translateY(0);
     }
     30% {
         opacity: 1;
-        transform: scale(1.2);
+        transform: translateY(-10px);
     }
 }
 
