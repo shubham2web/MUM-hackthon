@@ -25,14 +25,24 @@ CONFIG_HEALTH = False  # Will be set to True after validation.
 
 # --- MODEL & PROVIDER CONFIGURATION (FIX APPLIED HERE) ---
 # This dictionary maps simple model names to their provider-specific IDs.
+# Groq Models Reference: https://console.groq.com/docs/models
+# HuggingFace: Using free-tier models that work without Pro subscription
 SUPPORTED_MODELS = {
     "llama3": {
-        "huggingface": "meta-llama/Meta-Llama-3-8B-Instruct",
-        "groq": "llama-3.1-8b-instant"
+        "huggingface": "HuggingFaceH4/zephyr-7b-beta",  # Free tier, conversational
+        "groq": "llama-3.1-8b-instant"  # Fast, good for chat
+    },
+    "llama3-large": {
+        "huggingface": "tiiuae/falcon-7b-instruct",  # Free tier model
+        "groq": "llama-3.3-70b-versatile"  # Latest, most capable
     },
     "mistral": {
-        "huggingface": "mistralai/Mistral-7B-Instruct-v0.2",
-        "groq": "mixtral-8x7b-32768"
+        "huggingface": "HuggingFaceH4/zephyr-7b-beta",
+        "groq": "mixtral-8x7b-32768"  # Good balance of speed & quality
+    },
+    "gemma": {
+        "huggingface": "google/flan-t5-base",  # Free tier, text generation
+        "groq": "gemma2-9b-it"  # Google's Gemma model
     }
 }
 

@@ -28,27 +28,16 @@ from huggingface_hub import InferenceClient
 from huggingface_hub.errors import HfHubHTTPError
 from groq import Groq, GroqError as GroqSDKError # Import the official Groq client and its error class
 
-# --- Configuration ---
-# VITAL: You must replace these placeholder values with your actual API keys.
-# The script will not work without them.
-# Get your Groq key from: https://console.groq.com/keys
-# Get your Hugging Face key from: https://huggingface.co/settings/tokens
-
-HF_TOKENS = ["hf_buysfjdkOUXsYSfHFHWsTpCNRProsEiwqOj", "hf_wDjJyLkUQaoWIijDjxiRJJyxWASkOHsGakM"]  # Example: ["hf_YourFirstToken", "hf_YourSecondToken"]
-GROQ_API_KEY = "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" # Example: "gsk_YourGroqCloudApiKeyHere"
-
-# --- Model & Provider Configuration ---
-SUPPORTED_MODELS = {
-    "default-model": {
-        "huggingface": "mistralai/Mistral-7B-Instruct-v0.2",
-        "groq": "llama-3.1-8b-instant",
-    }
-}
-DEFAULT_MODEL = "default-model"
-# The default order in which to try providers. Groq is faster, so it's first.
-PROVIDER_SEQUENCE_DEFAULT = ["groq", "huggingface"]
-SINGLE_MODE = False # Set to True and define SINGLE_PROVIDER to force one provider
-# SINGLE_PROVIDER = "groq"
+# --- Import Configuration from config.py ---
+from config import (
+    HF_TOKENS, 
+    GROQ_API_KEY, 
+    SUPPORTED_MODELS, 
+    DEFAULT_MODEL,
+    PROVIDER_SEQUENCE_DEFAULT,
+    SINGLE_MODE,
+    SINGLE_PROVIDER
+)
 
 
 # --- Custom Exceptions ---
@@ -136,11 +125,17 @@ class AiAgent:
             self.metrics["failure"][provider] += 1
 
     def _get_provider_sequence(self, providers: Optional[List[str]]) -> List[str]:
-        """Determines the sequence of providers to use for a request."""
-        if SINGLE_MODE and 'SINGLE_PROVIDER' in globals():
+        """
+        Determines the sequence of providers to use for a request.
+        If SINGLE_MODE is disabled, it will try all providers in sequence (failover).
+        """
+        if SINGLE_MODE and SINGLE_PROVIDER:
+            self.logger.info(f"SINGLE_MODE enabled, using only: {SINGLE_PROVIDER}")
             return [SINGLE_PROVIDER]
         if providers:
             return providers
+        # Default: Try Groq first, then fallback to HuggingFace
+        self.logger.info(f"Using provider sequence: {PROVIDER_SEQUENCE_DEFAULT}")
         return PROVIDER_SEQUENCE_DEFAULT
 
     def _call_huggingface(self, user_message: str, system_prompt: Optional[str], max_tokens: int) -> AiResponse:
@@ -168,8 +163,16 @@ class AiAgent:
             return AiResponse(text=response_text, provider="huggingface", latency=latency, raw_response={"response": response_text})
         
         except HfHubHTTPError as e:
-            self.logger.error(f"HuggingFace API Error: {e}")
-            raise HuggingFaceError(f"API Error: {e.response.status_code} - {e.response.text}") from e
+            error_msg = str(e)
+            if "401" in error_msg or "403" in error_msg:
+                self.logger.error(f"HuggingFace authentication failed. Check HF_TOKEN in .env file.")
+                raise HuggingFaceError(f"Authentication failed - Invalid HuggingFace token. Get a token from https://huggingface.co/settings/tokens") from e
+            elif "503" in error_msg or "loading" in error_msg.lower():
+                self.logger.warning(f"HuggingFace model is loading. This may take a minute...")
+                raise HuggingFaceError(f"Model is loading. Please try again in a moment.") from e
+            else:
+                self.logger.error(f"HuggingFace API Error: {e}")
+                raise HuggingFaceError(f"API Error: {e.response.status_code} - {e.response.text}") from e
         except Exception as e:
             self.logger.error(f"An unexpected error occurred with HuggingFace: {e}")
             raise HuggingFaceError(f"Unexpected Error: {str(e)}") from e
@@ -212,8 +215,16 @@ class AiAgent:
                     yield content
 
         except GroqSDKError as e:
-            self.logger.error(f"Groq SDK Error: {e}")
-            raise GroqError(f"Groq SDK Error: {e.__class__.__name__} - {e}") from e
+            error_msg = str(e)
+            if "401" in error_msg or "Invalid API Key" in error_msg:
+                self.logger.error(f"Groq API Key is invalid or expired. Please update GROQ_API_KEY in .env file.")
+                raise GroqError(f"Authentication failed - Invalid or expired API key. Get a new key from https://console.groq.com/keys") from e
+            elif "429" in error_msg or "rate_limit" in error_msg.lower():
+                self.logger.error(f"Groq rate limit exceeded. Trying fallback provider...")
+                raise GroqError(f"Rate limit exceeded. Will try alternate provider.") from e
+            else:
+                self.logger.error(f"Groq SDK Error: {e}")
+                raise GroqError(f"Groq SDK Error: {e.__class__.__name__} - {e}") from e
         except Exception as e:
             self.logger.error(f"An unexpected error occurred with Groq: {e}")
             raise GroqError(f"Unexpected Error: {str(e)}") from e
@@ -286,6 +297,10 @@ class AiAgent:
             ):
                 yield token
         except HfHubHTTPError as e:
+            error_msg = str(e)
+            if "not supported" in error_msg.lower() or "task" in error_msg.lower():
+                self.logger.warning(f"HuggingFace model configuration issue: {error_msg}")
+                raise HuggingFaceError(f"Model configuration error. Trying alternate provider...") from e
             raise HuggingFaceError(f"API Error during streaming: {e.response.status_code}") from e
         except Exception as e:
             raise HuggingFaceError(f"Unexpected streaming error: {str(e)}") from e
