@@ -195,19 +195,7 @@
             </header>
 
             <div class="chat-messages" id="chatMessages">
-                <div class="message ai-message">
-                    <div class="message-content">
-                        <div class="message-avatar">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.5 3-9s-1.343-9-3-9m-9 9a9 9 0 019 9m-9-9a9 9 0 009-9m-9 9h12"/>
-                            </svg>
-                        </div>
-                        <div class="message-text">
-                            Hello! I'm <strong>Atlas</strong>, your misinformation fighter. Ask me anything!
-                        </div>
-                    </div>
-                    <div class="message-time">Just now</div>
-                </div>
+                <!-- Remove all static content - keep div empty -->
             </div>
 
             <div class="input-container">
@@ -401,8 +389,11 @@
     const Chat = {
         currentMode: 'analytical',
         isProcessing: false,
+        initialized: false, // Add flag to prevent duplicate initialization
 
         init() {
+            if (this.initialized) return; // Prevent multiple initialization
+            
             Messages.init('#chatMessages');
             this.setupEventListeners();
             
@@ -411,11 +402,15 @@
             const modeParam = urlParams.get('mode');
             
             if (modeParam === 'debate') {
-                this.switchMode('debate');
+                this.currentMode = 'debate';
             }
 
-            // Initialize based on mode
-            this.addWelcomeMessage();
+            // Clear messages container and add single welcome message
+            const messages = document.getElementById('chatMessages');
+            if (messages) {
+                messages.innerHTML = '';
+                this.addWelcomeMessage();
+            }
 
             // Update navigation active state
             document.querySelectorAll('.nav-item').forEach(nav => {
@@ -426,6 +421,8 @@
                     nav.classList.remove('active');
                 }
             });
+
+            this.initialized = true; // Mark as initialized
         },
 
         switchMode(mode) {
