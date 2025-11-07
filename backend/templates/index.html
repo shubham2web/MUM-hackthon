@@ -239,6 +239,14 @@
                 </div>
                 <div class="input-wrapper">
                     <input type="text" class="message-input" id="messageInput" placeholder="Message Atlas..." />
+                    <button class="input-btn mic-btn" id="micBtn" aria-label="Voice input">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+                            <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+                            <line x1="12" y1="19" x2="12" y2="23"/>
+                            <line x1="8" y1="23" x2="16" y2="23"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </main>
@@ -540,6 +548,52 @@
         Chat.init();
         Sidebar.init();
     });
+    </script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const micBtn = document.getElementById('micBtn');
+            const messageInput = document.getElementById('messageInput');
+
+            if ('webkitSpeechRecognition' in window) {
+                const recognition = new webkitSpeechRecognition();
+                recognition.continuous = false;
+                recognition.interimResults = false;
+                recognition.lang = 'en-US';
+
+                let isListening = false;
+
+                micBtn.addEventListener('click', () => {
+                    if (!isListening) {
+                        recognition.start();
+                        micBtn.classList.add('active');
+                    } else {
+                        recognition.stop();
+                        micBtn.classList.remove('active');
+                    }
+                    isListening = !isListening;
+                });
+
+                recognition.onresult = (event) => {
+                    const transcript = event.results[0][0].transcript;
+                    messageInput.value = transcript;
+                    micBtn.classList.remove('active');
+                    isListening = false;
+                };
+
+                recognition.onerror = () => {
+                    micBtn.classList.remove('active');
+                    isListening = false;
+                };
+
+                recognition.onend = () => {
+                    micBtn.classList.remove('active');
+                    isListening = false;
+                };
+            } else {
+                micBtn.style.display = 'none'; // Hide mic button if not supported
+            }
+        });
     </script>
 </body>
 </html>

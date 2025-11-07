@@ -2,14 +2,16 @@
     display: flex;
     height: 100vh;
     position: relative;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
 }
 
 /* === SIDEBAR === */
 .sidebar {
     width: 280px;
-    background: rgba(10, 10, 10, 0.7);
+    background: var(--sidebar-bg);
     backdrop-filter: blur(15px);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: 1px solid var(--border-color);
     display: flex;
     flex-direction: column;
     padding: 20px;
@@ -114,9 +116,9 @@
 
 .chat-header {
     padding: 20px 30px;
-    background: rgba(10, 10, 10, 0.7);
+    background: var(--bg-secondary);
     backdrop-filter: blur(15px);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-color);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -126,7 +128,7 @@
     font-family: 'Space Grotesk', sans-serif;
     font-size: 20px;
     font-weight: 600;
-    color: #34b1c7f8;
+    color: var(--text-primary);
     text-shadow: 0 0 5px rgba(41, 116, 228, 0.959), 0 0 10px rgb(13, 24, 124);
     letter-spacing: 1px;
 }
@@ -183,6 +185,21 @@
     color: white;
     margin-right: 12px;
     cursor: pointer;
+}
+
+/* Theme toggle button styles */
+.theme-icon {
+    width: 20px;
+    height: 20px;
+    transition: all 0.3s ease;
+}
+
+#themeToggle {
+    cursor: pointer;
+}
+
+#themeToggle:hover {
+    color: #00d9ff;
 }
 
 @media (max-width: 768px) {
