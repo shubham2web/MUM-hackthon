@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Atlas Chat Interface</title>
     
     <!-- Fonts -->
@@ -336,6 +339,20 @@
             this.scrollToBottom();
         },
 
+        addUserMessageWithHTML(htmlContent) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar">You</div>
+                    <div class="message-text">${htmlContent}</div>
+                </div>
+                <div class="message-time">${this.getTimeString()}</div>
+            `;
+            this.container.appendChild(messageDiv);
+            this.scrollToBottom();
+        },
+
         addAIMessage(text) {
             const messageDiv = document.createElement('div');
             messageDiv.className = 'message ai-message';
@@ -448,6 +465,13 @@
                 this.addWelcomeMessage();
             }
 
+            // Check for OCR result from sessionStorage
+            const ocrResult = sessionStorage.getItem('ocrResult');
+            if (ocrResult) {
+                this.handleOCRResult(JSON.parse(ocrResult));
+                sessionStorage.removeItem('ocrResult'); // Clear after using
+            }
+
             // Update navigation active state
             document.querySelectorAll('.nav-item').forEach(nav => {
                 const navMode = nav.getAttribute('data-mode');
@@ -459,6 +483,28 @@
             });
 
             this.initialized = true; // Mark as initialized
+        },
+
+        handleOCRResult(ocrData) {
+            // Clear welcome message
+            const messages = document.getElementById('chatMessages');
+            if (messages) {
+                messages.innerHTML = '';
+            }
+
+            // Add user message showing the image was uploaded
+            Messages.addUserMessage(`📷 Uploaded image: ${ocrData.filename}`);
+
+            // Add OCR extraction result
+            const ocrMessage = `**Text Extracted (${ocrData.confidence.toFixed(1)}% confidence):**\n\n${ocrData.extractedText}\n\n---\n\n**Words found:** ${ocrData.wordCount}`;
+            Messages.addAIMessage(ocrMessage);
+
+            // Add AI analysis if available
+            if (ocrData.aiAnalysis) {
+                setTimeout(() => {
+                    Messages.addAIMessage(ocrData.aiAnalysis);
+                }, 500);
+            }
         },
 
         switchMode(mode) {
@@ -582,6 +628,261 @@
         }
     };
 
+    // Attachments Module for Chat Page - MUST BE DEFINED BEFORE DOMContentLoaded
+    const Attachments = {
+        init() {
+            console.log('📎 Initializing Attachments module...');
+            
+            const attachBtn = document.getElementById('attachBtn');
+            const attachmentMenu = document.getElementById('attachmentMenu');
+            const uploadFileBtn = document.getElementById('uploadFileBtn');
+            const addLinkBtn = document.getElementById('addLinkBtn');
+            const linkModal = document.getElementById('linkModal');
+            const linkInput = document.getElementById('linkInput');
+            const submitLinkBtn = document.getElementById('submitLinkBtn');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+
+            console.log('Elements found:', {
+                attachBtn: !!attachBtn,
+                attachmentMenu: !!attachmentMenu,
+                uploadFileBtn: !!uploadFileBtn
+            });
+
+            if (!attachBtn) {
+                console.error('❌ Attach button not found!');
+                return;
+            }
+            
+            if (!attachmentMenu) {
+                console.error('❌ Attachment menu not found!');
+                return;
+            }
+
+            console.log('✅ All required elements found, setting up event listeners...');
+
+            // Add multiple event listeners for debugging
+            attachBtn.addEventListener('mouseenter', function() {
+                console.log('🖱️ Mouse entered attach button');
+            });
+
+            attachBtn.addEventListener('mousedown', function() {
+                console.log('🖱️ Mouse down on attach button');
+            });
+
+            // Toggle attachment menu with direct addEventListener
+            attachBtn.addEventListener('click', function(event) {
+                console.log('📎 Attach button clicked!');
+                event.stopPropagation();
+                event.preventDefault();
+                
+                const isVisible = attachmentMenu.classList.contains('active');
+                console.log('Menu currently visible:', isVisible);
+                
+                if (!isVisible) {
+                    attachmentMenu.classList.add('active');
+                    console.log('📎 Menu opened - adding active class');
+                } else {
+                    attachmentMenu.classList.remove('active');
+                    console.log('📎 Menu closed - removing active class');
+                }
+            }, true); // Use capture phase
+
+            // Close menu when clicking outside
+            document.addEventListener('click', (event) => {
+                if (!attachmentMenu) return;
+                if (!attachmentMenu.classList.contains('active')) return;
+                if (attachmentMenu.contains(event.target) || attachBtn.contains(event.target)) return;
+                attachmentMenu.classList.remove('active');
+                console.log('📎 Menu closed (outside click)');
+            });
+
+            // Handle file upload
+            if (uploadFileBtn && attachmentMenu) {
+                uploadFileBtn.addEventListener('click', async () => {
+                    console.log('📁 Upload file button clicked');
+                    attachmentMenu.classList.remove('active');
+                    
+                    const input = document.createElement('input');
+                    input.type = 'file';
+                    input.accept = '.pdf,.md,.txt,.jpg,.jpeg,.png';
+                    input.multiple = true; // Allow multiple files
+
+                    const self = this; // Capture context
+                    
+                    input.onchange = async (e) => {
+                        const files = Array.from(e.target.files);
+                        if (files.length === 0) return;
+
+                        console.log(`📁 ${files.length} file(s) selected`);
+
+                        // Check file limit
+                        if (files.length > 10) {
+                            Messages.addAIMessage('❌ Maximum 10 files allowed at a time.');
+                            return;
+                        }
+
+                        // Validate and process each file
+                        for (const file of files) {
+                            console.log('📁 Processing file:', file.name, file.type, file.size);
+
+                            // File size check
+                            if (file.size > 10 * 1024 * 1024) {
+                                Messages.addAIMessage(`❌ File "${file.name}" is too large. Maximum size is 10MB.`);
+                                continue;
+                            }
+
+                            // Format validation
+                            const allowedExtensions = ['.pdf', '.md', '.txt', '.jpg', '.jpeg', '.png'];
+                            const fileName = file.name.toLowerCase();
+                            const isValidFormat = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+                            if (!isValidFormat) {
+                                Messages.addAIMessage(`❌ Format not supported: "${file.name}". Allowed formats: PDF, MD, TXT, JPG, JPEG, PNG`);
+                                continue;
+                            }
+
+                            // Check if it's an image
+                            if (file.type.startsWith('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
+                                console.log(`🖼️ Processing image ${files.indexOf(file) + 1}/${files.length}: ${file.name}`);
+                                
+                                // Add separator for multiple files
+                                if (files.length > 1) {
+                                    Messages.addAIMessage(`\n--- Processing file ${files.indexOf(file) + 1} of ${files.length} ---\n`);
+                                }
+                                
+                                await self.processImageWithOCR(file);
+                                
+                                // Small delay between files to ensure proper sequencing
+                                if (files.indexOf(file) < files.length - 1) {
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                }
+                            } else {
+                                Messages.addAIMessage(`📄 File "${file.name}" - text extraction coming soon.`);
+                            }
+                        }
+                    };
+
+                    input.click();
+                });
+            }
+
+            // Handle link upload
+            if (addLinkBtn && attachmentMenu && linkModal) {
+                addLinkBtn.addEventListener('click', () => {
+                    console.log('🔗 Add link button clicked');
+                    attachmentMenu.classList.remove('active');
+                    linkModal.style.display = 'flex';
+                    linkInput.value = '';
+                    linkInput.focus();
+                });
+            }
+
+            // Close link modal
+            closeModalBtn?.addEventListener('click', () => {
+                if (linkModal) linkModal.style.display = 'none';
+            });
+
+            // Submit link
+            submitLinkBtn?.addEventListener('click', async () => {
+                const url = linkInput.value.trim();
+                if (!url) {
+                    Messages.addAIMessage('❌ Please enter a valid URL.');
+                    return;
+                }
+
+                const self = this; // Capture context
+                
+                if (self.isValidUrl(url)) {
+                    if (linkModal) linkModal.style.display = 'none';
+                    Messages.addUserMessage(`🔗 Link: ${url}`);
+                    Messages.addAIMessage('🔗 Link processing is not yet implemented.');
+                } else {
+                    Messages.addAIMessage('❌ Invalid URL format.');
+                }
+            });
+
+            console.log('✅ Attachments module initialized');
+        },
+
+        isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        },
+
+        async processImageWithOCR(file) {
+            console.log('🖼️ Starting OCR process for file:', file.name);
+            
+            try {
+                // Create image preview - wait for it to load
+                await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imageUrl = e.target.result;
+                        const previewHtml = `
+                            <strong>📷 ${file.name}</strong>
+                            <div class="image-preview" style="max-width: 300px; margin: 10px 0; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                                <img src="${imageUrl}" alt="${file.name}" style="width: 100%; height: auto; display: block;">
+                            </div>
+                        `;
+                        Messages.addUserMessageWithHTML(previewHtml);
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                Messages.showLoading(`Processing "${file.name}" with OCR...`);
+
+                const formData = new FormData();
+                formData.append('image', file);
+
+                console.log(`📤 Sending "${file.name}" to OCR endpoint...`);
+                
+                const response = await fetch('http://127.0.0.1:5000/ocr_upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log(`📥 OCR Response for "${file.name}":`, response.status);
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                console.log(`📊 OCR Result for "${file.name}":`, result);
+
+                Messages.hideLoading();
+
+                if (result.success) {
+                    const { ocr_result, ai_analysis } = result;
+                    
+                    // Log the extracted text to console but don't show to user
+                    console.log(`📝 "${file.name}" - Text Extracted (${ocr_result.confidence.toFixed(1)}% confidence)`);
+                    console.log(`Text: ${ocr_result.text}`);
+                    console.log(`Words found: ${ocr_result.word_count}`);
+
+                    // Only show AI analysis to user with file context
+                    if (ai_analysis) {
+                        Messages.addAIMessage(`**Analysis of "${file.name}":**\n\n${ai_analysis}`);
+                    } else {
+                        Messages.addAIMessage(`✅ "${file.name}" processed successfully, but no analysis was generated.`);
+                    }
+                } else {
+                    Messages.addAIMessage(`❌ OCR Error for "${file.name}": ${result.error || 'Unknown error'}`);
+                }
+
+            } catch (error) {
+                console.error('❌ OCR Error:', error);
+                Messages.hideLoading();
+                Messages.addAIMessage(`❌ Failed to process image: ${error.message}`);
+            }
+        }
+    };
+
     // Sidebar Module
     const Sidebar = {
         init() {
@@ -599,6 +900,7 @@
         console.log('Initializing Atlas Chat...');
         Chat.init();
         Sidebar.init();
+        Attachments.init(); // Initialize attachment functionality
         
         // Initialize v2.0 toggle
         const v2Toggle = document.getElementById('v2Toggle');
