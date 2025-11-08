@@ -282,6 +282,19 @@
     display: inline-block;
 }
 
+#attachBtn {
+    pointer-events: auto !important;
+    cursor: pointer !important;
+    z-index: 1;
+    position: relative;
+    background-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+#attachBtn:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    border-color: rgba(255, 255, 255, 0.3) !important;
+}
+
 .attachment-menu {
     display: none;
     position: absolute;
@@ -294,6 +307,18 @@
     width: 160px;
     overflow: hidden;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    flex-direction: column;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    pointer-events: none;
+}
+
+.attachment-menu.active {
+    display: flex;
+    opacity: 1;
+    transform: translateY(0);
+    pointer-events: auto;
 }
 
 .menu-item {

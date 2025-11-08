@@ -124,7 +124,7 @@ uploadFileBtn.addEventListener('click', () => {
     input.accept = 'image/*,.pdf,.doc,.docx,.txt';
     input.multiple = true;
 
-    input.onchange = (e) => {
+    input.onchange = async (e) => {
         const files = Array.from(e.target.files);
 
         if (attachedFiles.length + files.length > 5) {
@@ -132,17 +132,73 @@ uploadFileBtn.addEventListener('click', () => {
             return;
         }
 
-        files.forEach(file => {
+        for (const file of files) {
             if (file.size > 10 * 1024 * 1024) {
                 showErrorModal(`${file.name} - Maximum Size allowed 10MB`);
             } else {
-                createAttachmentPreview(file);
+                // Check if it's an image file for OCR processing
+                if (file.type && file.type.startsWith('image/')) {
+                    await processImageWithOCR(file);
+                } else {
+                    createAttachmentPreview(file);
+                }
             }
-        });
+        }
     };
 
     input.click();
 });
+
+// ===== OCR PROCESSING =====
+async function processImageWithOCR(file) {
+    // Show loading
+    loader.style.display = 'flex';
+    setTimeout(() => loader.style.opacity = '1', 10);
+
+    try {
+        const formData = new FormData();
+        formData.append('image', file);
+        formData.append('analyze', 'true');
+        formData.append('question', '');
+
+        const response = await fetch('/ocr_upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            const extractedText = result.ocr_result.text;
+            const confidence = result.ocr_result.confidence;
+            const aiAnalysis = result.ai_analysis;
+
+            // Store OCR result in sessionStorage
+            const ocrData = {
+                filename: file.name,
+                extractedText: extractedText,
+                confidence: confidence,
+                aiAnalysis: aiAnalysis,
+                wordCount: result.ocr_result.word_count
+            };
+
+            sessionStorage.setItem('ocrResult', JSON.stringify(ocrData));
+            sessionStorage.setItem('chatMode', currentMode);
+
+            // Redirect to chat with OCR data
+            window.location.href = '/chat';
+        } else {
+            showErrorModal('OCR failed: ' + (result.error || 'Unknown error'));
+            loader.style.opacity = '0';
+            setTimeout(() => loader.style.display = 'none', 500);
+        }
+    } catch (error) {
+        console.error('OCR error:', error);
+        showErrorModal('Failed to process image: ' + error.message);
+        loader.style.opacity = '0';
+        setTimeout(() => loader.style.display = 'none', 500);
+    }
+}
 
 // ===== LINK MODAL =====
 addLinkBtn.addEventListener('click', () => {
