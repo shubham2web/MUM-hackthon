@@ -465,11 +465,18 @@
                 this.addWelcomeMessage();
             }
 
-            // Check for OCR result from sessionStorage
+            // Check for OCR result from sessionStorage (old single file format)
             const ocrResult = sessionStorage.getItem('ocrResult');
             if (ocrResult) {
                 this.handleOCRResult(JSON.parse(ocrResult));
                 sessionStorage.removeItem('ocrResult'); // Clear after using
+            }
+
+            // Check for OCR results from homepage (new multiple files format)
+            const ocrResults = sessionStorage.getItem('ocrResults');
+            if (ocrResults) {
+                this.handleMultipleOCRResults(JSON.parse(ocrResults));
+                sessionStorage.removeItem('ocrResults'); // Clear after using
             }
 
             // Update navigation active state
@@ -495,15 +502,56 @@
             // Add user message showing the image was uploaded
             Messages.addUserMessage(`📷 Uploaded image: ${ocrData.filename}`);
 
-            // Add OCR extraction result
-            const ocrMessage = `**Text Extracted (${ocrData.confidence.toFixed(1)}% confidence):**\n\n${ocrData.extractedText}\n\n---\n\n**Words found:** ${ocrData.wordCount}`;
-            Messages.addAIMessage(ocrMessage);
-
             // Add AI analysis if available
             if (ocrData.aiAnalysis) {
                 setTimeout(() => {
                     Messages.addAIMessage(ocrData.aiAnalysis);
                 }, 500);
+            }
+        },
+
+        handleMultipleOCRResults(ocrResults) {
+            // Clear welcome message
+            const messages = document.getElementById('chatMessages');
+            if (messages) {
+                messages.innerHTML = '';
+            }
+
+            // Add user message showing files were uploaded
+            const fileNames = ocrResults.map(r => r.filename).join(', ');
+            Messages.addUserMessage(`📷 Uploaded ${ocrResults.length} image(s): ${fileNames}`);
+
+            // Optionally, you could ask the AI to analyze all the extracted text together
+            const allText = ocrResults.map(r => `From ${r.filename}: ${r.extractedText}`).join('\n\n');
+            const initialPrompt = sessionStorage.getItem('initialPrompt');
+            
+            if (initialPrompt) {
+                setTimeout(async () => {
+                    Messages.showLoading('Analyzing uploaded images...');
+                    try {
+                        const response = await fetch('/chat', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-API-Key': API_KEY
+                            },
+                            body: JSON.stringify({
+                                message: `${initialPrompt}\n\nExtracted text from images:\n${allText}`,
+                                mode: this.currentMode
+                            })
+                        });
+
+                        const data = await response.json();
+                        Messages.hideLoading();
+
+                        if (data.response) {
+                            Messages.addAIMessage(data.response);
+                        }
+                    } catch (error) {
+                        Messages.hideLoading();
+                        Messages.addAIMessage('❌ Error analyzing images: ' + error.message);
+                    }
+                }, ocrResults.length * 300 + 500);
             }
         },
 
@@ -555,6 +603,41 @@
             input.value = '';
             
             Messages.addUserMessage(message);
+            
+            // Process all attached files before sending message
+            if (Attachments.attachedFiles && Attachments.attachedFiles.length > 0) {
+                Messages.addAIMessage(`🔄 Processing ${Attachments.attachedFiles.length} attached file(s)...`);
+                
+                for (let i = 0; i < Attachments.attachedFiles.length; i++) {
+                    const file = Attachments.attachedFiles[i];
+                    const fileName = file.name.toLowerCase();
+                    
+                    // Add separator for multiple files
+                    if (Attachments.attachedFiles.length > 1) {
+                        Messages.addAIMessage(`\n--- Processing file ${i + 1} of ${Attachments.attachedFiles.length}: ${file.name} ---\n`);
+                    }
+                    
+                    // Check if it's an image or text file
+                    const isImage = fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png');
+                    const isTextFile = fileName.endsWith('.md') || fileName.endsWith('.txt');
+                    
+                    if (isImage) {
+                        await Attachments.processImageWithOCR(file);
+                    } else if (isTextFile) {
+                        await Attachments.processTextFile(file);
+                    }
+                    
+                    // Small delay between files
+                    if (i < Attachments.attachedFiles.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+                
+                // Clear attached files after processing
+                Attachments.attachedFiles = [];
+                Messages.addAIMessage(`✅ All files processed successfully!\n\n`);
+            }
+            
             Messages.showLoading();
 
             // Add timeout for the request (90 seconds)
@@ -630,6 +713,8 @@
 
     // Attachments Module for Chat Page - MUST BE DEFINED BEFORE DOMContentLoaded
     const Attachments = {
+        attachedFiles: [], // Store uploaded files here
+        
         init() {
             console.log('📎 Initializing Attachments module...');
             
@@ -704,7 +789,7 @@
                     
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.pdf,.md,.txt,.jpg,.jpeg,.png';
+                    input.accept = '.jpg,.jpeg,.png,.md,.txt';
                     input.multiple = true; // Allow multiple files
 
                     const self = this; // Capture context
@@ -715,50 +800,43 @@
 
                         console.log(`📁 ${files.length} file(s) selected`);
 
-                        // Check file limit
-                        if (files.length > 10) {
-                            Messages.addAIMessage('❌ Maximum 10 files allowed at a time.');
+                        // Check file limit (maximum 5 files combined)
+                        if (self.attachedFiles.length + files.length > 5) {
+                            Messages.addAIMessage(`❌ Maximum 5 files allowed. You have ${self.attachedFiles.length} files attached and trying to add ${files.length} more.`);
                             return;
                         }
 
-                        // Validate and process each file
+                        // Validate each file
                         for (const file of files) {
-                            console.log('📁 Processing file:', file.name, file.type, file.size);
+                            console.log('📁 Validating file:', file.name, file.type, file.size);
 
-                            // File size check
-                            if (file.size > 10 * 1024 * 1024) {
-                                Messages.addAIMessage(`❌ File "${file.name}" is too large. Maximum size is 10MB.`);
+                            // File size check (5MB limit)
+                            if (file.size > 5 * 1024 * 1024) {
+                                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                                Messages.addAIMessage(`❌ File "${file.name}" exceeds maximum size.\n\nFile size: ${fileSize} MB\nMaximum allowed: 5 MB`);
                                 continue;
                             }
 
-                            // Format validation
-                            const allowedExtensions = ['.pdf', '.md', '.txt', '.jpg', '.jpeg', '.png'];
+                            // Format validation - only jpg, jpeg, png, md, txt
+                            const allowedExtensions = ['.jpg', '.jpeg', '.png', '.md', '.txt'];
                             const fileName = file.name.toLowerCase();
                             const isValidFormat = allowedExtensions.some(ext => fileName.endsWith(ext));
 
                             if (!isValidFormat) {
-                                Messages.addAIMessage(`❌ Format not supported: "${file.name}". Allowed formats: PDF, MD, TXT, JPG, JPEG, PNG`);
+                                Messages.addAIMessage(`❌ Format not supported: "${file.name}"\n\nSupported formats: JPG, JPEG, PNG, MD, TXT`);
                                 continue;
                             }
 
-                            // Check if it's an image
-                            if (file.type.startsWith('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
-                                console.log(`🖼️ Processing image ${files.indexOf(file) + 1}/${files.length}: ${file.name}`);
-                                
-                                // Add separator for multiple files
-                                if (files.length > 1) {
-                                    Messages.addAIMessage(`\n--- Processing file ${files.indexOf(file) + 1} of ${files.length} ---\n`);
-                                }
-                                
-                                await self.processImageWithOCR(file);
-                                
-                                // Small delay between files to ensure proper sequencing
-                                if (files.indexOf(file) < files.length - 1) {
-                                    await new Promise(resolve => setTimeout(resolve, 500));
-                                }
-                            } else {
-                                Messages.addAIMessage(`📄 File "${file.name}" - text extraction coming soon.`);
-                            }
+                            // Add file to attachedFiles array
+                            self.attachedFiles.push(file);
+                            console.log(`✅ File "${file.name}" attached. Total files: ${self.attachedFiles.length}`);
+                            
+                            // Show confirmation message
+                            Messages.addUserMessage(`� Attached: ${file.name}`);
+                        }
+                        
+                        if (self.attachedFiles.length > 0) {
+                            Messages.addAIMessage(`✅ ${self.attachedFiles.length} file(s) ready. Type your message and click send to process.`);
                         }
                     };
 
@@ -879,6 +957,36 @@
                 console.error('❌ OCR Error:', error);
                 Messages.hideLoading();
                 Messages.addAIMessage(`❌ Failed to process image: ${error.message}`);
+            }
+        },
+
+        async processTextFile(file) {
+            console.log('📄 Starting text file processing for:', file.name);
+            
+            try {
+                Messages.showLoading(`Reading "${file.name}"...`);
+                
+                // Read file content
+                const textContent = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+                
+                Messages.hideLoading();
+                
+                const wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length;
+                
+                // Display file info
+                Messages.addUserMessage(`📄 ${file.name} (${wordCount} words)`);
+                
+                console.log(`✅ Text extracted from ${file.name}: ${wordCount} words`);
+                
+            } catch (error) {
+                console.error('❌ Text file error:', error);
+                Messages.hideLoading();
+                Messages.addAIMessage(`❌ Failed to process text file: ${error.message}`);
             }
         }
     };
