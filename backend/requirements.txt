@@ -62,10 +62,11 @@ pyyaml==6.0.3
 fsspec==2025.10.0
 filelock==3.20.0
 
-# OCR & Image Processing
-pytesseract==0.3.13
+# OCR & Image Processing (EasyOCR - no Tesseract installation needed!)
+easyocr==1.7.2
 pillow==12.0.0
-opencv-python==4.11.0.86
+torch==2.1.0
+torchvision==0.16.0
 
 # Web Server Protocols
 wsproto==1.2.0
