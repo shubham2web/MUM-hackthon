@@ -76,22 +76,48 @@ class ATLASv2:
         # Step 1: Gather Evidence
         self.logger.info("Step 1: Gathering diversified evidence...")
         # Run blocking function in thread pool to avoid blocking async loop
-        evidence_articles = await asyncio.to_thread(
-            get_diversified_evidence, claim, num_results=10
-        )
-        
-        evidence_texts = [article.get('text', '') or article.get('summary', '') 
-                         for article in evidence_articles if article.get('text') or article.get('summary')]
-        sources = [
-            Source(
-                url=article.get('url', ''),
-                domain=article.get('domain', ''),
-                content=article.get('text', '') or article.get('summary', ''),
-                timestamp=datetime.now(),
-                trust_score=0.7  # Default trust score
+        try:
+            evidence_articles = await asyncio.to_thread(
+                get_diversified_evidence, claim, num_results=10
             )
-            for article in evidence_articles
-        ]
+        except Exception as e:
+            self.logger.error(f"Evidence gathering failed: {e}")
+            evidence_articles = []
+        
+        # Extract evidence texts and filter out empty ones
+        evidence_texts = []
+        for article in evidence_articles:
+            text = article.get('text', '') or article.get('summary', '')
+            if text and text.strip():
+                evidence_texts.append(text)
+        
+        # Create source objects
+        sources = []
+        for article in evidence_articles:
+            content = article.get('text', '') or article.get('summary', '')
+            if content and content.strip():
+                sources.append(Source(
+                    url=article.get('url', ''),
+                    domain=article.get('domain', ''),
+                    content=content,
+                    timestamp=datetime.now(),
+                    trust_score=0.7  # Default trust score
+                ))
+        
+        self.logger.info(f"Gathered {len(sources)} sources with {len(evidence_texts)} evidence texts")
+        
+        # If no evidence found, use the claim itself as minimal context
+        if not evidence_texts:
+            self.logger.warning("No evidence found, using claim as fallback context")
+            evidence_texts = [claim]
+            # Create a minimal source object for the claim itself
+            sources = [Source(
+                url='',
+                domain='user_input',
+                content=claim,
+                timestamp=datetime.now(),
+                trust_score=0.5  # Lower trust for no external evidence
+            )]
         
         # Step 2: Credibility Scoring
         self.logger.info("Step 2: Calculating credibility score...")
