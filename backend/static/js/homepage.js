@@ -98,14 +98,7 @@ function createAttachmentPreview(file) {
         
         console.log('✅ Image preview created:', imageUrl);
         
-        // Add OCR badge if this file has OCR data
-        if (file.ocrData) {
-            const badge = document.createElement('div');
-            badge.className = 'ocr-badge';
-            badge.title = `OCR extracted: ${file.ocrData.wordCount} words`;
-            badge.textContent = '✓ OCR';
-            thumbnailDiv.appendChild(badge);
-        }
+        // No OCR badge display
     } else if (file.textData) {
         // Text file with extracted content
         thumbnailDiv.textContent = '📄';
@@ -127,12 +120,11 @@ function createAttachmentPreview(file) {
 
     const fileSize = file.size ? formatFileSize(file.size) : 'Link';
 
-    // Create info container
+    // Create info container - simplified without details
     const infoDiv = document.createElement('div');
     infoDiv.className = 'preview-info';
     infoDiv.innerHTML = `
         <div class="preview-name">${file.name}</div>
-        <div class="preview-details">${fileSize}</div>
     `;
 
     // Create close button
@@ -334,16 +326,11 @@ async function processImageWithOCR(file) {
             console.log('✅ OCR successful! Words:', result.ocr_result.word_count, 'Confidence:', confidence);
             console.log('📝 Extracted text preview:', extractedText.substring(0, 100));
 
-            // Create a special file object with OCR data
+            // Create a simplified file object
             const ocrFile = {
                 name: file.name,
                 type: file.type,
                 size: file.size,
-                ocrData: {
-                    extractedText: extractedText,
-                    confidence: confidence,
-                    wordCount: result.ocr_result.word_count
-                },
                 originalFile: file
             };
 
