@@ -14,9 +14,9 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, AsyncIterator, TypedDict, Literal
 
 # --- Configuration ---
-DATABASE_FILE = "database.db"
-BACKUP_FILE_PATH = "debate_backup.db"
-ARCHIVE_FILE_PATH = "debate_archive.jsonl.gz" # Using compressed archive
+DATABASE_FILE = "database/database.db"
+BACKUP_FILE_PATH = "database/debate_backup.db"
+ARCHIVE_FILE_PATH = "database/debate_archive.jsonl.gz" # Using compressed archive
 SLOW_QUERY_THRESHOLD_MS = 10.0
 DELETE_CHUNK_SIZE = 500 # Number of records to delete per transaction in batch deletes
 

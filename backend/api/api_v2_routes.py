@@ -12,10 +12,10 @@ from quart import Blueprint, request, jsonify
 import logging
 
 # Import v2.0 integration
-from atlas_v2_integration import atlas_v2
-from credibility_engine import score_claim_credibility
-from role_library import get_debate_roles, role_library
-from bias_auditor import bias_auditor
+from v2_features.atlas_v2_integration import atlas_v2
+from v2_features.credibility_engine import score_claim_credibility
+from v2_features.role_library import get_debate_roles, role_library
+from v2_features.bias_auditor import bias_auditor
 
 # Create blueprint
 v2_bp = Blueprint('v2', __name__, url_prefix='/v2')

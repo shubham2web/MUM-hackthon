@@ -29,7 +29,7 @@ from huggingface_hub.errors import HfHubHTTPError
 from groq import Groq, GroqError as GroqSDKError # Import the official Groq client and its error class
 
 # --- Import Configuration from config.py ---
-from config import (
+from core.config import (
     HF_TOKENS, 
     GROQ_API_KEY, 
     SUPPORTED_MODELS, 
