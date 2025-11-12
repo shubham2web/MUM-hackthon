@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RAG Memory Visualization - ATLAS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1e 100%);
+            color: #ffffff;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: #00d9ff;
+            margin-bottom: 10px;
+            font-size: 2.5em;
+            text-shadow: 0 0 20px rgba(0, 217, 255, 0.5);
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #aaaaaa;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0, 217, 255, 0.3);
+        }
+
+        .stat-value {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #00d9ff;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            color: #aaaaaa;
+            font-size: 0.9em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* Main Content Area */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 10px;
+            padding: 25px;
+        }
+
+        .panel h2 {
+            color: #00d9ff;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            border-bottom: 2px solid rgba(0, 217, 255, 0.3);
+            padding-bottom: 10px;
+        }
+
+        /* Memory Timeline */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 10px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: linear-gradient(to bottom, #00d9ff, transparent);
+        }
+
+        .timeline-item {
+            position: relative;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: rgba(0, 217, 255, 0.05);
+            border-left: 3px solid #00d9ff;
+            border-radius: 5px;
+        }
+
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -33px;
+            top: 15px;
+            width: 10px;
+            height: 10px;
+            background: #00d9ff;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.5);
+        }
+
+        .timeline-turn {
+            color: #00d9ff;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .timeline-role {
+            color: #ffaa00;
+            font-size: 0.9em;
+            margin-bottom: 5px;
+        }
+
+        .timeline-content {
+            color: #dddddd;
+            font-size: 0.95em;
+            line-height: 1.5;
+        }
+
+        .timeline-score {
+            margin-top: 10px;
+            font-size: 0.85em;
+            color: #aaaaaa;
+        }
+
+        /* Retrieval Heatmap */
+        .heatmap {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .heatmap-cell {
+            aspect-ratio: 1;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .heatmap-cell:hover {
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .heatmap-cell.hot {
+            background: linear-gradient(135deg, #ff6b6b, #ff4444);
+            box-shadow: 0 0 15px rgba(255, 107, 107, 0.5);
+        }
+
+        .heatmap-cell.warm {
+            background: linear-gradient(135deg, #ffaa00, #ff8800);
+            box-shadow: 0 0 10px rgba(255, 170, 0, 0.4);
+        }
+
+        .heatmap-cell.cool {
+            background: linear-gradient(135deg, #00d9ff, #0088ff);
+            box-shadow: 0 0 10px rgba(0, 217, 255, 0.3);
+        }
+
+        .heatmap-cell.cold {
+            background: linear-gradient(135deg, #555555, #333333);
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .control-group label {
+            color: #aaaaaa;
+            font-size: 0.9em;
+        }
+
+        .control-group input,
+        .control-group select {
+            padding: 8px 12px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 217, 255, 0.3);
+            border-radius: 5px;
+            color: #ffffff;
+            font-size: 0.95em;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(135deg, #00d9ff, #0077ff);
+            border: none;
+            border-radius: 6px;
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 217, 255, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Loading Spinner */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 50px;
+            height: 50px;
+            border: 4px solid rgba(0, 217, 255, 0.2);
+            border-top-color: #00d9ff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2em;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #00d9ff;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00b8dd;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧠 RAG Memory Visualization</h1>
+        <p class="subtitle">Real-time memory retrieval and optimization dashboard</p>
+
+        <!-- Statistics Cards -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Total Memories</div>
+                <div class="stat-value" id="stat-total">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Short-Term</div>
+                <div class="stat-value" id="stat-short-term">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Current Turn</div>
+                <div class="stat-value" id="stat-turn">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">RAG Status</div>
+                <div class="stat-value" id="stat-rag" style="font-size: 1.5em;">•</div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="panel">
+            <h2>🎛️ Controls</h2>
+            <div class="controls">
+                <div class="control-group">
+                    <label>Query:</label>
+                    <input type="text" id="search-query" placeholder="Search memories..." style="width: 300px;">
+                </div>
+                <div class="control-group">
+                    <label>Filter by Role:</label>
+                    <select id="filter-role">
+                        <option value="">All Roles</option>
+                        <option value="proponent">Proponent</option>
+                        <option value="opponent">Opponent</option>
+                        <option value="moderator">Moderator</option>
+                    </select>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button onclick="searchMemories()">🔍 Search</button>
+                </div>
+                <div class="control-group">
+                    <label>&nbsp;</label>
+                    <button onclick="refreshDashboard()">🔄 Refresh</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="content-grid">
+            <!-- Memory Timeline -->
+            <div class="panel">
+                <h2>📜 Memory Timeline</h2>
+                <div id="timeline" class="timeline">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading memories...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Retrieval Heatmap -->
+            <div class="panel">
+                <h2>🔥 Retrieval Heatmap</h2>
+                <p style="color: #aaaaaa; font-size: 0.9em; margin-bottom: 15px;">
+                    Shows how often each memory is retrieved (darker = less used)
+                </p>
+                <div id="heatmap" class="heatmap">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Optimization Panel -->
+        <div class="panel">
+            <h2>⚡ Memory Optimization</h2>
+            <div class="controls">
+                <button onclick="optimizeMemory('truncate_low_value')">🗑️ Truncate Low-Value</button>
+                <button onclick="optimizeMemory('deduplicate')">🔗 Deduplicate</button>
+                <button onclick="optimizeMemory('compress')">📦 Compress Old</button>
+            </div>
+            <div id="optimization-result" style="margin-top: 20px; padding: 15px; background: rgba(0, 0, 0, 0.3); border-radius: 5px; display: none;"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/memory';
+        let currentMemories = [];
+
+        // Initialize dashboard
+        async function initDashboard() {
+            await Promise.all([
+                loadStatistics(),
+                loadMemories(),
+                loadRetrievalHeatmap()
+            ]);
+        }
+
+        // Load statistics
+        async function loadStatistics() {
+            try {
+                const response = await fetch(`${API_BASE}/diagnostics`);
+                const data = await response.json();
+
+                document.getElementById('stat-total').textContent = 
+                    data.long_term_memory?.total_memories || 0;
+                document.getElementById('stat-short-term').textContent = 
+                    data.memory_usage?.short_term_messages || 0;
+                document.getElementById('stat-turn').textContent = 
+                    data.debate_context?.turn_counter || 0;
+                
+                const ragStatus = data.memory_usage?.rag_enabled ? '✅' : '❌';
+                document.getElementById('stat-rag').textContent = ragStatus;
+            } catch (error) {
+                console.error('Error loading statistics:', error);
+            }
+        }
+
+        // Load memories timeline
+        async function loadMemories(query = '', role = '') {
+            try {
+                const payload = { query: query || 'all memories', top_k: 50 };
+                if (role) payload.filter = { role };
+
+                const response = await fetch(`${API_BASE}/search`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                currentMemories = data.results || [];
+                renderTimeline(currentMemories);
+            } catch (error) {
+                console.error('Error loading memories:', error);
+                document.getElementById('timeline').innerHTML = 
+                    '<p style="color: #ff6b6b;">Error loading memories</p>';
+            }
+        }
+
+        // Render timeline
+        function renderTimeline(memories) {
+            const timeline = document.getElementById('timeline');
+            
+            if (!memories || memories.length === 0) {
+                timeline.innerHTML = '<p style="color: #aaaaaa;">No memories found</p>';
+                return;
+            }
+
+            timeline.innerHTML = memories.map(mem => {
+                const turn = mem.metadata?.turn || '?';
+                const role = mem.metadata?.role || 'unknown';
+                const content = mem.text.substring(0, 150) + (mem.text.length > 150 ? '...' : '');
+                const score = mem.score ? (mem.score * 100).toFixed(1) : 'N/A';
+
+                return `
+                    <div class="timeline-item">
+                        <div class="timeline-turn">Turn ${turn}</div>
+                        <div class="timeline-role">${role.toUpperCase()}</div>
+                        <div class="timeline-content">${escapeHtml(content)}</div>
+                        <div class="timeline-score">Relevance: ${score}%</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Load retrieval heatmap
+        async function loadRetrievalHeatmap() {
+            const heatmap = document.getElementById('heatmap');
+            
+            // Generate mock heatmap data (in production, track actual retrieval counts)
+            const cells = [];
+            for (let i = 1; i <= 30; i++) {
+                const retrievalCount = Math.floor(Math.random() * 10);
+                let heatClass = 'cold';
+                if (retrievalCount >= 7) heatClass = 'hot';
+                else if (retrievalCount >= 4) heatClass = 'warm';
+                else if (retrievalCount >= 2) heatClass = 'cool';
+
+                cells.push(`
+                    <div class="heatmap-cell ${heatClass}" title="Turn ${i}: ${retrievalCount} retrievals">
+                        ${i}
+                    </div>
+                `);
+            }
+
+            heatmap.innerHTML = cells.join('');
+        }
+
+        // Search memories
+        async function searchMemories() {
+            const query = document.getElementById('search-query').value;
+            const role = document.getElementById('filter-role').value;
+            await loadMemories(query, role);
+        }
+
+        // Refresh dashboard
+        async function refreshDashboard() {
+            await initDashboard();
+        }
+
+        // Optimize memory
+        async function optimizeMemory(operation) {
+            const resultDiv = document.getElementById('optimization-result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<p>⏳ Optimizing...</p>';
+
+            try {
+                const response = await fetch(`${API_BASE}/optimize`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ operation })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    resultDiv.innerHTML = `
+                        <p style="color: #00ff88;">✅ ${data.message}</p>
+                        <p style="color: #aaaaaa; font-size: 0.9em; margin-top: 10px;">
+                            Tokens saved: ~${data.tokens_saved || 0}
+                        </p>
+                    `;
+                    
+                    // Refresh dashboard after optimization
+                    setTimeout(refreshDashboard, 1000);
+                } else {
+                    resultDiv.innerHTML = `<p style="color: #ff6b6b;">❌ Error: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<p style="color: #ff6b6b;">❌ Network error</p>`;
+            }
+        }
+
+        // Utility: Escape HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Auto-refresh every 30 seconds
+        setInterval(refreshDashboard, 30000);
+
+        // Initialize on load
+        initDashboard();
+    </script>
+</body>
+</html>

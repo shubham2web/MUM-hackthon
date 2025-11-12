@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from typing import Optional
-from quart import Blueprint, request, jsonify
+from quart import Blueprint, request, jsonify, render_template
 
 from memory.memory_manager import get_memory_manager
 
@@ -356,3 +356,334 @@ async def memory_health():
             "status": "unhealthy",
             "error": str(e)
         }), 500
+
+
+# -----------------------------
+# PHASE 2: Role Reversal Support
+# -----------------------------
+
+@memory_bp.route('/role/history', methods=['POST'])
+async def get_role_history():
+    """
+    Get all historical memories for a specific role.
+    
+    POST /memory/role/history
+    Body: {
+        "role": "proponent",
+        "debate_id": "debate_123"  // optional
+    }
+    
+    Returns:
+        {
+            "role": "proponent",
+            "memories": [...],
+            "count": 10
+        }
+    """
+    try:
+        data = await request.get_json()
+        role = data.get('role')
+        
+        if not role:
+            return jsonify({"error": "Missing 'role' field"}), 400
+        
+        debate_id = data.get('debate_id')
+        
+        memory_manager = get_memory_manager()
+        history = memory_manager.get_role_history(role, debate_id)
+        
+        return jsonify({
+            "role": role,
+            "memories": history,
+            "count": len(history)
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting role history: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@memory_bp.route('/role/reversal', methods=['POST'])
+async def build_role_reversal_context():
+    """
+    Build specialized context for role reversal scenarios.
+    
+    POST /memory/role/reversal
+    Body: {
+        "current_role": "opponent",
+        "previous_role": "proponent",
+        "system_prompt": "You are now the opponent...",
+        "current_task": "Argue against renewable energy...",
+        "debate_id": "debate_123"  // optional
+    }
+    
+    Returns:
+        {
+            "context_payload": "...",
+            "previous_arguments_count": 5,
+            "role_switch": "proponent → opponent"
+        }
+    """
+    try:
+        data = await request.get_json()
+        
+        current_role = data.get('current_role')
+        previous_role = data.get('previous_role')
+        system_prompt = data.get('system_prompt', '')
+        current_task = data.get('current_task', '')
+        
+        if not current_role or not previous_role:
+            return jsonify({
+                "error": "Missing 'current_role' or 'previous_role' field"
+            }), 400
+        
+        if not current_task:
+            return jsonify({"error": "Missing 'current_task' field"}), 400
+        
+        debate_id = data.get('debate_id')
+        
+        memory_manager = get_memory_manager()
+        
+        # Get previous arguments count
+        previous_args = memory_manager.get_role_history(previous_role, debate_id)
+        
+        # Build role reversal context
+        context_payload = memory_manager.build_role_reversal_context(
+            current_role=current_role,
+            previous_role=previous_role,
+            system_prompt=system_prompt,
+            current_task=current_task,
+            debate_id=debate_id
+        )
+        
+        return jsonify({
+            "context_payload": context_payload,
+            "previous_arguments_count": len(previous_args),
+            "role_switch": f"{previous_role} → {current_role}",
+            "token_estimate": len(context_payload) // 4
+        }), 200
+        
+    except Exception as e:
+        logger.error(f"Error building role reversal context: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@memory_bp.route('/consistency/check', methods=['POST'])
+async def check_consistency():
+    """
+    Check for potential contradictions in a role's statements.
+    
+    POST /memory/consistency/check
+    Body: {
+        "role": "proponent",
+        "new_statement": "Actually, fossil fuels are better...",
+        "debate_id": "debate_123",  // optional
+        "threshold": 0.3  // optional, similarity threshold
+    }
+    
+    Returns:
+        {
+            "has_inconsistencies": true,
+            "consistency_score": 0.6,
+            "warnings": ["Potential contradiction with Turn 3: ..."],
+            "related_statements": [...]
+        }
+    """
+    try:
+        data = await request.get_json()
+        
+        role = data.get('role')
+        new_statement = data.get('new_statement')
+        
+        if not role:
+            return jsonify({"error": "Missing 'role' field"}), 400
+        
+        if not new_statement:
+            return jsonify({"error": "Missing 'new_statement' field"}), 400
+        
+        debate_id = data.get('debate_id')
+        threshold = data.get('threshold', 0.3)
+        
+        memory_manager = get_memory_manager()
+        
+        result = memory_manager.detect_memory_inconsistencies(
+            role=role,
+            new_statement=new_statement,
+            debate_id=debate_id,
+            threshold=threshold
+        )
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        logger.error(f"Error checking consistency: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# -----------------------------
+# PHASE 3: Advanced Features (Diagnostics & Optimization)
+# -----------------------------
+
+@memory_bp.route('/diagnostics', methods=['GET'])
+async def get_diagnostics():
+    """
+    Get memory system diagnostics and performance metrics.
+    
+    GET /memory/diagnostics
+    
+    Returns:
+        {
+            "memory_usage": {...},
+            "performance": {...},
+            "audit_stats": {...}  // if MongoDB enabled
+        }
+    """
+    try:
+        memory_manager = get_memory_manager()
+        
+        # Basic diagnostics
+        diagnostics = {
+            "memory_usage": {
+                "short_term_messages": len(memory_manager.short_term),
+                "short_term_window": memory_manager.short_term.window_size,
+                "rag_enabled": memory_manager.enable_rag
+            },
+            "debate_context": {
+                "current_debate_id": memory_manager.current_debate_id,
+                "turn_counter": memory_manager.turn_counter
+            },
+            "timestamp": datetime.utcnow().isoformat()
+        }
+        
+        # Add long-term memory stats if RAG is enabled
+        if memory_manager.enable_rag and memory_manager.vector_store:
+            try:
+                # Get collection stats from vector store
+                collection_info = memory_manager.vector_store.collection.get()
+                diagnostics["long_term_memory"] = {
+                    "total_memories": len(collection_info['ids']) if collection_info else 0,
+                    "backend": memory_manager.vector_store.backend
+                }
+            except Exception as e:
+                logger.warning(f"Could not get long-term memory stats: {e}")
+        
+        # Add MongoDB audit stats if available
+        try:
+            from memory.mongo_audit import get_audit_logger
+            audit_logger = get_audit_logger()
+            
+            if audit_logger.enabled:
+                diagnostics["audit_stats"] = audit_logger.get_stats()
+        except Exception as e:
+            logger.debug(f"MongoDB audit stats unavailable: {e}")
+        
+        return jsonify(diagnostics), 200
+        
+    except Exception as e:
+        logger.error(f"Error getting diagnostics: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@memory_bp.route('/optimize', methods=['POST'])
+async def optimize_memory():
+    """
+    Trigger memory optimization operations.
+    
+    POST /memory/optimize
+    Body: {
+        "operation": "truncate_low_value" | "deduplicate" | "compress",
+        "threshold": 0.5  // optional, for low-value truncation
+    }
+    
+    Returns:
+        {
+            "success": true,
+            "operation": "truncate_low_value",
+            "items_removed": 10,
+            "message": "Optimization complete"
+        }
+    """
+    try:
+        data = await request.get_json()
+        operation = data.get('operation', 'truncate_low_value')
+        
+        memory_manager = get_memory_manager()
+        
+        result = {
+            "success": True,
+            "operation": operation
+        }
+        
+        if operation == 'truncate_low_value':
+            # Remove memories below a relevance threshold
+            threshold = data.get('threshold', 0.3)
+            current_context = data.get('current_context', '')
+            
+            optimization_result = memory_manager.truncate_low_value_memories(
+                threshold=threshold,
+                current_context=current_context
+            )
+            
+            result.update(optimization_result)
+            result["message"] = f"Truncated {optimization_result['removed_count']} low-value memories"
+            result["tokens_saved"] = optimization_result.get('tokens_saved_estimate', 0)
+            
+        elif operation == 'deduplicate':
+            # Remove duplicate or near-duplicate memories
+            similarity_threshold = data.get('similarity_threshold', 0.95)
+            
+            optimization_result = memory_manager.deduplicate_memories(
+                similarity_threshold=similarity_threshold
+            )
+            
+            result.update(optimization_result)
+            result["message"] = f"Removed {optimization_result['removed_count']} duplicate memories"
+            result["tokens_saved"] = optimization_result.get('tokens_saved_estimate', 0)
+            
+        elif operation == 'compress':
+            # Summarize old memories to save tokens
+            age_threshold = data.get('age_threshold', 20)
+            compression_ratio = data.get('compression_ratio', 0.5)
+            
+            optimization_result = memory_manager.compress_old_memories(
+                age_threshold=age_threshold,
+                compression_ratio=compression_ratio
+            )
+            
+            result.update(optimization_result)
+            result["message"] = f"Compressed {optimization_result['compressed_count']} old memories"
+            result["tokens_saved"] = optimization_result.get('tokens_saved', 0)
+            
+        else:
+            return jsonify({
+                "error": f"Unknown operation: {operation}. " +
+                        "Valid: truncate_low_value, deduplicate, compress"
+            }), 400
+        
+        return jsonify(result), 200
+        
+    except Exception as e:
+        logger.error(f"Error optimizing memory: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# Import datetime for diagnostics endpoint
+from datetime import datetime
+
+
+@memory_bp.route('/dashboard', methods=['GET'])
+async def memory_dashboard():
+    """
+    Render the RAG Memory Visualization Dashboard.
+    
+    GET /memory/dashboard
+    
+    Returns:
+        HTML page with interactive memory visualization, 
+        retrieval heatmaps, and optimization controls.
+    """
+    try:
+        return await render_template('memory_dashboard.html')
+    except Exception as e:
+        logger.error(f"Error rendering dashboard: {e}")
+        return jsonify({"error": str(e)}), 500

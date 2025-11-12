@@ -7,6 +7,7 @@
     
     <!-- External CSS with cache busting -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}?v={{ range(1, 10000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/role_reversal.css') }}?v={{ range(1, 10000) | random }}">
     
     <!-- Inline critical CSS to ensure glow effect loads -->
     <style>
@@ -134,6 +135,41 @@
         <div class="options-container">
             <a href="/chat" class="option-btn active" data-mode="analytical">Analytical</a>
             <a href="/chat?mode=debate" class="option-btn" data-mode="debate">Debate</a>
+        </div>
+
+        <!-- Role Reversal UI Panel -->
+        <div id="roleReversalPanel" class="role-reversal-panel">
+            <h3>Role Reversal Controls</h3>
+            <div class="rr-row">
+                <label>Previous Role:</label>
+                <input type="text" id="rr_previous_role" placeholder="e.g. proponent" />
+                <label>Current Role:</label>
+                <input type="text" id="rr_current_role" placeholder="e.g. opponent" />
+            </div>
+            <div class="rr-row">
+                <label>System Prompt:</label>
+                <input type="text" id="rr_system_prompt" placeholder="Short system prompt for agent" />
+            </div>
+            <div class="rr-row">
+                <label>Current Task:</label>
+                <input type="text" id="rr_current_task" placeholder="What should the agent do now?" />
+            </div>
+            <div class="rr-row buttons">
+                <button id="rr_build_btn" class="input-btn">Build Reversal Context</button>
+                <button id="rr_history_btn" class="input-btn">Show Role History</button>
+            </div>
+
+            <div class="rr-row">
+                <label>New Statement (check consistency):</label>
+                <input type="text" id="rr_new_statement" placeholder="Enter a new statement to check" />
+                <button id="rr_check_btn" class="input-btn">Check Consistency</button>
+            </div>
+
+            <div id="rr_results" class="rr-results">
+                <div id="rr_warnings" class="rr-warnings"></div>
+                <div id="rr_history" class="rr-history"></div>
+                <div id="rr_context_preview" class="rr-context-preview"></div>
+            </div>
         </div>
 
         <div class="cta-container">
@@ -288,6 +324,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
     <script src="{{ url_for('static', filename='js/homepage.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/role_reversal_ui.js') }}"></script>
 
     <script>
         // Add this after your existing inline script
