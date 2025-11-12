@@ -630,6 +630,26 @@ If the text appears to contain claims or information, verify its accuracy."""
         }), 500
 
 # -----------------------------
+# Helper: Truncate transcript to prevent payload bloat
+# -----------------------------
+def get_recent_transcript(transcript: str, max_chars: int = 3000) -> str:
+    """Keep only the most recent portion of the transcript to avoid payload size issues"""
+    if len(transcript) <= max_chars:
+        return transcript
+    
+    # Keep the last max_chars characters
+    truncated = transcript[-max_chars:]
+    
+    # Find the first complete section marker to avoid cutting mid-sentence
+    markers = ["---", "Debate ID:", "Topic:"]
+    for marker in markers:
+        pos = truncated.find(marker)
+        if pos > 0 and pos < 500:  # If we find a marker near the start
+            return "...[earlier debate content truncated]...\n\n" + truncated[pos:]
+    
+    return "...[earlier debate content truncated]...\n\n" + truncated
+
+# -----------------------------
 # Debate Generator
 # -----------------------------
 async def generate_debate(topic: str):
@@ -657,9 +677,10 @@ async def generate_debate(topic: str):
 
         evidence_bundle = await get_diversified_evidence(topic)
         
+        # Truncate articles to prevent payload bloat (limit each article to 300 chars)
         article_text = "\n\n".join(
-            f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')}"
-            for article in evidence_bundle
+            f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')[:300]}..."
+            for article in evidence_bundle[:3]  # Limit to 3 articles max
         )
         transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\nSources:\n{article_text}\n\n"
 
@@ -667,14 +688,14 @@ async def generate_debate(topic: str):
 
         # --- Moderator Introduction ---
         intro_prompt = ROLE_PROMPTS.get("moderator", "Introduce the debate topic based on the sources.")
-        async for event, data in run_turn("moderator", intro_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics, memory):
+        async for event, data in run_turn("moderator", intro_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
             if event == "token":
                 transcript += f"--- INTRODUCTION FROM MODERATOR ---\n{data['text']}\n\n"
             yield format_sse(data, event)
 
         # --- Round 1: Opening Statements ---
         for role, prompt in debaters.items():
-            input_text = f"The moderator has introduced the topic. Please provide your opening statement based on the provided sources.\n\nTranscript:\n{transcript}"
+            input_text = f"The moderator has introduced the topic. Please provide your opening statement based on the provided sources.\n\nTranscript:\n{get_recent_transcript(transcript)}"
             async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
                 if event == "token":
                     transcript += f"--- STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
@@ -682,14 +703,14 @@ async def generate_debate(topic: str):
 
         # --- Moderator Poses a Question for Rebuttals ---
         question_prompt = ROLE_PROMPTS.get("moderator", "Based on the opening statements, pose a challenging question for both sides.")
-        async for event, data in run_turn("moderator", question_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics, memory):
+        async for event, data in run_turn("moderator", question_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
             if event == "token":
                 transcript += f"--- QUESTION FROM MODERATOR ---\n{data['text']}\n\n"
             yield format_sse(data, event)
 
         # --- Round 2: Rebuttals ---
         for role, prompt in debaters.items():
-            input_text = f"Address the moderator's latest question and rebut the opposing view.\n\nTranscript:\n{transcript}"
+            input_text = f"Address the moderator's latest question and rebut the opposing view.\n\nTranscript:\n{get_recent_transcript(transcript)}"
             async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, is_rebuttal=True):
                 if event == "token":
                     transcript += f"--- REBUTTAL FROM {data['role'].upper()} ---\n{data['text']}\n\n"
@@ -697,7 +718,7 @@ async def generate_debate(topic: str):
 
         # --- Round 3: Convergence ---
         for role, prompt in debaters.items():
-            input_text = f"Review the entire debate. Your goal is now to find common ground and synthesize a final viewpoint.\n\nTranscript:\n{transcript}"
+            input_text = f"Review the entire debate. Your goal is now to find common ground and synthesize a final viewpoint.\n\nTranscript:\n{get_recent_transcript(transcript)}"
             async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
                 if event == "token":
                     transcript += f"--- CONVERGENCE FROM {data['role'].upper()} ---\n{data['text']}\n\n"
@@ -706,7 +727,7 @@ async def generate_debate(topic: str):
         # --- Final Synthesis by Moderator ---
         synthesis_text = ""
         moderator_prompt = ROLE_PROMPTS.get("moderator", "Provide a final, structured synthesis of the entire debate.")
-        async for event, data in run_turn("moderator", moderator_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics, memory):
+        async for event, data in run_turn("moderator", moderator_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
             if event == "token":
                 synthesis_text += data.get("text", "")
             if event != "token" or data.get("text"):
@@ -750,18 +771,25 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
         # 🧠 MEMORY INTEGRATION: Build context with memory if available
         if memory:
             try:
-                # Build 4-zone context payload
-                memory_enhanced_input = memory.build_context_payload(
-                    system_prompt=system_prompt,
-                    current_task=input_text,
-                    query=f"{role} arguments about {topic}",  # RAG query
-                    top_k_rag=3,  # Retrieve top 3 relevant memories
-                    use_short_term=True,
-                    use_long_term=True
+                # Retrieve relevant memories naturally without zone formatting
+                search_results = memory.long_term.search(
+                    query_text=f"{role} arguments about {topic}",
+                    top_k=2  # Limit to 2 to avoid payload bloat
                 )
-                # Use memory-enhanced context
-                final_input = memory_enhanced_input
-                final_system_prompt = None  # System prompt is in ZONE 1
+                
+                # Build natural memory context
+                memory_context = ""
+                if search_results:
+                    relevant_memories = [f"- {result['text'][:150]}..." for result in search_results[:2]]
+                    memory_context = "\n".join(relevant_memories)
+                
+                # Append memory naturally to input
+                if memory_context:
+                    final_input = f"{input_text}\n\nRelevant previous discussion:\n{memory_context}"
+                else:
+                    final_input = input_text
+                
+                final_system_prompt = system_prompt
                 logging.info(f"🧠 Memory-enhanced context built for {role} (turn {turn_metrics['turn_count'] + 1})")
             except Exception as e:
                 logging.warning(f"Memory context building failed: {e}. Using traditional context.")
