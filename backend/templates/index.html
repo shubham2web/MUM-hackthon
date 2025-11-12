@@ -130,6 +130,96 @@
             border: 1px solid rgba(255,255,255,0.1) !important;
         }
 
+        /* Settings Modal Styles */
+        .setting-item {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .setting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .setting-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .setting-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .theme-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-btn {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--accent-color);
+            background: var(--bg-secondary);
+        }
+
+        .theme-btn.active {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Light mode theme button overrides */
+        body.light-mode .theme-btn {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            color: #0c4a6e;
+        }
+
+        body.light-mode .theme-btn:hover {
+            background: #f0f9ff;
+            border-color: #0891b2;
+        }
+
+        body.light-mode .theme-btn.active {
+            background: linear-gradient(135deg, #0891b2, #0e7490);
+            border-color: #0891b2;
+            color: white;
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4);
+        }
+
+        .theme-btn svg {
+            transition: transform 0.3s ease;
+        }
+
+        .theme-btn:hover svg {
+            transform: scale(1.1);
+        }
+
         .compact-preview-info {
             display: flex !important;
             flex-direction: column !important;
@@ -263,289 +353,31 @@
             padding-right: 52px !important;
             text-align: right !important;
         }
-        
-        /* Debate mode styling */
-        .debate-message {
-            margin: 12px 0;
-            padding: 16px;
-            border-radius: 8px;
-            border-left: 4px solid;
+
+        /* v2.0 Toggle Light Mode Styles */
+        body.light-mode .v2-toggle-label {
+            color: #0f3a4b !important;
+            font-weight: 700 !important;
         }
         
-        .debate-message.proponent {
-            background: rgba(59, 130, 246, 0.1);
-            border-left-color: #3b82f6;
+        body.light-mode .v2-toggle-track {
+            background-color: rgba(14, 116, 144, 0.3) !important;
+            border: 2px solid #0e7490 !important;
         }
         
-        .debate-message.opponent {
-            background: rgba(239, 68, 68, 0.1);
-            border-left-color: #ef4444;
+        body.light-mode #v2Toggle:checked + .v2-toggle-track {
+            background-color: #0891b2 !important;
+            border-color: #0e7490 !important;
+            box-shadow: 0 0 8px rgba(8, 145, 178, 0.4) !important;
         }
         
-        .debate-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 12px;
-            font-size: 14px;
-            font-weight: 600;
+        body.light-mode .v2-toggle-slider {
+            background-color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(14, 116, 144, 0.5) !important;
         }
         
-        .debate-message.proponent .debate-header {
-            color: #3b82f6;
-        }
-        
-        .debate-message.opponent .debate-header {
-            color: #ef4444;
-        }
-        
-        .debate-icon {
-            font-size: 18px;
-        }
-        
-        .debate-content {
-            color: #e5e7eb;
-            line-height: 1.6;
-        }
-        
-        .debate-content p {
-            margin: 8px 0;
-        }
-    </style>
-    <style>
-        /* Message box outline and visibility for dark & light modes */
-        .input-container {
-            /* keep existing layout but ensure top border separation */
-            border-top: 1px solid rgba(255,255,255,0.04);
-            background: linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.18));
-        }
-
-        /* Wrapper keeps padding so the input stands out */
-        .input-wrapper {
-            display: flex;
-            gap: 8px;
-            align-items: center;
-            padding: 14px 18px;
-            max-width: 100%;
-        }
-
-        /* The text input itself: visible border, rounded, consistent padding */
-        .message-input {
-            flex: 1 1 auto;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: rgba(255,255,255,0.95);
-            padding: 12px 14px;
-            border-radius: 12px;
-            font-size: 14px;
-            outline: none;
-            transition: box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
-            box-shadow: 0 6px 18px rgba(0,0,0,0.55) inset;
-        }
-
-        .message-input:focus {
-            border-color: #60a5fa; /* subtle blue focus */
-            box-shadow: 0 6px 24px rgba(0,0,0,0.6) inset, 0 0 0 4px rgba(59,130,246,0.08);
-        }
-
-        /* Buttons beside input keep a consistent visual weight */
-        .input-btn {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.06);
-            color: inherit;
-        }
-
-        /* Light mode overrides: ensure dark border/text on light bg */
-        body.light-mode .input-container {
-            border-top: 1px solid rgba(0,0,0,0.06);
-            background: linear-gradient(180deg, #ffffff, #ffffff);
-        }
-
-        body.light-mode .message-input {
-            background: #ffffff;
-            border: 1px solid rgba(15,23,42,0.08);
-            color: #0b1220;
-            box-shadow: 0 6px 18px rgba(9,10,12,0.04) inset;
-        }
-
-        body.light-mode .message-input:focus {
-            border-color: #2563eb;
-            box-shadow: 0 6px 18px rgba(9,10,12,0.04) inset, 0 0 0 4px rgba(37,99,235,0.08);
-        }
-    </style>
-    <style>
-        /* Light mode adjustments */
-        body.light-mode {
-            background: #f8fafc;
-            color: #0f172a;
-        }
-        body.light-mode .app-container,
-        body.light-mode .chat-container,
-        body.light-mode .sidebar {
-            background: #ffffff;
-            color: #0f172a;
-        }
-        body.light-mode .message-text {
-            background: #f3f4f6 !important;
-            color: #0f172a !important;
-            border-color: rgba(0,0,0,0.06) !important;
-        }
-        body.light-mode .nav-item .nav-text { color: #0b1220 !important; }
-    </style>
-    <style>
-        /* Light mode tweaks for header controls (v2 toggle) */
-        body.light-mode .chat-header > div > span {
-            color: rgba(15,23,42,0.8) !important; /* dark text for label */
-        }
-
-        /* Adjust toggle background and slider visibility in light mode */
-        body.light-mode .chat-header label {
-            background-color: rgba(15,23,42,0.06) !important;
-        }
-
-        body.light-mode #v2ToggleSlider {
-            background-color: #ffffff !important; /* keep slider thumb visible */
-        }
-
-        /* When enabled, use accent color for slider track in light mode */
-        body.light-mode #v2Toggle:checked + span {
-            background-color: #3b82f6 !important;
-        }
-    </style>
-    <style>
-        /* Settings panel specific styles to ensure high contrast */
-        #settingsPanel.modal-overlay {
-            position: fixed;
-            inset: 0;
-            display: none;
-            align-items: center;
-            justify-content: center;
-            background: rgba(0,0,0,0.55);
-            z-index: 9999;
-        }
-
-        #settingsPanel .modal-content {
-            background: rgba(18,18,20,0.96);
-            color: #f8fafc;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-            width: 100%;
-            max-width: 520px;
-        }
-
-        #settingsPanel h2 {
-            margin: 0 0 10px 0;
-            color: #f8fafc;
-            font-size: 20px;
-            text-align: center;
-        }
-
-        #settingsPanel .modal-content strong {
-            color: #ffffff;
-        }
-
-        #settingsPanel .modal-content div {
-            color: rgba(248,250,252,0.9);
-        }
-
-        #settingsPanel .input-btn {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: #fff;
-            cursor: pointer;
-        }
-
-        #settingsPanel .input-btn:hover {
-            background: rgba(255,255,255,0.08);
-        }
-
-        #settingsPanel #deleteHistoryBtn {
-            background: #ef4444;
-            border: none;
-            color: #fff;
-        }
-
-        /* Ensure Close button is visible */
-        #settingsPanel #closeSettingsBtn {
-            background: rgba(255,255,255,0.04);
-            border: 1px solid rgba(255,255,255,0.08);
-            color: #fff;
-        }
-    </style>
-    <style>
-        /* Sidebar icon visibility fixes: ensure SVG icons and logo are visible in dark and light modes */
-        .sidebar .logo svg,
-        .sidebar .nav-section svg,
-        .sidebar .nav-item svg,
-        .sidebar .toggle-btn svg {
-            width: 28px;
-            height: 28px;
-            display: block;
-            /* Force a visible stroke color regardless of inherited color */
-            stroke: currentColor;
-            color: #00d9ff; /* bright cyan accent for dark mode */
-            fill: none;
-            vertical-align: middle;
-            opacity: 1;
-        }
-
-        .sidebar .logo-text {
-            color: #00d9ff;
-            font-weight: 700;
-            margin-left: 8px;
-        }
-
-        /* Make nav-text readable and icons consistent */
-        .sidebar .nav-text {
-            color: rgba(255,255,255,0.95);
-        }
-
-        /* Light mode overrides: use dark colors so icons remain visible on light background */
-        body.light-mode .sidebar .logo svg,
-        body.light-mode .sidebar .nav-section svg,
-        body.light-mode .sidebar .nav-item svg,
-        body.light-mode .sidebar .toggle-btn svg {
-            color: #0b1220; /* near-black for light background */
-            stroke: currentColor;
-        }
-
-        body.light-mode .sidebar .logo-text,
-        body.light-mode .sidebar .nav-text {
-            color: #0b1220 !important;
-        }
-
-        /* Ensure sidebar icons render above background layers */
-        .sidebar .logo,
-        .sidebar .nav-item {
-            z-index: 5;
-        }
-
-        /* Additional light-mode fixes for the sidebar toggle button (arrow visibility) */
-        body.light-mode .sidebar .toggle-btn {
-            background: rgba(255,255,255,0.95); /* keep button visible on light bg */
-            border: 1px solid rgba(9,10,12,0.06);
-            color: #0b1220 !important; /* ensure inherited currentColor is dark */
-            box-shadow: 0 2px 6px rgba(9,10,12,0.04);
-        }
-
-        /* Make sure any SVG paths inside the toggle are dark and thicker for contrast */
-        body.light-mode .sidebar .toggle-btn svg,
-        body.light-mode .sidebar .toggle-btn svg path,
-        body.light-mode .sidebar .toggle-btn svg line,
-        body.light-mode .sidebar .toggle-btn svg polygon {
-            color: #0b1220 !important;
-            stroke: #0b1220 !important;
-            stroke-width: 1.6 !important;
-            fill: none !important;
-            opacity: 1 !important;
-        }
-
-        /* Fallback: if toggle uses text/character arrow, ensure it's visible */
-        body.light-mode .sidebar .toggle-btn::before,
-        body.light-mode .sidebar .toggle-btn .arrow {
-            color: #0b1220 !important;
-            opacity: 1 !important;
+        body.light-mode #v2Toggle:checked + .v2-toggle-track .v2-toggle-slider {
+            background-color: #ffffff !important;
         }
     </style>
 </head>
@@ -589,12 +421,18 @@
                 </a>
                 <div class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="nav-text">Tasks</span>
+                </div>
+                <div class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
                         <polyline points="12 7 12 12 16 14"></polyline>
                     </svg>
                     <span class="nav-text">History</span>
                 </div>
-                <div class="nav-item" id="settingsBtn" role="button" tabindex="0">
+                <div class="nav-item" id="settingsNavBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -620,11 +458,11 @@
             <header class="chat-header">
                 <h1 class="chat-title" id="chatTitle">Chat with Atlas</h1>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;">v2.0 Enhanced Analysis</span>
+                    <span class="v2-toggle-label" style="color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;">v2.0 Enhanced Analysis</span>
                     <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
                         <input type="checkbox" id="v2Toggle" style="opacity: 0; width: 0; height: 0;">
-                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: 0.3s; border-radius: 24px;">
-                            <span id="v2ToggleSlider" style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
+                        <span class="v2-toggle-track" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: 0.3s; border-radius: 24px; border: 2px solid transparent;">
+                            <span class="v2-toggle-slider" id="v2ToggleSlider" style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
                         </span>
                     </label>
                 </div>
@@ -667,8 +505,7 @@
                         <span class="model-name send-text">SEND</span>
                         <button class="input-btn send-btn" id="sendBtn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="22" y1="2" x2="11" y2="13"/>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
                             </svg>
                         </button>
                     </div>
@@ -700,34 +537,51 @@
         </div>
     </div>
 
-    <!-- Settings Panel -->
-    <div id="settingsPanel" class="modal-overlay" style="display:none;">
-        <div class="modal-content" style="max-width:420px;">
-            <h2>Settings</h2>
-            <div style="display:flex;flex-direction:column;gap:12px;">
-                <div id="appearanceSection" style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <strong style="text-align: left;">Appearance</strong>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">Toggle between dark and light mode</div>
-                    </div>
-                    <div>
-                        <button id="appearanceToggle" class="input-btn" style="padding:8px 12px;border-radius:6px;">Change</button>
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px; width: 90%;">
+            <h2 style="margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                Settings
+            </h2>
+            
+            <!-- Theme Setting -->
+            <div class="setting-item">
+                <div class="setting-header">
+                    <div class="setting-info">
+                        <h3 class="setting-title">Appearance</h3>
+                        <p class="setting-description">Choose your preferred theme</p>
                     </div>
                 </div>
+                <div class="theme-options">
+                    <button class="theme-btn active" id="darkModeBtn" data-theme="dark">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <span>Dark</span>
+                    </button>
+                    <button class="theme-btn" id="lightModeBtn" data-theme="light">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <span>Light</span>
+                    </button>
+                </div>
+            </div>
 
-                <div id="historySection" style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <strong style="text-align: left;">Delete History</strong>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">Clear local chat messages and session data</div>
-                    </div>
-                    <div>
-                        <button id="deleteHistoryBtn" class="input-btn" style="background:#ef4444;color:#fff;padding:8px 12px;border-radius:6px;">Delete</button>
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
-                    <button id="closeSettingsBtn" class="input-btn">Close</button>
-                </div>
+            <div class="modal-buttons" style="margin-top: 30px;">
+                <button id="closeSettingsBtn" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Close</button>
             </div>
         </div>
     </div>
@@ -736,7 +590,7 @@
     <script>
     // API Module with detailed logging
     const API = {
-        baseURL: 'http://127.0.0.1:8000', // Backend server port
+        baseURL: 'http://127.0.0.1:5000', // Changed from 5000
 
         async sendMessage(message, mode = 'analytical') {
             console.log('=== API Call ===');
@@ -747,31 +601,19 @@
                 const response = await fetch(`${this.baseURL}/analyze_topic`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        topic: message, 
-                        model: 'llama3',
-                        mode: mode  // Send mode parameter to backend
-                    })
+                    body: JSON.stringify({ topic: message, model: 'llama3' })
                 });
                 
                 console.log('Response status:', response.status);
                 console.log('Response ok:', response.ok);
                 
-                if (!response.ok) {
-                    const errorText = await response.text();
-                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
-                }
-                
-                // Check if it's an SSE stream (debate mode)
-                const contentType = response.headers.get('content-type');
-                if (contentType && contentType.includes('text/event-stream')) {
-                    // Return response for SSE streaming
-                    return { isStream: true, response: response };
-                }
-                
-                // Regular JSON response (analytical mode)
                 const responseText = await response.text();
                 console.log('Response text:', responseText);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
+                }
+                
                 const data = JSON.parse(responseText);
                 console.log('Parsed data:', data);
                 return data;
@@ -938,13 +780,7 @@
             // Update page title based on mode
             const chatTitle = document.getElementById('chatTitle');
             if (chatTitle) {
-                if (this.currentMode === 'debate') {
-                    chatTitle.textContent = '🎭 Atlas Debate Mode';
-                    chatTitle.style.color = '#ef4444'; // Red accent for debate
-                } else {
-                    chatTitle.textContent = '💬 Chat with Atlas';
-                    chatTitle.style.color = '#60a5fa'; // Blue accent for chat
-                }
+                chatTitle.textContent = this.currentMode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
             }
 
             // Clear messages container and add single welcome message
@@ -1068,15 +904,10 @@
 
         switchMode(mode) {
             this.currentMode = mode;
+            
             const chatTitle = document.getElementById('chatTitle');
             if (chatTitle) {
-                if (mode === 'debate') {
-                    chatTitle.textContent = '🎭 Atlas Debate Mode';
-                    chatTitle.style.color = '#ef4444'; // Red accent for debate
-                } else {
-                    chatTitle.textContent = '💬 Chat with Atlas';
-                    chatTitle.style.color = '#60a5fa'; // Blue accent for chat
-                }
+                chatTitle.textContent = mode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
             }
             
             // Update URL without reloading
@@ -1094,8 +925,6 @@
                 messages.innerHTML = '';
                 this.addWelcomeMessage();
             }
-            
-            console.log(`✅ Switched to ${mode} mode`);
         },
 
         setupEventListeners() {
@@ -1169,70 +998,46 @@
             );
 
             try {
-                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
+                console.log('Sending message:', message, 'V2 enabled:', v2Enabled);
                 
                 let response;
-                
-                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
-                if (this.currentMode === 'debate') {
-                    console.log('🎭 Running debate mode...');
+                if (v2Enabled && typeof ATLASv2 !== 'undefined') {
+                    // Use v2.0 enhanced analysis
                     response = await Promise.race([
-                        API.sendMessage(message, 'debate'),
+                        ATLASv2.analyzeWithV2(message, {
+                            num_agents: 6,
+                            enable_reversal: true,
+                            reversal_rounds: 2
+                        }),
                         timeoutPromise
                     ]);
                     
+                    console.log('Received v2.0 response:', response);
                     Messages.hideLoading();
                     
-                    // Should be SSE stream
-                    if (response && response.isStream) {
-                        await this.handleDebateStream(response.response, message);
+                    if (response.success && response.data) {
+                        // Use V2UI to render enhanced response
+                        const v2Card = V2UI.createV2ResponseCard(response.data);
+                        Messages.addAIMessageHTML(v2Card);
                     } else {
-                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                        Messages.addAIMessage(response.error || 'v2.0 analysis failed');
                     }
-                }
-                // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
-                else {
-                    if (v2Enabled && typeof ATLASv2 !== 'undefined') {
-                        console.log('💎 Using v2.0 enhanced analysis...');
-                        // Use v2.0 enhanced analysis
-                        response = await Promise.race([
-                            ATLASv2.analyzeWithV2(message, {
-                                num_agents: 6,
-                                enable_reversal: true,
-                                reversal_rounds: 2
-                            }),
-                            timeoutPromise
-                        ]);
-                        
-                        console.log('Received v2.0 response:', response);
-                        Messages.hideLoading();
-                        
-                        if (response.success && response.data) {
-                            // Use V2UI to render enhanced response
-                            const v2Card = V2UI.createV2ResponseCard(response.data);
-                            Messages.addAIMessageHTML(v2Card);
-                        } else {
-                            Messages.addAIMessage(response.error || 'v2.0 analysis failed');
-                        }
-                    } else {
-                        console.log('💬 Using standard chat analysis...');
-                        // Use standard v1.0 analysis
-                        response = await Promise.race([
-                            API.sendMessage(message, 'analytical'),
-                            timeoutPromise
-                        ]);
-                        
-                        console.log('Received response:', response);
-                        Messages.hideLoading();
-                        
-                        // Regular chat response
-                        const aiMessage = response.analysis || 
-                                        response.result || 
-                                        response.answer ||
-                                        'No response received.';
-                                        
-                        Messages.addAIMessage(aiMessage);
-                    }
+                } else {
+                    // Use standard v1.0 analysis
+                    response = await Promise.race([
+                        API.sendMessage(message, this.currentMode),
+                        timeoutPromise
+                    ]);
+                    
+                    console.log('Received response:', response);
+                    Messages.hideLoading();
+                    
+                    const aiMessage = response.analysis || 
+                                    response.result || 
+                                    response.answer ||
+                                    'No response received.';
+                                    
+                    Messages.addAIMessage(aiMessage);
                 }
                 
             } catch (error) {
@@ -1250,114 +1055,10 @@
             }
         },
 
-        async handleDebateStream(response, originalTopic) {
-            console.log('📡 Handling debate stream...');
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            
-            let currentRole = null;
-            let currentContent = '';
-            let messageDiv = null;
-            
-            try {
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-                    
-                    const chunk = decoder.decode(value, { stream: true });
-                    const lines = chunk.split('\n');
-                    
-                    for (const line of lines) {
-                        if (!line.trim() || line.startsWith(':')) continue;
-                        
-                        if (line.startsWith('data: ')) {
-                            const data = line.substring(6).trim();
-                            
-                            if (data === '[DONE]') {
-                                // Flush any remaining content
-                                if (currentContent && messageDiv) {
-                                    messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
-                                }
-                                console.log('✅ Debate stream complete');
-                                return;
-                            }
-                            
-                            try {
-                                const json = JSON.parse(data);
-                                
-                                // Check for role change
-                                if (json.role && json.role !== currentRole) {
-                                    // Flush previous content
-                                    if (currentContent && messageDiv) {
-                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
-                                    }
-                                    
-                                    // Start new message
-                                    currentRole = json.role;
-                                    currentContent = '';
-                                    messageDiv = this.createDebateMessage(currentRole);
-                                }
-                                
-                                // Append content
-                                if (json.content) {
-                                    currentContent += json.content;
-                                    if (messageDiv) {
-                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
-                                    }
-                                }
-                                
-                            } catch (e) {
-                                console.error('Error parsing SSE data:', e, data);
-                            }
-                        }
-                    }
-                }
-            } catch (error) {
-                console.error('Error in debate stream:', error);
-                Messages.addAIMessage('❌ Error streaming debate: ' + error.message);
-            }
-        },
-
-        createDebateMessage(role) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message ai-message';
-            Messages.container.appendChild(messageDiv);
-            Messages.container.scrollTop = Messages.container.scrollHeight;
-            return messageDiv;
-        },
-
-        formatDebateContent(content, role) {
-            const icon = role === 'proponent' ? '🔵' : '🔴';
-            const label = role === 'proponent' ? 'PROPONENT' : 'OPPONENT';
-            const colorClass = role === 'proponent' ? 'proponent' : 'opponent';
-            
-            return `
-                <div class="debate-message ${colorClass}">
-                    <div class="debate-header">
-                        <span class="debate-icon">${icon}</span>
-                        <strong>${label}</strong>
-                    </div>
-                    <div class="debate-content">${this.markdownToHtml(content)}</div>
-                </div>
-            `;
-        },
-
-        markdownToHtml(text) {
-            // Basic markdown conversion
-            return text
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\n\n/g, '</p><p>')
-                .replace(/\n/g, '<br>');
-        },
-
         addWelcomeMessage() {
-            let message;
-            if (this.currentMode === 'debate') {
-                message = "🎭 **Welcome to Debate Mode!**\n\nI'll analyze your topic by presenting arguments from both sides:\n• 🔵 **Proponent** - Arguments in favor\n• 🔴 **Opponent** - Counter-arguments\n• 🎙️ **Moderator** - Synthesis and balance\n\nAsk me to debate any topic!";
-            } else {
-                message = "👋 Hello! I'm **Atlas**, your misinformation fighter.\n\n💬 **Chat Mode**: I'll provide clear, factual analysis of your questions.\n\n💡 **Tip**: Toggle v2.0 for enhanced multi-perspective analysis, or switch to Debate mode for structured debates!";
-            }
+            const message = this.currentMode === 'debate' 
+                ? "Welcome to **Debate Mode**! I'll analyze topics from multiple perspectives and provide evidence-based insights."
+                : "Hello! I'm **Atlas**, your misinformation fighter. Ask me anything!";
             Messages.addAIMessage(message);
         }
     };
@@ -1742,6 +1443,37 @@
         }
     };
 
+    // Global function to update toggle colors based on theme
+    window.updateToggleColors = () => {
+        const v2Toggle = document.getElementById('v2Toggle');
+        const v2Slider = document.getElementById('v2ToggleSlider');
+        const isLightMode = document.body.classList.contains('light-mode');
+        
+        if (v2Slider && v2Slider.parentElement) {
+            if (v2Toggle && v2Toggle.checked) {
+                if (isLightMode) {
+                    v2Slider.parentElement.style.backgroundColor = '#0891b2';
+                    v2Slider.parentElement.style.borderColor = '#0e7490';
+                    v2Slider.parentElement.style.boxShadow = '0 0 8px rgba(8, 145, 178, 0.4)';
+                } else {
+                    v2Slider.parentElement.style.backgroundColor = '#3b82f6';
+                    v2Slider.parentElement.style.borderColor = '';
+                    v2Slider.parentElement.style.boxShadow = '';
+                }
+            } else {
+                if (isLightMode) {
+                    v2Slider.parentElement.style.backgroundColor = 'rgba(14, 116, 144, 0.3)';
+                    v2Slider.parentElement.style.borderColor = '#0e7490';
+                    v2Slider.parentElement.style.boxShadow = '';
+                } else {
+                    v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                    v2Slider.parentElement.style.borderColor = '';
+                    v2Slider.parentElement.style.boxShadow = '';
+                }
+            }
+        }
+    };
+
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', () => {
         console.log('Initializing Atlas Chat...');
@@ -1757,15 +1489,97 @@
             v2Toggle.addEventListener('change', function() {
                 if (this.checked) {
                     v2Slider.style.transform = 'translateX(26px)';
-                    v2Slider.parentElement.style.backgroundColor = '#3b82f6';
                     console.log('v2.0 Enhanced Analysis: ENABLED');
                 } else {
                     v2Slider.style.transform = 'translateX(0)';
-                    v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
                     console.log('v2.0 Enhanced Analysis: DISABLED');
                 }
+                window.updateToggleColors();
             });
+            
+            // Call on page load
+            window.updateToggleColors();
         }
+
+        // Theme Switcher - Load saved theme first
+        const savedTheme = localStorage.getItem('atlas-theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+        }
+        
+        // Now update toggle colors after theme is set
+        window.updateToggleColors();
+
+        // Settings modal - with debugging
+        const settingsBtn = document.getElementById('settingsNavBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsClose = document.getElementById('closeSettingsBtn');
+        const themeButtons = document.querySelectorAll('.theme-btn');
+
+        console.log('Settings button found:', settingsBtn);
+        console.log('Settings modal found:', settingsModal);
+        console.log('Close button found:', settingsClose);
+
+        // Open settings modal
+        if (settingsBtn) {
+            settingsBtn.style.cursor = 'pointer';
+            settingsBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Settings button clicked!');
+                if (settingsModal) {
+                    settingsModal.classList.add('active');
+                    console.log('Active class added to modal');
+                    console.log('Modal display:', window.getComputedStyle(settingsModal).display);
+                }
+            };
+        } else {
+            console.error('Settings button NOT found!');
+        }
+
+        // Close settings modal
+        if (settingsClose) {
+            settingsClose.onclick = () => {
+                settingsModal?.classList.remove('active');
+                console.log('Settings modal closed');
+            };
+        }
+
+        // Close on overlay click
+        settingsModal?.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.remove('active');
+            }
+        });
+
+        // Theme switching
+        themeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.theme;
+                
+                // Update active button
+                themeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Apply theme
+                if (theme === 'light') {
+                    document.body.classList.add('light-mode');
+                    localStorage.setItem('atlas-theme', 'light');
+                } else {
+                    document.body.classList.remove('light-mode');
+                    localStorage.setItem('atlas-theme', 'dark');
+                }
+                
+                // Update v2 toggle colors for new theme
+                window.updateToggleColors();
+                
+                console.log(`Theme switched to: ${theme}`);
+            });
+        });
+
+        // Set active theme button on load
+        const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+        document.querySelector(`.theme-btn[data-theme="${currentTheme}"]`)?.classList.add('active');
     });
     </script>
 
@@ -1813,70 +1627,6 @@
                 micBtn.style.display = 'none'; // Hide mic button if not supported
             }
         });
-    </script>
-    
-    <!-- Settings JS -->
-    <script>
-        (function() {
-            // Elements
-            const settingsBtn = document.getElementById('settingsBtn');
-            const settingsPanel = document.getElementById('settingsPanel');
-            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
-            const appearanceToggle = document.getElementById('appearanceToggle');
-            const deleteHistoryBtn = document.getElementById('deleteHistoryBtn');
-
-            function openSettings() {
-                if (settingsPanel) settingsPanel.style.display = 'flex';
-            }
-
-            function closeSettings() {
-                if (settingsPanel) settingsPanel.style.display = 'none';
-            }
-
-            function applyAppearance(theme) {
-                if (theme === 'light') {
-                    document.body.classList.add('light-mode');
-                } else {
-                    document.body.classList.remove('light-mode');
-                }
-                localStorage.setItem('appearance', theme);
-            }
-
-            function toggleAppearance() {
-                const current = localStorage.getItem('appearance') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
-                const next = current === 'light' ? 'dark' : 'light';
-                applyAppearance(next);
-            }
-
-            function deleteHistory() {
-                if (!confirm('Delete all local chat history? This will clear messages from this browser session.')) return;
-                // Clear chat messages DOM
-                const messages = document.getElementById('chatMessages');
-                if (messages) messages.innerHTML = '';
-                // Clear sessionStorage keys used by the app
-                const keysToRemove = ['initialPrompt', 'ocrResult', 'ocrResults', 'chatMode'];
-                keysToRemove.forEach(k => sessionStorage.removeItem(k));
-                // Optionally clear a chat history item in localStorage
-                try { localStorage.removeItem('chatHistory'); } catch (e) {}
-                // Show a small confirmation message
-                alert('Local chat history cleared.');
-            }
-
-            // Attach listeners
-            if (settingsBtn) {
-                settingsBtn.addEventListener('click', (e) => { e.preventDefault(); openSettings(); });
-                settingsBtn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSettings(); } });
-            }
-            if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
-            if (appearanceToggle) appearanceToggle.addEventListener('click', toggleAppearance);
-            if (deleteHistoryBtn) deleteHistoryBtn.addEventListener('click', deleteHistory);
-
-            // Apply initial appearance on load
-            document.addEventListener('DOMContentLoaded', () => {
-                const saved = localStorage.getItem('appearance');
-                if (saved) applyAppearance(saved);
-            });
-        })();
     </script>
     
     <!-- ATLAS v2.0 Integration -->
