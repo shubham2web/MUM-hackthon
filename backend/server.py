@@ -219,6 +219,7 @@ async def analyze_topic():
             user_message = f"Question: {topic}"
         
         system_prompt = """You are Atlas, an AI misinformation fighter. 
+Today's date is November 12, 2025. You have knowledge up to 2025 and can discuss current events, trends, and updates from 2025.
 Analyze the user's question and provide a clear, factual response.
 Keep your response concise (2-3 paragraphs)."""
         
@@ -403,6 +404,7 @@ Please analyze the extracted text using the evidence provided from web sources. 
 Please analyze this text using the evidence provided from web sources. Verify the accuracy of any claims, identify potential misinformation, and provide a comprehensive fact-checked analysis."""
                 
                 system_prompt = """You are Atlas, an advanced misinformation fighter and fact-checker.
+Today's date is November 12, 2025. You have knowledge up to 2025 and can discuss current events.
 You have been provided with text extracted from an image along with evidence from credible web sources.
 Your task is to:
 1. Identify key claims or information in the extracted text
@@ -420,6 +422,7 @@ Be thorough, objective, and help users understand the truth."""
                     user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nPlease analyze this text and provide insights."
                 
                 system_prompt = """You are Atlas, an AI assistant helping analyze text from images.
+Today's date is November 12, 2025. You have knowledge up to 2025.
 Provide clear, helpful analysis of the text content.
 If the text appears to contain claims or information, verify its accuracy."""
             

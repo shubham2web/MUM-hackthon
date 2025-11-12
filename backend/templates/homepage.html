@@ -89,6 +89,7 @@
 <body>
     <div id="vanta-fog"></div>
     <h2 class="top-header">Misinformation Fighter</h2>
+    
     <div class="background-text">ATLAS</div>
 
     <div class="container">
@@ -150,7 +151,7 @@
             
             const text = "EVIDENCE OVER NOISE";
             const letterDelay = 80;
-            const holdDuration = 2000;
+            const holdDuration = 6500; // Increased from 4500ms to add 2 extra seconds
             const fadeOutDelay = 40;
             const restartDelay = 800;
             
@@ -170,6 +171,15 @@
                     console.log('📝 Creating letters...');
                     taglineContainer.innerHTML = '';
                     
+                    // Create magnifying glass element
+                    const magnifyGlass = document.createElement('div');
+                    magnifyGlass.className = 'magnifying-glass';
+                    magnifyGlass.style.cssText = 'position: absolute; z-index: 100;';
+                    taglineContainer.appendChild(magnifyGlass);
+                    console.log('🔍 Magnifying glass created:', magnifyGlass);
+                    
+                    let letterIndex = 0; // Track actual letter index (excluding spaces)
+                    
                     text.split('').forEach((char, index) => {
                         const span = document.createElement('span');
                         
@@ -179,12 +189,35 @@
                             span.className = 'letter';
                             span.textContent = char;
                             span.style.animationDelay = `${index * letterDelay}ms`;
+                            
+                            // Mark EVIDENCE letters (first 8 letters)
+                            if (letterIndex < 8) {
+                                span.classList.add('magnify-target');
+                                span.setAttribute('data-letter-index', letterIndex);
+                                console.log(`✨ Marked letter ${letterIndex}: ${char}`);
+                            }
+                            letterIndex++;
                         }
                         
                         taglineContainer.appendChild(span);
                     });
                     
-                    console.log(`✅ Created ${taglineContainer.children.length} letter elements`);
+                    // Trigger magnification effect on EVIDENCE letters
+                    setTimeout(() => {
+                        const evidenceLetters = taglineContainer.querySelectorAll('.magnify-target');
+                        console.log(`🎯 Found ${evidenceLetters.length} EVIDENCE letters to magnify`);
+                        evidenceLetters.forEach((letter, idx) => {
+                            setTimeout(() => {
+                                console.log(`🔎 Magnifying letter ${idx}: ${letter.textContent}`);
+                                letter.classList.add('magnified');
+                                setTimeout(() => {
+                                    letter.classList.remove('magnified');
+                                }, 600); // Magnification duration
+                            }, 1000 + (idx * 550)); // Synced with 5s linear animation
+                        });
+                    }, 1000); // Start 1s after (matches CSS animation delay)
+                    
+                    console.log(`✅ Created ${taglineContainer.children.length} elements (1 magnifying glass + letters)`);
                 }
 
                 function animateIn() {

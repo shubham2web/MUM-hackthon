@@ -4,12 +4,54 @@
     box-sizing: border-box;
 }
 
+/* Theme Variables */
+:root {
+    /* Dark Mode (Default) */
+    --bg-primary: #000000;
+    --bg-secondary: rgba(10, 10, 10, 0.8);
+    --bg-tertiary: rgba(42, 43, 50, 1);
+    --bg-input: rgba(52, 53, 65, 1);
+    --bg-sidebar: rgba(10, 10, 10, 0.9);
+    
+    --text-primary: #ffffff;
+    --text-secondary: rgba(255, 255, 255, 0.7);
+    --text-tertiary: #666666;
+    
+    --border-color: rgba(255, 255, 255, 0.1);
+    --accent-color: #3b82f6;
+    --accent-hover: #2563eb;
+    
+    --glow-cyan: #00d9ff;
+    --glow-blue: #42b5eb;
+}
+
+/* Light Mode */
+body.light-mode {
+    --bg-primary: #ecfeff;         /* Light cyan background - soft on eyes */
+    --bg-secondary: #ffffff;       /* Pure white for cards/sections */
+    --bg-tertiary: #cffafe;        /* Soft cyan for tertiary backgrounds */
+    --bg-input: #ffffff;           /* White for inputs */
+    --bg-sidebar: #bae6fd;         /* Lighter blue for sidebar */
+    
+    --text-primary: #0c4a6e;       /* Dark blue for main text */
+    --text-secondary: #164e63;     /* Dark cyan for secondary text */
+    --text-tertiary: #155e75;      /* Medium cyan for tertiary text */
+    
+    --border-color: #a5f3fc;       /* Light cyan borders */
+    --accent-color: #0891b2;       /* Cyan accent */
+    --accent-hover: #0e7490;       /* Darker cyan on hover */
+    
+    --glow-cyan: #06b6d4;          /* Bright cyan for glows */
+    --glow-blue: #0ea5e9;          /* Bright blue for glows */
+}
+
 body {
     font-family: 'Space Grotesk', sans-serif;
-    background: #000000;
-    color: #ffffff;
+    background: var(--bg-primary);
+    color: var(--text-primary);
     overflow-x: hidden;
     height: 100vh;
+    transition: background 0.3s ease, color 0.3s ease;
 }
 
 /* Scrollbar Styling */
