@@ -22,22 +22,28 @@ from services.pro_scraper import get_diversified_evidence
 from core.utils import compute_advanced_analytics, format_sse
 
 # Import OCR functionality (EasyOCR - no Tesseract needed!)
-try:
-    from services.ocr_processor import get_ocr_processor
-    OCR_AVAILABLE = True
-    logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
-except (ImportError, OSError, RuntimeError) as e:
-    OCR_AVAILABLE = False
-    logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
+# Temporarily disabled due to slow PyTorch loading
+OCR_AVAILABLE = False
+logging.warning("OCR functionality temporarily disabled to speed up server startup. PyTorch/EasyOCR will be loaded on-demand.")
+# try:
+#     from services.ocr_processor import get_ocr_processor
+#     OCR_AVAILABLE = True
+#     logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
+# except (ImportError, OSError, RuntimeError) as e:
+#     OCR_AVAILABLE = False
+#     logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
 
 # Import v2.0 routes
-try:
-    from api.api_v2_routes import v2_bp
-    V2_AVAILABLE = True
-    logging.info("✅ ATLAS v2.0 routes loaded successfully")
-except ImportError as e:
-    V2_AVAILABLE = False
-    logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
+# Temporarily disabled due to slow transformers loading
+V2_AVAILABLE = False
+logging.warning("⚠️ ATLAS v2.0 routes temporarily disabled to speed up server startup.")
+# try:
+#     from api.api_v2_routes import v2_bp
+#     V2_AVAILABLE = True
+#     logging.info("✅ ATLAS v2.0 routes loaded successfully")
+# except ImportError as e:
+#     V2_AVAILABLE = False
+#     logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
 
 # Import Hybrid Memory System routes
 try:
@@ -256,6 +262,7 @@ async def analyze_topic():
             user_message = f"Question: {topic}"
         
         system_prompt = """You are Atlas, an AI misinformation fighter. 
+Today's date is November 12, 2025. You have knowledge up to 2025 and can discuss current events, trends, and updates from 2025.
 Analyze the user's question and provide a clear, factual response.
 Keep your response concise (2-3 paragraphs)."""
         
@@ -393,8 +400,19 @@ async def ocr_upload():
         # Log file info
         logging.info(f"Processing OCR for image: {image_file.filename} ({len(image_bytes)} bytes)")
         
+        # Check if OCR is available (lazy load)
+        if not OCR_AVAILABLE:
+            try:
+                from services.ocr_processor import get_ocr_processor
+            except Exception as e:
+                return jsonify({
+                    "success": False,
+                    "error": f"OCR functionality not available: {str(e)}"
+                }), 503
+        
         # Process OCR
         loop = asyncio.get_running_loop()
+        from services.ocr_processor import get_ocr_processor
         ocr_processor = get_ocr_processor()
         
         # Run OCR in executor to avoid blocking
@@ -491,6 +509,7 @@ Please analyze the extracted text using the evidence provided from web sources. 
 Please analyze this text using the evidence provided from web sources. Verify the accuracy of any claims, identify potential misinformation, and provide a comprehensive fact-checked analysis."""
                 
                 system_prompt = """You are Atlas, an advanced misinformation fighter and fact-checker.
+Today's date is November 12, 2025. You have knowledge up to 2025 and can discuss current events.
 You have been provided with text extracted from an image along with evidence from credible web sources.
 Your task is to:
 1. Identify key claims or information in the extracted text
@@ -508,6 +527,7 @@ Be thorough, objective, and help users understand the truth."""
                     user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nPlease analyze this text and provide insights."
                 
                 system_prompt = """You are Atlas, an AI assistant helping analyze text from images.
+Today's date is November 12, 2025. You have knowledge up to 2025.
 Provide clear, helpful analysis of the text content.
 If the text appears to contain claims or information, verify its accuracy."""
             

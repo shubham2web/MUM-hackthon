@@ -9,13 +9,71 @@
 /* === SIDEBAR === */
 .sidebar {
     width: 280px;
-    background: var(--sidebar-bg);
-    backdrop-filter: blur(15px);
-    border-right: 1px solid var(--border-color);
+    background: linear-gradient(180deg, 
+        rgba(40, 40, 40, 0.6) 0%, 
+        rgba(30, 30, 30, 0.7) 30%, 
+        rgba(25, 25, 25, 0.75) 70%, 
+        rgba(20, 20, 20, 0.8) 100%);
+    backdrop-filter: blur(20px) saturate(150%);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: inset 1px 0 10px rgba(255, 255, 255, 0.05);
     display: flex;
     flex-direction: column;
     padding: 20px;
     transition: all 0.3s ease;
+    position: relative;
+}
+
+.sidebar::before {
+    content: '';
+    position: absolute;
+    top: -100%;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.05) 40%, 
+        rgba(255, 255, 255, 0.12) 50%, 
+        rgba(255, 255, 255, 0.05) 60%, 
+        transparent 100%);
+    animation: sidebarShineMove 8s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.sidebar > *:not(.toggle-btn) {
+    position: relative;
+    z-index: 2;
+}
+
+/* Light mode sidebar - keep existing color */
+body.light-mode .sidebar {
+    background: var(--bg-sidebar);
+    backdrop-filter: blur(15px);
+    border-right: 1px solid var(--border-color);
+    box-shadow: none;
+}
+
+body.light-mode .sidebar::before {
+    background: linear-gradient(180deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 40%, 
+        rgba(255, 255, 255, 0.5) 50%, 
+        rgba(255, 255, 255, 0.3) 60%, 
+        transparent 100%);
+}
+
+@keyframes sidebarShineMove {
+    0% {
+        top: -100%;
+    }
+    50% {
+        top: 100%;
+    }
+    100% {
+        top: 100%;
+    }
 }
 
 .sidebar.collapsed {
@@ -45,9 +103,9 @@
     align-items: center;
     justify-content: center;
     margin-right: 12px;
-    box-shadow: 0 0 12px rgba(66,181,235,0.6), 0 0 24px rgba(31,88,245,0.6);
+    box-shadow: 0 0 8px rgba(66,181,235,0.4), 0 0 16px rgba(31,88,245,0.3);
     flex-shrink: 0;
-    transition: margin-right 0.3s ease;
+    transition: all 0.3s ease;
 }
 
 .sidebar.collapsed .logo {
@@ -67,10 +125,25 @@
     background: linear-gradient(135deg,#42b5eb,#1f58f5);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    text-shadow: 0 0 6px rgba(66,181,235,0.7), 0 0 12px rgba(31,88,245,0.7);
+    background-clip: text;
+    filter: drop-shadow(0 0 4px rgba(66,181,235,0.5)) drop-shadow(0 0 8px rgba(31,88,245,0.3));
     white-space: nowrap;
     transition: all 0.3s ease;
     overflow: hidden;
+}
+
+/* Light mode logo styles */
+body.light-mode .logo {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    box-shadow: 0 0 8px rgba(8,145,178,0.3), 0 0 16px rgba(14,116,144,0.2);
+}
+
+body.light-mode .logo-text {
+    background: linear-gradient(135deg, #0891b2, #0c4a6e);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    filter: drop-shadow(0 0 3px rgba(8,145,178,0.4)) drop-shadow(0 0 6px rgba(12,74,110,0.3));
 }
 
 .sidebar.collapsed .logo-text {
@@ -100,6 +173,14 @@
     z-index: 10;
 }
 
+.toggle-btn svg {
+    transition: transform 0.3s ease;
+}
+
+.sidebar.collapsed .toggle-btn svg {
+    transform: rotate(180deg);
+}
+
 .toggle-btn:hover {
     background: rgba(59, 130, 246, 1);
     transform: scale(1.1);
@@ -124,6 +205,11 @@
     justify-content: space-between;
 }
 
+/* Light mode chat header */
+body.light-mode .chat-header {
+    background: #54bcec;
+}
+
 .chat-title {
     font-family: 'Space Grotesk', sans-serif;
     font-size: 20px;
@@ -131,6 +217,13 @@
     color: var(--text-primary);
     text-shadow: 0 0 5px rgba(41, 116, 228, 0.959), 0 0 10px rgb(13, 24, 124);
     letter-spacing: 1px;
+}
+
+/* Light mode chat title */
+body.light-mode .chat-title {
+    color: #ffffff;
+    text-shadow: 0 0 10px rgba(103, 232, 249, 0.8), 0 0 20px rgba(34, 211, 238, 0.6);
+    font-weight: 700;
 }
 
 .chat-messages {
@@ -161,10 +254,61 @@
 }
 
 .input-container {
-    padding: 20px 30px;
-    background: rgba(10, 10, 10, 0.7);
-    backdrop-filter: blur(15px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 12px 20px; /* Reduced from 20px 30px */
+    background: rgba(5, 5, 5, 0.98);
+    backdrop-filter: blur(25px) saturate(180%);
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow: 
+        inset 1px 0 15px rgba(255, 255, 255, 0.08),
+        inset -1px 0 10px rgba(0, 0, 0, 0.5),
+        0 1px 3px rgba(0, 0, 0, 0.3);
+    position: relative;
+    overflow: hidden;
+}
+
+.input-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.05) 40%, 
+        rgba(255, 255, 255, 0.15) 50%, 
+        rgba(255, 255, 255, 0.05) 60%, 
+        transparent 100%);
+    animation: shineMove 8s ease-in-out infinite;
+    pointer-events: none;
+}
+
+@keyframes shineMove {
+    0% {
+        left: -100%;
+    }
+    50% {
+        left: 100%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* Light mode input container */
+body.light-mode .input-container {
+    background: linear-gradient(135deg, #93c5fd, #bae6fd);
+    border-top: 2px solid #60a5fa;
+    backdrop-filter: blur(10px);
+}
+
+body.light-mode .input-container::before {
+    background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(255, 255, 255, 0.3) 40%, 
+        rgba(255, 255, 255, 0.6) 50%, 
+        rgba(255, 255, 255, 0.3) 60%, 
+        transparent 100%);
 }
 
 /* === MOBILE === */
@@ -228,6 +372,6 @@
     }
 
     .input-container {
-        padding: 15px 20px;
+        padding: 10px 15px; /* Reduced from 15px 20px */
     }
 }
