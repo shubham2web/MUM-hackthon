@@ -1,0 +1,5 @@
+Version,Timestamp,Relevance,Tests_Passed,Total_Tests,Precision,Recall,F1_Score,Alpha,Reranking,Notes
+baseline-v1,2025-11-11T07:29:53.104169,71.78,5,13,32.95,92.31,47.51,0.75,False,Step 1: Initial baseline with 75% vector / 25% lexical fusion
+alpha-v2,2025-11-11T07:29:53.117848,72.95,5,13,32.95,92.31,47.51,0.85,False,Step 2: Alpha sweep optimization found 0.85 optimal (+1.17% gain)
+hgb-v3,2025-11-11T07:29:53.133674,70.29,6,13,32.95,92.31,47.51,0.85,True,"Step 4: HGB soft bias (0.3 weight) REJECTED - caused -2.66% regression. Root: insufficient training data (57 samples), feature mismatch, poor generalization."
+alpha-v3,2025-11-11T07:29:53.148809,73.51,5,13,32.95,92.31,47.51,0.9,False,"Step 5: Fine-grained alpha sweep found 0.90 optimal (+0.56% vs alpha-v2, +1.73% total from baseline)"

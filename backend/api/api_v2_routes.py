@@ -11,8 +11,8 @@ New endpoints for enhanced features:
 from quart import Blueprint, request, jsonify
 import logging
 
-# Import v2.0 integration
-from v2_features.atlas_v2_integration import atlas_v2
+# Import v2.0 integration - use lazy loader
+from v2_features.atlas_v2_integration import get_atlas_v2
 from v2_features.credibility_engine import score_claim_credibility
 from v2_features.role_library import get_debate_roles, role_library
 from v2_features.bias_auditor import bias_auditor
@@ -49,7 +49,8 @@ async def analyze_v2():
         logger.info(f"V2 Analysis requested for: {claim}")
         
         # Run full v2.0 analysis
-        result = await atlas_v2.analyze_claim_v2(
+        atlas = get_atlas_v2()
+        result = await atlas.analyze_claim_v2(
             claim=claim,
             num_agents=num_agents,
             enable_reversal=enable_reversal,
@@ -232,7 +233,8 @@ async def conduct_reversal():
         logger.info(f"Role reversal debate on: {topic}")
         
         # Conduct analysis with focus on reversal
-        result = await atlas_v2.analyze_claim_v2(
+        atlas = get_atlas_v2()
+        result = await atlas.analyze_claim_v2(
             claim=topic,
             num_agents=num_agents,
             enable_reversal=True,
@@ -256,7 +258,8 @@ async def conduct_reversal():
 async def get_status():
     """Get ATLAS v2.0 system status."""
     try:
-        status = atlas_v2.get_system_status()
+        atlas = get_atlas_v2()
+        status = atlas.get_system_status()
         return jsonify(status), 200
     except Exception as e:
         logger.error(f"Error in v2/status: {e}", exc_info=True)

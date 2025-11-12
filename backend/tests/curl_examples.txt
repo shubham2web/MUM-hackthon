@@ -1,0 +1,301 @@
+# Role Reversal API - Curl Examples
+
+This file contains example `curl` commands to test Phase 2 Role Reversal endpoints.
+
+## Prerequisites
+Server running on: http://localhost:8000
+
+---
+
+## 1. Health Check
+```bash
+curl -X GET http://localhost:8000/memory/health
+```
+
+Expected response:
+```json
+{
+  "status": "healthy",
+  "rag_enabled": true,
+  "short_term_size": 0
+}
+```
+
+---
+
+## 2. Start a Debate Session
+```bash
+curl -X POST http://localhost:8000/memory/debate/start \
+  -H "Content-Type: application/json" \
+  -d '{
+    "debate_id": "debate_renewable_energy_001",
+    "clear_previous": false
+  }'
+```
+
+Expected response:
+```json
+{
+  "success": true,
+  "debate_id": "debate_renewable_energy_001",
+  "message": "Debate context initialized"
+}
+```
+
+---
+
+## 3. Add Memory (Proponent Arguments)
+```bash
+curl -X POST http://localhost:8000/memory/add \
+  -H "Content-Type: application/json" \
+  -d '{
+    "role": "proponent",
+    "content": "Renewable energy significantly reduces carbon emissions and combats climate change.",
+    "metadata": {
+      "agent": "Agent_A",
+      "turn": 1
+    }
+  }'
+```
+
+Add more arguments:
+```bash
+curl -X POST http://localhost:8000/memory/add \
+  -H "Content-Type: application/json" \
+  -d '{
+    "role": "proponent",
+    "content": "Solar and wind power are now cost-competitive with fossil fuels.",
+    "metadata": {
+      "agent": "Agent_A",
+      "turn": 2
+    }
+  }'
+```
+
+---
+
+## 4. Get Role History
+```bash
+curl -X POST http://localhost:8000/memory/role/history \
+  -H "Content-Type: application/json" \
+  -d '{
+    "role": "proponent",
+    "debate_id": "debate_renewable_energy_001"
+  }'
+```
+
+Expected response:
+```json
+{
+  "role": "proponent",
+  "memories": [
+    {
+      "content": "Renewable energy significantly reduces carbon emissions...",
+      "metadata": {
+        "agent": "Agent_A",
+        "turn": 1
+      }
+    }
+  ],
+  "count": 2
+}
+```
+
+---
+
+## 5. Build Role Reversal Context
+```bash
+curl -X POST http://localhost:8000/memory/role/reversal \
+  -H "Content-Type: application/json" \
+  -d '{
+    "current_role": "opponent",
+    "previous_role": "proponent",
+    "system_prompt": "You are Agent A, now arguing as OPPONENT against renewable energy adoption.",
+    "current_task": "Present your opening argument against widespread renewable energy adoption.",
+    "debate_id": "debate_renewable_energy_001"
+  }'
+```
+
+Expected response:
+```json
+{
+  "context_payload": "ZONE 1: SYSTEM PROMPT...\nZONE 2A: PREVIOUS ROLE ARGUMENTS...",
+  "previous_arguments_count": 2,
+  "role_switch": "proponent → opponent",
+  "token_estimate": 782
+}
+```
+
+---
+
+## 6. Check Consistency (Detect Contradictions)
+```bash
+curl -X POST http://localhost:8000/memory/consistency/check \
+  -H "Content-Type: application/json" \
+  -d '{
+    "role": "proponent",
+    "new_statement": "Renewable energy is NOT economically viable and is far more expensive than fossil fuels.",
+    "debate_id": "debate_renewable_energy_001",
+    "threshold": 0.3
+  }'
+```
+
+Expected response:
+```json
+{
+  "has_inconsistencies": true,
+  "consistency_score": 0.65,
+  "warnings": [
+    "Potential contradiction with Turn 2: Previously stated 'cost-competitive with fossil fuels', now claiming 'NOT economically viable'"
+  ],
+  "related_statements": [
+    {
+      "text": "Solar and wind power are now cost-competitive with fossil fuels.",
+      "score": 0.78
+    }
+  ]
+}
+```
+
+---
+
+## 7. Get Memory Status
+```bash
+curl -X GET http://localhost:8000/memory/status
+```
+
+Expected response:
+```json
+{
+  "status": "ok",
+  "memory_summary": {
+    "current_debate_id": "debate_renewable_energy_001",
+    "turn_counter": 2,
+    "short_term": {
+      "message_count": 2,
+      "window_size": 10
+    },
+    "long_term": {
+      "memory_count": 2,
+      "backend": "chroma"
+    }
+  },
+  "rag_enabled": true
+}
+```
+
+---
+
+## 8. Search Memories (RAG Query)
+```bash
+curl -X POST http://localhost:8000/memory/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "What arguments were made about renewable energy costs?",
+    "top_k": 5,
+    "filter": {
+      "role": "proponent"
+    }
+  }'
+```
+
+---
+
+## 9. Clear Memory
+```bash
+# Clear short-term only
+curl -X POST http://localhost:8000/memory/clear \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "short_term"
+  }'
+
+# Clear all memory
+curl -X POST http://localhost:8000/memory/clear \
+  -H "Content-Type: application/json" \
+  -d '{
+    "target": "all"
+  }'
+```
+
+---
+
+## PowerShell Examples (Windows)
+
+For Windows PowerShell, use `Invoke-RestMethod`:
+
+### Health Check
+```powershell
+Invoke-RestMethod -Uri "http://localhost:8000/memory/health" -Method Get
+```
+
+### Add Memory
+```powershell
+$body = @{
+    role = "proponent"
+    content = "Renewable energy reduces carbon emissions."
+    metadata = @{
+        agent = "Agent_A"
+        turn = 1
+    }
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8000/memory/add" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+### Role Reversal
+```powershell
+$body = @{
+    current_role = "opponent"
+    previous_role = "proponent"
+    system_prompt = "You are now the opponent."
+    current_task = "Argue against renewable energy."
+    debate_id = "debate_001"
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8000/memory/role/reversal" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+### Consistency Check
+```powershell
+$body = @{
+    role = "proponent"
+    new_statement = "Renewable energy is too expensive."
+    debate_id = "debate_001"
+    threshold = 0.3
+} | ConvertTo-Json
+
+Invoke-RestMethod -Uri "http://localhost:8000/memory/consistency/check" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $body
+```
+
+---
+
+## Testing Workflow
+
+1. **Start server**: `cd backend; python server.py`
+2. **Health check**: Verify server is responding
+3. **Initialize debate**: Create a debate session
+4. **Add memories**: Store some arguments from one role
+5. **Get history**: Retrieve role-specific arguments
+6. **Build reversal context**: Get context for role switch
+7. **Check consistency**: Test contradiction detection
+8. **Clear memory**: Clean up between tests
+
+---
+
+## Notes
+
+- All POST endpoints accept JSON payloads
+- `debate_id` is optional in most endpoints
+- Consistency threshold ranges from 0.0 to 1.0 (default: 0.3)
+- Role reversal context includes 4 zones (system, previous args, RAG, current task)
+- Token estimates use ~4 characters per token
