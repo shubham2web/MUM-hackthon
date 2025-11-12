@@ -259,21 +259,30 @@ async def analyze_topic():
 Analyze the user's question and provide a clear, factual response.
 Keep your response concise (2-3 paragraphs)."""
         
-        # 🧠 MEMORY INTEGRATION: Build memory-enhanced context
+        # 🧠 MEMORY INTEGRATION: Retrieve relevant context from memory but don't use zone formatting for chat
         if memory:
             try:
-                user_message = memory.build_context_payload(
-                    system_prompt=system_prompt,
-                    current_task=user_message,
-                    query=topic,  # RAG query to retrieve relevant past conversations
-                    top_k_rag=2,
-                    use_short_term=True,
-                    use_long_term=True
-                )
-                system_prompt = None  # Already in context payload
-                logging.info(f"🧠 Memory-enhanced context built for analysis")
+                # For analytical mode, just retrieve relevant memories without zone formatting
+                relevant_memories = []
+                if memory.enable_rag and memory.long_term:
+                    search_results = memory.long_term.search(
+                        query_text=topic,
+                        top_k=2,
+                        filter_metadata={"debate_id": session_id}
+                    )
+                    relevant_memories = [
+                        f"Previous context: {result['text'][:200]}..."
+                        for result in search_results
+                    ]
+                
+                # Add memory context naturally to user message if available
+                if relevant_memories:
+                    memory_context = "\n\n".join(relevant_memories)
+                    user_message = f"{user_message}\n\nRelevant previous discussion:\n{memory_context}"
+                    logging.info(f"🧠 Added {len(relevant_memories)} relevant memories to context")
+                
             except Exception as e:
-                logging.warning(f"Memory context building failed: {e}")
+                logging.warning(f"Memory context retrieval failed: {e}")
         
         # Generate response - FIX: Collect generator properly
         ai_agent = AiAgent()
@@ -502,21 +511,30 @@ Be thorough, objective, and help users understand the truth."""
 Provide clear, helpful analysis of the text content.
 If the text appears to contain claims or information, verify its accuracy."""
             
-            # 🧠 MEMORY INTEGRATION: Build memory-enhanced context for OCR
+            # 🧠 MEMORY INTEGRATION: Retrieve relevant context from memory for OCR
             if memory:
                 try:
-                    user_message = memory.build_context_payload(
-                        system_prompt=system_prompt,
-                        current_task=user_message,
-                        query=extracted_text[:100],  # Use OCR text snippet for RAG
-                        top_k_rag=2,
-                        use_short_term=True,
-                        use_long_term=True
-                    )
-                    system_prompt = None  # Already in context payload
-                    logging.info(f"🧠 Memory-enhanced OCR context built")
+                    # Retrieve relevant memories without zone formatting
+                    relevant_memories = []
+                    if memory.enable_rag and memory.long_term:
+                        search_results = memory.long_term.search(
+                            query_text=extracted_text[:100],
+                            top_k=2,
+                            filter_metadata={"debate_id": session_id}
+                        )
+                        relevant_memories = [
+                            f"Previous context: {result['text'][:200]}..."
+                            for result in search_results
+                        ]
+                    
+                    # Add memory context naturally if available
+                    if relevant_memories:
+                        memory_context = "\n\n".join(relevant_memories)
+                        user_message = f"{user_message}\n\nRelevant previous analysis:\n{memory_context}"
+                        logging.info(f"🧠 Added {len(relevant_memories)} relevant OCR memories to context")
+                    
                 except Exception as e:
-                    logging.warning(f"Memory context building failed: {e}")
+                    logging.warning(f"Memory context retrieval failed: {e}")
             
             # Generate AI response
             ai_agent = AiAgent()
