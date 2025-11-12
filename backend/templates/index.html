@@ -263,6 +263,54 @@
             padding-right: 52px !important;
             text-align: right !important;
         }
+        
+        /* Debate mode styling */
+        .debate-message {
+            margin: 12px 0;
+            padding: 16px;
+            border-radius: 8px;
+            border-left: 4px solid;
+        }
+        
+        .debate-message.proponent {
+            background: rgba(59, 130, 246, 0.1);
+            border-left-color: #3b82f6;
+        }
+        
+        .debate-message.opponent {
+            background: rgba(239, 68, 68, 0.1);
+            border-left-color: #ef4444;
+        }
+        
+        .debate-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        
+        .debate-message.proponent .debate-header {
+            color: #3b82f6;
+        }
+        
+        .debate-message.opponent .debate-header {
+            color: #ef4444;
+        }
+        
+        .debate-icon {
+            font-size: 18px;
+        }
+        
+        .debate-content {
+            color: #e5e7eb;
+            line-height: 1.6;
+        }
+        
+        .debate-content p {
+            margin: 8px 0;
+        }
     </style>
 </head>
 <body>
@@ -437,19 +485,31 @@
                 const response = await fetch(`${this.baseURL}/analyze_topic`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: message, model: 'llama3' })
+                    body: JSON.stringify({ 
+                        topic: message, 
+                        model: 'llama3',
+                        mode: mode  // Send mode parameter to backend
+                    })
                 });
                 
                 console.log('Response status:', response.status);
                 console.log('Response ok:', response.ok);
                 
-                const responseText = await response.text();
-                console.log('Response text:', responseText);
-                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
                 }
                 
+                // Check if it's an SSE stream (debate mode)
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/event-stream')) {
+                    // Return response for SSE streaming
+                    return { isStream: true, response: response };
+                }
+                
+                // Regular JSON response (analytical mode)
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
                 const data = JSON.parse(responseText);
                 console.log('Parsed data:', data);
                 return data;
@@ -867,12 +927,18 @@
                     console.log('Received response:', response);
                     Messages.hideLoading();
                     
-                    const aiMessage = response.analysis || 
-                                    response.result || 
-                                    response.answer ||
-                                    'No response received.';
-                                    
-                    Messages.addAIMessage(aiMessage);
+                    // Check if it's an SSE stream (debate mode)
+                    if (response && response.isStream) {
+                        await this.handleDebateStream(response.response, message);
+                    } else {
+                        // Regular response
+                        const aiMessage = response.analysis || 
+                                        response.result || 
+                                        response.answer ||
+                                        'No response received.';
+                                        
+                        Messages.addAIMessage(aiMessage);
+                    }
                 }
                 
             } catch (error) {
@@ -888,6 +954,107 @@
             } finally {
                 this.isProcessing = false;
             }
+        },
+
+        async handleDebateStream(response, originalTopic) {
+            console.log('📡 Handling debate stream...');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            let currentRole = null;
+            let currentContent = '';
+            let messageDiv = null;
+            
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (!line.trim() || line.startsWith(':')) continue;
+                        
+                        if (line.startsWith('data: ')) {
+                            const data = line.substring(6).trim();
+                            
+                            if (data === '[DONE]') {
+                                // Flush any remaining content
+                                if (currentContent && messageDiv) {
+                                    messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                }
+                                console.log('✅ Debate stream complete');
+                                return;
+                            }
+                            
+                            try {
+                                const json = JSON.parse(data);
+                                
+                                // Check for role change
+                                if (json.role && json.role !== currentRole) {
+                                    // Flush previous content
+                                    if (currentContent && messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                    
+                                    // Start new message
+                                    currentRole = json.role;
+                                    currentContent = '';
+                                    messageDiv = this.createDebateMessage(currentRole);
+                                }
+                                
+                                // Append content
+                                if (json.content) {
+                                    currentContent += json.content;
+                                    if (messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                }
+                                
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e, data);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error in debate stream:', error);
+                Messages.addAIMessage('❌ Error streaming debate: ' + error.message);
+            }
+        },
+
+        createDebateMessage(role) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+            Messages.container.appendChild(messageDiv);
+            Messages.container.scrollTop = Messages.container.scrollHeight;
+            return messageDiv;
+        },
+
+        formatDebateContent(content, role) {
+            const icon = role === 'proponent' ? '🔵' : '🔴';
+            const label = role === 'proponent' ? 'PROPONENT' : 'OPPONENT';
+            const colorClass = role === 'proponent' ? 'proponent' : 'opponent';
+            
+            return `
+                <div class="debate-message ${colorClass}">
+                    <div class="debate-header">
+                        <span class="debate-icon">${icon}</span>
+                        <strong>${label}</strong>
+                    </div>
+                    <div class="debate-content">${this.markdownToHtml(content)}</div>
+                </div>
+            `;
+        },
+
+        markdownToHtml(text) {
+            // Basic markdown conversion
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
         },
 
         addWelcomeMessage() {

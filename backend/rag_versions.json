@@ -1,0 +1,200 @@
+{
+  "current_version": "alpha-v8-experimental",
+  "versions": [
+    {
+      "version": "baseline-v1",
+      "timestamp": "2025-11-11T07:29:53.104169",
+      "metrics": {
+        "relevance": 71.78,
+        "tests_passed": 5,
+        "total_tests": 13,
+        "precision": 32.95,
+        "recall": 92.31,
+        "f1_score": 47.51
+      },
+      "configuration": {
+        "alpha": 0.75,
+        "vector_weight": 0.75,
+        "lexical_weight": 0.25,
+        "enable_reranking": false
+      },
+      "notes": "Step 1: Initial baseline with 75% vector / 25% lexical fusion",
+      "tags": [
+        "baseline",
+        "step-1"
+      ]
+    },
+    {
+      "version": "alpha-v2",
+      "timestamp": "2025-11-11T07:29:53.117848",
+      "metrics": {
+        "relevance": 72.95,
+        "tests_passed": 5,
+        "total_tests": 13,
+        "precision": 32.95,
+        "recall": 92.31,
+        "f1_score": 47.51
+      },
+      "configuration": {
+        "alpha": 0.85,
+        "vector_weight": 0.85,
+        "lexical_weight": 0.15,
+        "enable_reranking": false
+      },
+      "notes": "Step 2: Alpha sweep optimization found 0.85 optimal (+1.17% gain)",
+      "tags": [
+        "optimized",
+        "step-2"
+      ]
+    },
+    {
+      "version": "hgb-v3",
+      "timestamp": "2025-11-11T07:29:53.133674",
+      "metrics": {
+        "relevance": 70.29,
+        "tests_passed": 6,
+        "total_tests": 13,
+        "precision": 32.95,
+        "recall": 92.31,
+        "f1_score": 47.51
+      },
+      "configuration": {
+        "alpha": 0.85,
+        "vector_weight": 0.85,
+        "lexical_weight": 0.15,
+        "enable_reranking": true
+      },
+      "notes": "Step 4: HGB soft bias (0.3 weight) REJECTED - caused -2.66% regression. Root: insufficient training data (57 samples), feature mismatch, poor generalization.",
+      "tags": [
+        "rejected",
+        "step-4",
+        "hgb"
+      ]
+    },
+    {
+      "version": "alpha-v3",
+      "timestamp": "2025-11-11T07:29:53.148809",
+      "metrics": {
+        "relevance": 73.51,
+        "tests_passed": 5,
+        "total_tests": 13,
+        "precision": 32.95,
+        "recall": 92.31,
+        "f1_score": 47.51
+      },
+      "configuration": {
+        "alpha": 0.9,
+        "vector_weight": 0.9,
+        "lexical_weight": 0.1,
+        "enable_reranking": false
+      },
+      "notes": "Step 5: Fine-grained alpha sweep found 0.90 optimal (+0.56% vs alpha-v2, +1.73% total from baseline)",
+      "tags": [
+        "current",
+        "optimized",
+        "step-5",
+        "stable"
+      ]
+    },
+    {
+      "version": "alpha-v4",
+      "timestamp": "2025-11-11T08:02:31.470200",
+      "metrics": {
+        "relevance": 74.07,
+        "tests_passed": 6,
+        "total_tests": 13,
+        "precision": 32.95,
+        "recall": 92.31,
+        "f1_score": 47.51
+      },
+      "configuration": {
+        "alpha": 0.95,
+        "vector_weight": 0.95,
+        "lexical_weight": 0.05,
+        "enable_reranking": false
+      },
+      "notes": "Step 7a: Higher-alpha micro-sweep (0.90-0.95), found 0.95 optimal with +0.56pp gain and +1 test passed",
+      "tags": []
+    },
+    {
+      "version": "alpha-v4",
+      "timestamp": "2025-11-11T15:00:02.066523",
+      "metrics": {
+        "relevance": 74.07,
+        "tests_passed": 6,
+        "total_tests": 13,
+        "precision": 32.95,
+        "recall": 92.31,
+        "f1_score": 47.51
+      },
+      "configuration": {
+        "alpha": 0.95,
+        "vector_weight": 0.95,
+        "lexical_weight": 0.05,
+        "enable_reranking": false
+      },
+      "notes": "Step 7a: Higher-alpha micro-sweep found optimal \u03b1=0.95, +0.56% vs alpha-v3, +1 test passed",
+      "tags": []
+    },
+    {
+      "version": "alpha-v5",
+      "timestamp": "2025-11-11T15:17:16.943557",
+      "metrics": {
+        "relevance": 74.3,
+        "tests_passed": 6,
+        "total_tests": 13,
+        "precision": 32.95,
+        "recall": 92.31,
+        "f1_score": 47.51
+      },
+      "configuration": {
+        "alpha": 0.97,
+        "vector_weight": 0.97,
+        "lexical_weight": 0.03,
+        "enable_reranking": false
+      },
+      "notes": "Step 7b: Grid search validation found optimal alpha=0.97, +0.23% vs alpha-v4, +2.52pp total",
+      "tags": []
+    },
+    {
+      "version": "alpha-v7",
+      "timestamp": "2025-11-11T16:04:09.089288",
+      "metrics": {
+        "relevance": 0.97,
+        "tests_passed": 32.95,
+        "total_tests": 92.31,
+        "precision": 47.99,
+        "recall": "6/13",
+        "f1_score": "Step 7e: Basic query normalization (7e-1) - lowercase, punctuation, number cleanup. +0.48pp gain with zero overhead."
+      },
+      "configuration": {
+        "alpha": 74.78,
+        "vector_weight": 74.78,
+        "lexical_weight": -73.78,
+        "enable_reranking": false
+      },
+      "notes": "",
+      "tags": []
+    },
+    {
+      "version": "alpha-v8-experimental",
+      "timestamp": "2025-11-11T16:18:59.834382",
+      "metrics": {
+        "relevance": 0.97,
+        "tests_passed": 32.95,
+        "total_tests": 92.31,
+        "precision": 47.51,
+        "recall": "6/13",
+        "f1_score": "Step 8: Cross-encoder reranking (+0.31pp). LTR conflicts detected. Disabled HGB. Experimental build."
+      },
+      "configuration": {
+        "alpha": 75.09,
+        "vector_weight": 75.09,
+        "lexical_weight": -74.09,
+        "enable_reranking": false
+      },
+      "notes": "",
+      "tags": []
+    }
+  ]
+}

@@ -1,0 +1,460 @@
+vector_sim,bm25_score,recency_days,authority_score,role_match,text_length,metadata_boost,query_term_overlap,position_rank,semantic_density,label,test_name,candidate_id
+0.6935840996925661,0.0,0.0,0.4,0.0,9.0,1.0,0.1,1.0,7.706489996584068,0,Exact Turn Recall,98ba5f33-bc49-4c9c-869c-75a143292818
+0.6320267566757583,0.0,0.0,0.4,0.0,12.0,1.0,0.1,0.5,5.266889638964653,0,Exact Turn Recall,6e2da3fb-7025-4779-8145-25aa729376af
+0.6295505129487053,0.0,0.0,0.4,0.0,18.0,1.0,0.1,0.3333333333333333,3.49750284971503,1,Exact Turn Recall,b99832f1-c305-4c49-981d-5b72f1800bdf
+0.6099002908294685,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.25,4.691540698688219,0,Exact Turn Recall,6a44721f-17e2-4708-b27e-8aac48b6d564
+0.7157886834602843,0.0,0.0,0.4,0.0,15.0,1.0,0.1666666666666666,1.0,4.771924556401896,1,Topic-Based Retrieval,8017e4c2-8a1d-486f-9900-92c08a8833ad
+0.639461925036971,0.0,0.0,0.4,0.0,16.0,1.0,0.1666666666666666,0.5,3.9966370314810686,1,Topic-Based Retrieval,8760886f-be28-4b8f-b9e7-562eda05fc64
+0.6075593615418238,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.3333333333333333,6.075593615418238,0,Topic-Based Retrieval,97f4846a-38bd-4ae8-a581-a4cf5f382122
+0.6057610285474169,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.25,5.5069184413401535,0,Topic-Based Retrieval,5f25ef59-544f-4a92-ac08-a15d56dcfba4
+0.7202106725436936,0.0,0.0,0.4,0.0,12.0,1.0,0.1428571428571428,1.0,6.00175560453078,1,Role Filtering,81a5a371-265b-4bc1-aacd-d030f1a0aa18
+0.7020914132367113,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,6.38264921124283,1,Role Filtering,a99af009-aa64-4bb6-a6fa-26ed26721a71
+0.6378207214571404,0.0,0.0,0.4,0.0,14.0,1.0,0.1428571428571428,0.3333333333333333,4.555862296122431,0,Role Filtering,57e8329e-d48b-4522-8cc4-90317e532ce1
+0.6088519782837446,0.0,0.0,0.4,0.0,14.0,1.0,0.1428571428571428,0.25,4.348942702026747,0,Role Filtering,5e25a639-46ec-4eb4-ab30-9ca7b9ba8410
+1.0,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,1.0,12.5,1,Recent Context Retrieval,1a0d509e-92c8-4cbc-ba49-0290582ed904
+0.9983645105006952,0.0,0.0,0.4,0.0,12.0,1.0,0.2222222222222222,0.5,8.31970425417246,1,Recent Context Retrieval,81730b12-6b29-467f-a09f-bd689172f08a
+0.5766975870959231,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,0.3333333333333333,7.2087198386990385,0,Recent Context Retrieval,94dd6d7f-ca19-4ddb-aa37-09c24cb5c915
+0.470002957930953,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,0.25,5.875036974136913,0,Recent Context Retrieval,b0c7b11a-387c-4076-b4f9-4976be87583b
+0.0530702735098043,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,0.2,0.6633784188725539,0,Recent Context Retrieval,f203cf4a-3aa1-47e1-a6a6-5a0076f91201
+0.5997472237424787,0.0,0.0,0.4,0.0,11.0,1.0,0.1111111111111111,1.0,5.452247488567988,0,Irrelevant Query Handling,e1a401d0-87de-4c62-95b9-83e27911ce8e
+0.586686672773259,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.5,5.86686672773259,0,Irrelevant Query Handling,6181360e-3c4b-4a71-8d78-a7b184002491
+1.0,0.0,0.0,0.4,0.0,12.0,1.0,0.1428571428571428,1.0,8.333333333333334,1,Role Reversal - Original Stance Retrieval,62ef3473-03b7-40dc-aab2-403b63d80c62
+0.8364004695351502,0.0,0.0,0.4,0.0,11.0,1.0,0.0714285714285714,0.5,7.603640632137729,0,Role Reversal - Original Stance Retrieval,f8c1e9f3-1888-4150-b438-2e4c4f638ca6
+0.8162146557099593,0.0,0.0,0.4,0.0,12.0,1.0,0.0714285714285714,0.3333333333333333,6.8017887975829945,0,Role Reversal - Original Stance Retrieval,31cfcf90-6e9c-45bf-8791-fd8d078cd52e
+0.2551997607655503,0.0,0.0,0.4,0.0,12.0,1.0,0.1428571428571428,0.25,2.1266646730462524,1,Role Reversal - Original Stance Retrieval,1a08b333-dd90-495c-9f7b-efb3e0626b16
+1.0,0.0,0.0,0.4,0.0,13.0,1.0,0.1666666666666666,1.0,7.692307692307692,0,Role Reversal - Adopt Opponent's Position,11836672-6742-4c1d-8216-e4bb4db7d6a5
+0.6169157792000808,0.0,0.0,0.4,0.0,8.0,1.0,0.0833333333333333,0.5,7.71144724000101,1,Role Reversal - Adopt Opponent's Position,ae4e2a77-6901-4fa8-b077-04a32abff930
+0.4901497493046,0.0,0.0,0.4,0.0,8.0,1.0,0.0833333333333333,0.3333333333333333,6.1268718663075,1,Role Reversal - Adopt Opponent's Position,48423f73-73f5-4770-b9f8-edea01dad604
+0.0,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,0.0,0,Role Reversal - Adopt Opponent's Position,9025642e-5705-4fd2-9409-66364a0f5ab0
+1.0,0.0,0.0,0.4,0.0,5.0,1.0,0.1428571428571428,1.0,20.0,0,Multi-Turn Chat Context,105592c1-3e43-43a6-927c-26dc6d303f7b
+0.5054174157644884,0.0,0.0,0.4,0.0,19.0,1.0,0.1428571428571428,0.5,2.66009166191836,1,Multi-Turn Chat Context,4b9b48e5-0127-4a02-b700-51e6bbe0451e
+0.3756550997483093,0.0,0.0,0.4,0.0,22.0,1.0,0.1428571428571428,0.3333333333333333,1.7075231806741331,0,Multi-Turn Chat Context,5e421ef9-9e6d-428d-a513-16fa22aa1266
+0.0,0.0,0.0,0.4,0.0,6.0,1.0,0.1428571428571428,0.25,0.0,0,Multi-Turn Chat Context,0685eb80-653e-45e1-a2f9-bebb37d90fe6
+1.0,0.0,0.0,0.4,0.0,7.0,1.0,0.375,1.0,14.285714285714285,0,Topic Switching,ad7984c4-f3ac-462a-8a42-1b6c339dea1c
+0.9942740949056452,0.0,0.0,0.4,0.0,17.0,1.0,0.5,0.5,5.848671146503795,1,Topic Switching,aeb62047-a7c0-400c-bd85-36922a70880c
+0.839081895789929,0.0,0.0,0.4,0.0,11.0,1.0,0.25,0.3333333333333333,7.6280172344539,0,Topic Switching,0ee8f31d-0aff-4853-a539-54482cff7d12
+0.1691776189292098,0.0,0.0,0.4,0.0,6.0,1.0,0.125,0.25,2.8196269821534976,0,Topic Switching,6347aa50-1b3a-42d2-978c-ad83577c7826
+0.0,0.0,0.0,0.4,0.0,18.0,1.0,0.125,0.2,0.0,0,Topic Switching,e9f4e2ed-ebbd-4a4c-afaf-386da1bad697
+1.0,0.0,0.0,0.4,0.0,18.0,1.0,0.0,1.0,5.555555555555555,1,OCR Context Recall,8efa685c-913d-4ddb-b082-d467137e1cd9
+0.4566702237847742,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,3.805585198206452,0,OCR Context Recall,2f5cceec-68a8-46b7-8616-4b300259f21f
+0.3232643880943538,0.0,0.0,0.4,0.0,10.0,1.0,0.125,0.3333333333333333,3.2326438809435385,0,OCR Context Recall,0cd5cd5a-eb18-46e4-80fb-5f796861bc0c
+0.0,0.0,0.0,0.4,0.0,24.0,1.0,0.0,0.25,0.0,0,OCR Context Recall,be1d679c-46f9-4ab1-ac92-67abc60812e3
+1.0,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,9.090909090909092,0,Multi-Image Context,10baf936-2081-4ec8-8463-b11d27a65dd3
+0.6915944587252398,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.5,4.939960419465998,1,Multi-Image Context,178f9767-e978-438a-8a53-c7177c2c7789
+0.582524240715228,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.3333333333333333,3.88349493810152,1,Multi-Image Context,e8d6ab60-755d-402c-8571-704dcc9aa8b2
+0.079843079123256,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,0.9980384890407004,0,Multi-Image Context,8c280f10-b163-40bb-8713-90ec7edd60ae
+0.0,0.0,0.0,0.4,0.0,5.0,1.0,0.0,0.2,0.0,0,Multi-Image Context,4c49f4c9-db59-4ef7-a3a0-f5a629e6422f
+1.0,0.0,0.0,0.4,0.0,9.0,1.0,0.2,1.0,11.11111111111111,1,Similar Content Disambiguation,32da1b99-331e-4065-b001-541890bdf53f
+0.549921339295063,0.0,0.0,0.4,0.0,11.0,1.0,0.2,0.5,4.999284902682391,0,Similar Content Disambiguation,abcf922c-bdc7-4433-a2d4-7975e4031255
+0.0,0.0,0.0,0.4,0.0,13.0,1.0,0.1,0.3333333333333333,0.0,0,Similar Content Disambiguation,4bd17605-8bce-4f74-b207-1190da167c4f
+1.0,0.0,0.0,0.4,0.0,9.0,1.0,0.375,1.0,11.11111111111111,1,Long-Term Memory Retention,ff02610b-6613-4764-8915-a6293799dc5e
+0.3998106315149742,0.0,0.0,0.4,0.0,6.0,1.0,0.125,0.5,6.663510525249571,0,Long-Term Memory Retention,70456ff3-2992-4993-8659-cb7de57a0f90
+0.1592273328704843,0.0,0.0,0.4,0.0,4.0,1.0,0.125,0.3333333333333333,3.980683321762108,0,Long-Term Memory Retention,803827f4-b3b8-4fed-a5da-f528795b2fd9
+0.1510097903089545,0.0,0.0,0.4,0.0,3.0,1.0,0.0,0.25,5.0336596769651525,0,Long-Term Memory Retention,d84f1b06-9f9d-4a58-8cc8-3142a1cc4151
+0.0868270687374347,0.0,0.0,0.4,0.0,3.0,1.0,0.0,0.2,2.894235624581159,0,Long-Term Memory Retention,588f5ed0-975a-490d-8714-a5f45efc8722
+0.0776976972190666,0.0,0.0,0.4,0.0,4.0,1.0,0.125,0.1666666666666666,1.9424424304766656,0,Long-Term Memory Retention,afd786a0-881b-4543-b0d3-d29e6be12010
+0.0532039836315079,0.0,0.0,0.4,0.0,2.0,1.0,0.0,0.1428571428571428,2.660199181575396,0,Long-Term Memory Retention,1012fdcc-183a-4089-a145-296f8d9fc16c
+0.0188040179266844,0.0,0.0,0.4,0.0,3.0,1.0,0.0,0.125,0.626800597556147,0,Long-Term Memory Retention,2c2a5dc9-77a3-4f23-8fed-58f6606d821d
+0.0,0.0,0.0,0.4,0.0,2.0,1.0,0.0,0.1111111111111111,0.0,0,Long-Term Memory Retention,1dbe478f-cdce-40e1-bf23-abe64e836f82
+0.5927915364158117,0.0,0.0,0.4,0.0,10.0,1.0,0.0,1.0,5.927915364158117,0,Exact Turn Recall (hard_neg from Topic-Based Retrieval),46503ef4-10e1-4416-bf5c-f04523101bd1
+0.5889001604634349,0.0,0.0,0.4,0.0,16.0,1.0,0.2,0.5,3.6806260028964677,0,Exact Turn Recall (hard_neg from Topic-Based Retrieval),f774acf6-e196-40a6-a07c-d063f43b1565
+0.5874249466910215,0.0,0.0,0.4,0.0,15.0,1.0,0.2,0.3333333333333333,3.916166311273477,0,Exact Turn Recall (hard_neg from Topic-Based Retrieval),f572dfb4-d2a4-4e9d-9e62-00a39313fcd6
+0.5824720721280653,0.0,0.0,0.4,0.0,11.0,1.0,0.1,0.25,5.295200655709684,0,Exact Turn Recall (hard_neg from Topic-Based Retrieval),3aa054c6-89dc-4c74-beaf-19f6de0eea86
+0.617271783300411,0.0,0.0,0.4,0.0,12.0,1.0,0.0,1.0,5.143931527503425,0,Exact Turn Recall (hard_neg from Role Filtering),36edef39-0d0e-4db8-a0d1-b3ef30f70254
+0.6017087615453641,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,5.470079650412401,0,Exact Turn Recall (hard_neg from Role Filtering),c9b616af-e278-4dce-9d5c-6ccf9221a576
+0.5848475132787039,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.3333333333333333,4.177482237705028,0,Exact Turn Recall (hard_neg from Role Filtering),b1613f21-4389-4924-a032-9ae3dd77d95c
+0.5682559997381654,0.0,0.0,0.4,0.0,14.0,1.0,0.1,0.25,4.058971426701182,0,Exact Turn Recall (hard_neg from Role Filtering),1da85c96-a735-4e57-a272-1640d2209713
+0.6359406241703588,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,7.066006935226209,0,Topic-Based Retrieval (hard_neg from Exact Turn Recall),866798e9-c2af-4c6e-ae55-d1805a3c6b6d
+0.6317129124858024,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.5,4.8593300960446335,0,Topic-Based Retrieval (hard_neg from Exact Turn Recall),ebbaabd2-8e7b-437d-8a49-d54fad80b1af
+0.5863444745661486,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.3333333333333333,3.25746930314527,0,Topic-Based Retrieval (hard_neg from Exact Turn Recall),61e4765a-0888-4a25-946d-503bdad79270
+0.5703951513520592,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.753292927933827,0,Topic-Based Retrieval (hard_neg from Exact Turn Recall),70deb935-a959-4f61-8074-768b681ede60
+0.6173454407620084,0.0,0.0,0.4,0.0,12.0,1.0,0.16666666666666666,1.0,5.144545339683403,0,Topic-Based Retrieval (hard_neg from Role Filtering),92486ffc-fe98-431a-bf5b-7d324460c5a8
+0.6124797229401753,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,5.567997481274321,0,Topic-Based Retrieval (hard_neg from Role Filtering),ea0e9125-0fc8-4e14-a1ab-e9cbdfd0f2f7
+0.6052621824289608,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.3333333333333333,4.323301303064005,0,Topic-Based Retrieval (hard_neg from Role Filtering),f8982d88-c17f-4bfe-94c7-44dec50fc004
+0.5818647882370476,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.25,4.156177058836054,0,Topic-Based Retrieval (hard_neg from Role Filtering),082e4f66-9aab-4213-b16a-0ea1fced000b
+1.0,0.0,0.0,0.4,0.0,8.0,1.0,0.16666666666666666,1.0,12.5,0,Topic-Based Retrieval (hard_neg from Recent Context Retrieval),b59ed9de-a41e-480d-9d87-e3a183b57d9c
+0.8970681419912638,0.0,0.0,0.4,0.0,8.0,1.0,0.16666666666666666,0.5,11.213351774890798,0,Topic-Based Retrieval (hard_neg from Recent Context Retrieval),997eb922-8157-4f72-889a-655c037cfeca
+0.8400000000000001,0.0,0.0,0.4,0.0,8.0,1.0,0.16666666666666666,0.3333333333333333,10.5,0,Topic-Based Retrieval (hard_neg from Recent Context Retrieval),42a42a4b-7510-4d2f-b8be-33fc0bc6fe25
+0.6359096518939632,0.0,0.0,0.4,0.0,12.0,1.0,0.3333333333333333,0.25,5.29924709911636,0,Topic-Based Retrieval (hard_neg from Recent Context Retrieval),03b6c2de-925e-466d-81ca-c670a200710f
+0.28075,0.0,0.0,0.4,0.0,8.0,1.0,0.16666666666666666,0.2,3.509375,0,Topic-Based Retrieval (hard_neg from Recent Context Retrieval),8ec41498-e37e-4cb7-ac32-0d62c3eb55d1
+1.0,0.0,0.0,0.4,0.0,13.0,1.0,0.0,1.0,7.692307692307692,0,Role Filtering (hard_neg from Exact Turn Recall),9c64ccfd-0743-4364-8fbe-cce7986fa461
+0.7593326492147663,0.0,0.0,0.4,0.0,9.0,1.0,0.14285714285714285,0.5,8.437029435719626,0,Role Filtering (hard_neg from Exact Turn Recall),cdc586fc-9b93-4ed2-b852-3a1c7b56df23
+0.16239380406512635,0.0,0.0,0.4,0.0,18.0,1.0,0.14285714285714285,0.3333333333333333,0.9021878003618131,0,Role Filtering (hard_neg from Exact Turn Recall),e659cc4c-8fda-4fae-9d37-9bf26efc1616
+0.0,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,0.0,0,Role Filtering (hard_neg from Exact Turn Recall),46ccf07f-40b1-42b1-aa96-2f83c4c6145d
+0.6406562497633804,0.0,0.0,0.4,0.0,15.0,1.0,0.14285714285714285,1.0,4.271041665089203,0,Role Filtering (hard_neg from Topic-Based Retrieval),521d61c0-e017-4265-b509-609ad8dcaf76
+0.6127399785402258,0.0,0.0,0.4,0.0,11.0,1.0,0.14285714285714285,0.5,5.57036344127478,0,Role Filtering (hard_neg from Topic-Based Retrieval),855ea4c0-42eb-4d6a-a5f0-695974c739d0
+0.5893795615249516,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.3333333333333333,5.893795615249516,0,Role Filtering (hard_neg from Topic-Based Retrieval),8ceafb4d-d5ff-4e63-ab2b-6c10fe050345
+0.5727170267296934,0.0,0.0,0.4,0.0,16.0,1.0,0.14285714285714285,0.25,3.5794814170605838,0,Role Filtering (hard_neg from Topic-Based Retrieval),6a9a39f0-ce6b-43f8-a276-4350574b1e88
+1.0,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,12.5,0,Role Filtering (hard_neg from Recent Context Retrieval),2d0c08a4-d5cf-4206-b55d-1eae95ddda06
+0.6895289994086672,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,8.61911249260834,0,Role Filtering (hard_neg from Recent Context Retrieval),3755bdf0-f06b-4486-a077-64d476df3cab
+0.6754032989544798,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,8.442541236930998,0,Role Filtering (hard_neg from Recent Context Retrieval),b44a43e1-e568-4284-a5cc-a3df9c2110ec
+0.44080122856996684,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,5.510015357124585,0,Role Filtering (hard_neg from Recent Context Retrieval),13f2f378-faea-465f-bf3a-0b01a88994ed
+0.0,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.2,0.0,0,Role Filtering (hard_neg from Recent Context Retrieval),d8e7648f-e700-4bb9-b66a-47feb3011ca1
+0.6566456705459999,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,5.969506095872726,0,Role Filtering (hard_neg from Irrelevant Query Handling),e0545f25-ae72-41c9-ae4a-deb1e2ab4487
+0.5894030203192533,0.0,0.0,0.4,0.0,10.0,1.0,0.14285714285714285,0.5,5.894030203192533,0,Role Filtering (hard_neg from Irrelevant Query Handling),e8a3ee13-18f1-4a33-aab3-2edf1ed31151
+1.0,0.0,0.0,0.4,0.0,9.0,1.0,0.2222222222222222,1.0,11.11111111111111,0,Recent Context Retrieval (hard_neg from Exact Turn Recall),e5a011e2-528e-4719-92cd-ceba15b7d141
+0.5180979796955802,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.5,3.9853690745813863,0,Recent Context Retrieval (hard_neg from Exact Turn Recall),82e7a2c2-ed6d-4047-a98d-d3af0e67909c
+0.42310074161993944,0.0,0.0,0.4,0.0,12.0,1.0,0.1111111111111111,0.3333333333333333,3.5258395134994953,0,Recent Context Retrieval (hard_neg from Exact Turn Recall),9f914ee3-e59a-4f1c-9dec-30862aca843a
+0.0,0.0,0.0,0.4,0.0,18.0,1.0,0.1111111111111111,0.25,0.0,0,Recent Context Retrieval (hard_neg from Exact Turn Recall),b3d775b4-3add-4d6d-bc09-02efeb7d0620
+0.9399308234096563,0.0,0.0,0.4,0.0,11.0,1.0,0.2222222222222222,1.0,8.544825667360511,0,Recent Context Retrieval (hard_neg from Topic-Based Retrieval),4df06b3e-7fa3-49a0-b9ce-1124a30cc4ad
+0.81525,0.0,0.0,0.4,0.0,15.0,1.0,0.2222222222222222,0.5,5.4350000000000005,0,Recent Context Retrieval (hard_neg from Topic-Based Retrieval),249acc74-1af2-4fd7-81e3-d799ca564b45
+0.16016212996726628,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.3333333333333333,1.6016212996726626,0,Recent Context Retrieval (hard_neg from Topic-Based Retrieval),154d65ac-5cc0-4034-93af-be9bb2645ff9
+0.0,0.0,0.0,0.4,0.0,16.0,1.0,0.2222222222222222,0.25,0.0,0,Recent Context Retrieval (hard_neg from Topic-Based Retrieval),84f918eb-fea4-46d8-aa46-9c34d2c1cceb
+0.608194712766516,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,5.529042843331964,0,Recent Context Retrieval (hard_neg from Role Filtering),97d1f39f-7104-477c-8768-8556f5cfa4fe
+0.5808196537300028,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,4.840163781083357,0,Recent Context Retrieval (hard_neg from Role Filtering),58115d96-b3e1-4ec6-8893-02abb1c63fff
+0.5767691139470768,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.3333333333333333,4.119779385336262,0,Recent Context Retrieval (hard_neg from Role Filtering),ef9fe304-b6ac-46c9-b252-52161dc7ccc2
+0.5706563847147611,0.0,0.0,0.4,0.0,14.0,1.0,0.1111111111111111,0.25,4.076117033676865,0,Recent Context Retrieval (hard_neg from Role Filtering),ffd0dbeb-5e75-4ea2-bb93-4e9418280584
+0.6164470488414676,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,5.604064080376978,0,Recent Context Retrieval (hard_neg from Irrelevant Query Handling),faebceeb-2794-4284-98ac-e85b351bcf6a
+0.5663906829883968,0.0,0.0,0.4,0.0,10.0,1.0,0.1111111111111111,0.5,5.663906829883968,0,Recent Context Retrieval (hard_neg from Irrelevant Query Handling),e4936247-7281-4f44-a9dc-43ab0bffc4e0
+0.644890701218654,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,5.8626427383514,0,Recent Context Retrieval (hard_neg from Role Reversal - Original Stance Retrieval),13d6b545-0f8a-4f62-be33-226c28c41461
+0.6024781569617906,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,5.020651308014922,0,Recent Context Retrieval (hard_neg from Role Reversal - Original Stance Retrieval),4b3f2291-74e4-4a9a-b192-923be2a30f9c
+0.5914923201711872,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,4.929102668093227,0,Recent Context Retrieval (hard_neg from Role Reversal - Original Stance Retrieval),e2c60e27-4ca0-451a-9cb5-42dd4e443700
+0.5532042933065398,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.610035777554498,0,Recent Context Retrieval (hard_neg from Role Reversal - Original Stance Retrieval),d1ac10af-4818-4e40-8666-a9251bac586d
+0.5844349062257174,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,6.493721180285749,0,Irrelevant Query Handling (hard_neg from Exact Turn Recall),adc67754-4e09-43f5-9462-e633387698ba
+0.56307297355437,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.5,4.331330565802846,0,Irrelevant Query Handling (hard_neg from Exact Turn Recall),20942b77-a403-412e-afd1-77baea9679df
+0.5388667856052569,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.3333333333333333,2.9937043644736496,0,Irrelevant Query Handling (hard_neg from Exact Turn Recall),e703645c-be95-4e84-b315-51aae482b015
+0.5332582643429592,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.4438188695246605,0,Irrelevant Query Handling (hard_neg from Exact Turn Recall),b1ba6826-274a-4971-9e4d-7e6640050c2a
+1.0,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,9.090909090909092,0,Irrelevant Query Handling (hard_neg from Topic-Based Retrieval),61a61346-c757-426b-b4a3-87ae2f3208f9
+0.7722746272073754,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.5,7.722746272073754,0,Irrelevant Query Handling (hard_neg from Topic-Based Retrieval),0276456d-be12-4062-9bde-78b38037ed79
+0.7051601867362888,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.3333333333333333,4.701067911575259,0,Irrelevant Query Handling (hard_neg from Topic-Based Retrieval),2d7dd705-698b-41b9-b32b-2b4faaadcf13
+0.0,0.0,0.0,0.4,0.0,16.0,1.0,0.0,0.25,0.0,0,Irrelevant Query Handling (hard_neg from Topic-Based Retrieval),cdaccac3-0849-41e8-97e9-6da9735a7f2e
+1.0,0.0,0.0,0.4,0.0,14.0,1.0,0.1111111111111111,1.0,7.142857142857142,0,Irrelevant Query Handling (hard_neg from Role Filtering),7a8fba67-ef5d-493f-80f6-12be0f20dc4b
+0.30536899376038307,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.5,2.1812070982884504,0,Irrelevant Query Handling (hard_neg from Role Filtering),bd8e8bea-5e0d-4d1d-a679-44662892ee36
+0.24980887455364698,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.3333333333333333,2.270989768669518,0,Irrelevant Query Handling (hard_neg from Role Filtering),0ef7a826-d53a-4033-bde7-6fac6dfc0ecb
+0.0,0.0,0.0,0.4,0.0,12.0,1.0,0.1111111111111111,0.25,0.0,0,Irrelevant Query Handling (hard_neg from Role Filtering),b3aaf543-4ce3-4c0b-8745-f89adcd61e6e
+0.9776224747474748,0.0,0.0,0.4,0.0,12.0,1.0,0.2222222222222222,1.0,8.146853956228957,0,Irrelevant Query Handling (hard_neg from Recent Context Retrieval),2d2a2d10-d0e3-4b10-a26b-f613db6afe00
+0.5420622328817003,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,0.5,6.775777911021254,0,Irrelevant Query Handling (hard_neg from Recent Context Retrieval),51e05046-c722-4d9b-a6b4-f683ed20eb06
+0.5347509269953342,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,0.3333333333333333,6.6843865874416775,0,Irrelevant Query Handling (hard_neg from Recent Context Retrieval),7a6a22e4-5440-4621-a38b-f057c968a770
+0.49103675205290637,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,0.25,6.137959400661329,0,Irrelevant Query Handling (hard_neg from Recent Context Retrieval),bafe6e4e-03d0-42ef-b216-dd75ed05a25e
+0.262,0.0,0.0,0.4,0.0,8.0,1.0,0.1111111111111111,0.2,3.275,0,Irrelevant Query Handling (hard_neg from Recent Context Retrieval),998f66c7-4cdb-49ca-868e-42225866ce84
+0.5524080518250577,0.0,0.0,0.4,0.0,11.0,1.0,0.1111111111111111,1.0,5.021891380227797,0,Irrelevant Query Handling (hard_neg from Role Reversal - Original Stance Retrieval),b3d5123f-d1aa-4205-9ac3-c2459383602c
+0.547889304532882,0.0,0.0,0.4,0.0,12.0,1.0,0.1111111111111111,0.5,4.5657442044406835,0,Irrelevant Query Handling (hard_neg from Role Reversal - Original Stance Retrieval),d05c65f3-4c45-496b-bfc1-f51171dfaf42
+0.5234986365889676,0.0,0.0,0.4,0.0,12.0,1.0,0.1111111111111111,0.3333333333333333,4.3624886382413965,0,Irrelevant Query Handling (hard_neg from Role Reversal - Original Stance Retrieval),0496b40c-3e4a-4cac-81c4-aa2235f0c78e
+0.5128207915752956,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.273506596460797,0,Irrelevant Query Handling (hard_neg from Role Reversal - Original Stance Retrieval),18631a4a-3975-4d93-bd83-647d68421c15
+0.5566786992151441,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,6.958483740189301,0,Irrelevant Query Handling (hard_neg from Role Reversal - Adopt Opponent's Position),a8112969-f563-4ae8-905b-592f5402aac1
+0.5422742583334145,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.5,4.171340448718572,0,Irrelevant Query Handling (hard_neg from Role Reversal - Adopt Opponent's Position),84335cd2-1346-4040-a7fa-e8350f9c59a9
+0.5264937292730932,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,6.581171615913665,0,Irrelevant Query Handling (hard_neg from Role Reversal - Adopt Opponent's Position),498d6f2d-b1c4-45a4-8dd2-569ef1df31dd
+0.5247774228935862,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,6.559717786169827,0,Irrelevant Query Handling (hard_neg from Role Reversal - Adopt Opponent's Position),93b478cf-9dba-4a62-8c11-6c21f6df887a
+0.6217323173696008,0.0,0.0,0.4,0.0,9.0,1.0,0.14285714285714285,1.0,6.908136859662231,0,Role Reversal - Original Stance Retrieval (hard_neg from Exact Turn Recall),fc35ca55-06ac-44f9-9464-40b94075b58f
+0.5663481008988493,0.0,0.0,0.4,0.0,13.0,1.0,0.07142857142857142,0.5,4.356523853068071,0,Role Reversal - Original Stance Retrieval (hard_neg from Exact Turn Recall),0b8fb68b-a24a-407d-80d1-7a179930e8b9
+0.545153677499182,0.0,0.0,0.4,0.0,18.0,1.0,0.14285714285714285,0.3333333333333333,3.028631541662122,0,Role Reversal - Original Stance Retrieval (hard_neg from Exact Turn Recall),58627214-f9c6-47a9-9c95-fd8e30e3e583
+0.5201404599495533,0.0,0.0,0.4,0.0,12.0,1.0,0.07142857142857142,0.25,4.334503832912944,0,Role Reversal - Original Stance Retrieval (hard_neg from Exact Turn Recall),cb35b276-6f7c-4285-97bc-037a7ee928ca
+1.0,0.0,0.0,0.4,0.0,11.0,1.0,0.14285714285714285,1.0,9.090909090909092,0,Role Reversal - Original Stance Retrieval (hard_neg from Topic-Based Retrieval),abe2cc8d-6c7f-4528-9384-c6638c7d5705
+0.818404379972317,0.0,0.0,0.4,0.0,10.0,1.0,0.07142857142857142,0.5,8.184043799723169,0,Role Reversal - Original Stance Retrieval (hard_neg from Topic-Based Retrieval),299f3637-9ae1-4a3f-9932-ad03b1255ddd
+0.8073987502892849,0.0,0.0,0.4,0.0,15.0,1.0,0.07142857142857142,0.3333333333333333,5.382658335261899,0,Role Reversal - Original Stance Retrieval (hard_neg from Topic-Based Retrieval),915ccbaf-50d2-41a9-9b96-23d73beee543
+0.0,0.0,0.0,0.4,0.0,16.0,1.0,0.0,0.25,0.0,0,Role Reversal - Original Stance Retrieval (hard_neg from Topic-Based Retrieval),5d3596e6-bc4c-4bf7-87e9-8c2d60910a91
+1.0,0.0,0.0,0.4,0.0,12.0,1.0,0.07142857142857142,1.0,8.333333333333334,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Filtering),4c0f2d81-d222-4692-89ee-4ebaf2ec2b4e
+0.4085211505309468,0.0,0.0,0.4,0.0,11.0,1.0,0.07142857142857142,0.5,3.713828641190425,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Filtering),24c78a38-4422-4049-aac4-d4d0c2e10836
+0.014273743172376627,0.0,0.0,0.4,0.0,14.0,1.0,0.07142857142857142,0.3333333333333333,0.10195530837411876,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Filtering),a03644df-9394-485e-8858-183395ca5429
+0.0,0.0,0.0,0.4,0.0,14.0,1.0,0.14285714285714285,0.25,0.0,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Filtering),824dcd91-a665-4583-b297-7fe114754ee2
+1.0,0.0,0.0,0.4,0.0,8.0,1.0,0.07142857142857142,1.0,12.5,0,Role Reversal - Original Stance Retrieval (hard_neg from Recent Context Retrieval),4f1deda5-6ca8-4208-a4c5-6b0a96a1ee80
+0.8317605626333473,0.0,0.0,0.4,0.0,8.0,1.0,0.07142857142857142,0.5,10.397007032916841,0,Role Reversal - Original Stance Retrieval (hard_neg from Recent Context Retrieval),4954f418-26fe-4dc7-99ab-fd9e7e15eb0c
+0.6218179070386933,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,7.7727238379836665,0,Role Reversal - Original Stance Retrieval (hard_neg from Recent Context Retrieval),a3a0a522-5ebc-4545-8189-2ee5e146ae33
+0.5633887577565367,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.694906314637806,0,Role Reversal - Original Stance Retrieval (hard_neg from Recent Context Retrieval),af3566d9-ea38-4250-bd1d-26f481cf9ff4
+0.0,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.2,0.0,0,Role Reversal - Original Stance Retrieval (hard_neg from Recent Context Retrieval),b6acd1b9-566b-41f9-83aa-d8bd1c846e42
+0.6244664070045771,0.0,0.0,0.4,0.0,10.0,1.0,0.14285714285714285,1.0,6.244664070045771,0,Role Reversal - Original Stance Retrieval (hard_neg from Irrelevant Query Handling),754a3334-4d29-46fd-8ff4-2e8b5ae3f390
+0.5750472423508597,0.0,0.0,0.4,0.0,11.0,1.0,0.07142857142857142,0.5,5.227702203189634,0,Role Reversal - Original Stance Retrieval (hard_neg from Irrelevant Query Handling),f277d63f-92cd-469d-97c0-643b27a94d16
+1.0,0.0,0.0,0.4,0.0,13.0,1.0,0.14285714285714285,1.0,7.692307692307692,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Reversal - Adopt Opponent's Position),3779a85d-3951-4b12-b31d-3ddbc32dada8
+0.32232762468177945,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,4.029095308522243,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Reversal - Adopt Opponent's Position),b7243a8e-a623-4cd0-abfa-69ecd188c6fa
+0.13371622926408344,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,1.671452865801043,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Reversal - Adopt Opponent's Position),d737c807-c940-43c3-9327-bf30a9c1eba1
+0.0,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,0.0,0,Role Reversal - Original Stance Retrieval (hard_neg from Role Reversal - Adopt Opponent's Position),8648393f-a771-4802-9696-f346567a1467
+0.7875000000000001,0.0,0.0,0.4,0.0,6.0,1.0,0.0,1.0,13.125000000000002,0,Role Reversal - Original Stance Retrieval (hard_neg from Multi-Turn Chat Context),08140fd2-4767-4ae0-880b-4066070c0c6f
+0.4575931306707406,0.0,0.0,0.4,0.0,5.0,1.0,0.07142857142857142,0.5,9.151862613414812,0,Role Reversal - Original Stance Retrieval (hard_neg from Multi-Turn Chat Context),f5a5c702-2490-4537-813f-cf2e2145952b
+0.3792862176422644,0.0,0.0,0.4,0.0,22.0,1.0,0.0,0.3333333333333333,1.7240282620102927,0,Role Reversal - Original Stance Retrieval (hard_neg from Multi-Turn Chat Context),21511e6f-ecdb-4b37-9a6b-cc1ed1248010
+0.0,0.0,0.0,0.4,0.0,19.0,1.0,0.07142857142857142,0.25,0.0,0,Role Reversal - Original Stance Retrieval (hard_neg from Multi-Turn Chat Context),adb3de5d-1aee-46fa-9b6b-e81f66dfd280
+1.0,0.0,0.0,0.4,0.0,9.0,1.0,0.16666666666666666,1.0,11.11111111111111,0,Role Reversal - Adopt Opponent's Position (hard_neg from Exact Turn Recall),2089ac96-de8f-4e17-b053-8f08b2493117
+0.48677608810325934,0.0,0.0,0.4,0.0,13.0,1.0,0.08333333333333333,0.5,3.744431446948149,0,Role Reversal - Adopt Opponent's Position (hard_neg from Exact Turn Recall),77de117c-249b-4560-8cae-2c36a3478502
+0.24617962750090452,0.0,0.0,0.4,0.0,18.0,1.0,0.16666666666666666,0.3333333333333333,1.3676645972272474,0,Role Reversal - Adopt Opponent's Position (hard_neg from Exact Turn Recall),90fd4755-8814-49e1-9964-42dce0d5c6b1
+0.0,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,0.0,0,Role Reversal - Adopt Opponent's Position (hard_neg from Exact Turn Recall),b22e2dd9-b29c-4092-bce9-701971a89f4f
+1.0,0.0,0.0,0.4,0.0,10.0,1.0,0.08333333333333333,1.0,10.0,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic-Based Retrieval),a795a3d6-9e18-4167-bbd3-cc911c8a72c6
+0.29504217294560914,0.0,0.0,0.4,0.0,11.0,1.0,0.08333333333333333,0.5,2.6822015722328105,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic-Based Retrieval),ff4a6392-91a1-4717-a1a5-3fb0b0751a72
+0.1755828904199388,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.3333333333333333,1.170552602799592,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic-Based Retrieval),8e599878-976a-48a2-ae63-912c7bafa73e
+0.0,0.0,0.0,0.4,0.0,16.0,1.0,0.08333333333333333,0.25,0.0,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic-Based Retrieval),73508a6d-93c7-44b7-b102-5c5e4c71ee1e
+0.75,0.0,0.0,0.4,0.0,12.0,1.0,0.0,1.0,6.25,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Filtering),4b7000c6-1560-4642-a413-6ae38e66d73d
+0.331255297555744,0.0,0.0,0.4,0.0,14.0,1.0,0.16666666666666666,0.5,2.366109268255314,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Filtering),7469f46f-4f0c-42db-8160-1b17900e68ed
+0.055252132050640716,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.3333333333333333,0.39465808607600505,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Filtering),85bce3c5-3bae-4018-9d84-f743422fb13d
+0.0,0.0,0.0,0.4,0.0,11.0,1.0,0.08333333333333333,0.25,0.0,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Filtering),23a41e77-1294-4736-bf28-ce7256575ef4
+0.6386853719596787,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,7.9835671494959835,0,Role Reversal - Adopt Opponent's Position (hard_neg from Recent Context Retrieval),356733a4-94e3-4854-bc0d-fb46fd601a94
+0.6190887051880494,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,5.159072543233745,0,Role Reversal - Adopt Opponent's Position (hard_neg from Recent Context Retrieval),4f715389-58c4-4c17-8fb5-78d7c046625a
+0.6116757654863048,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,7.645947068578809,0,Role Reversal - Adopt Opponent's Position (hard_neg from Recent Context Retrieval),b3ebfbc9-95ea-42e0-b3d1-ace511b22fe8
+0.5934295737764735,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,7.417869672205919,0,Role Reversal - Adopt Opponent's Position (hard_neg from Recent Context Retrieval),87453319-e567-4ee4-b1ee-ef2169f4487f
+0.5569606150556032,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.2,6.96200768819504,0,Role Reversal - Adopt Opponent's Position (hard_neg from Recent Context Retrieval),1441d901-d478-451d-bff9-d7af5ff0820b
+0.6295184637861005,0.0,0.0,0.4,0.0,10.0,1.0,0.16666666666666666,1.0,6.295184637861005,0,Role Reversal - Adopt Opponent's Position (hard_neg from Irrelevant Query Handling),1cd22221-977f-4a6c-b9fe-a43f62789955
+0.6171437357700946,0.0,0.0,0.4,0.0,11.0,1.0,0.08333333333333333,0.5,5.610397597909951,0,Role Reversal - Adopt Opponent's Position (hard_neg from Irrelevant Query Handling),144f3462-815e-4875-81e5-b3d8c07143f8
+0.7641417601807798,0.0,0.0,0.4,0.0,12.0,1.0,0.08333333333333333,1.0,6.367848001506499,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Reversal - Original Stance Retrieval),c71d5b4d-d6b7-4ea5-9fd4-c1a4bbb8eab6
+0.75,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,6.25,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Reversal - Original Stance Retrieval),4871ff80-bcc7-483a-a6d9-3295babe7a17
+0.7402462096032197,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.3333333333333333,6.729510996392906,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Reversal - Original Stance Retrieval),a86092ec-8076-4da5-b7dd-9825f554a3a1
+0.22846889952153113,0.0,0.0,0.4,0.0,12.0,1.0,0.08333333333333333,0.25,1.9039074960127595,0,Role Reversal - Adopt Opponent's Position (hard_neg from Role Reversal - Original Stance Retrieval),ff521f8a-5ae9-4198-99b6-e61a389849f4
+0.7875000000000001,0.0,0.0,0.4,0.0,6.0,1.0,0.0,1.0,13.125000000000002,0,Role Reversal - Adopt Opponent's Position (hard_neg from Multi-Turn Chat Context),d41b76df-f837-453a-9ead-ed62af4d247d
+0.4572783957082342,0.0,0.0,0.4,0.0,5.0,1.0,0.08333333333333333,0.5,9.145567914164683,0,Role Reversal - Adopt Opponent's Position (hard_neg from Multi-Turn Chat Context),6c4c1b42-3dab-43af-bfbe-fc25f0d81f83
+0.11042456726866713,0.0,0.0,0.4,0.0,22.0,1.0,0.0,0.3333333333333333,0.5019298512212143,0,Role Reversal - Adopt Opponent's Position (hard_neg from Multi-Turn Chat Context),e37f3976-a88d-4a8b-96f4-f607abdd7cb5
+0.0,0.0,0.0,0.4,0.0,19.0,1.0,0.0,0.25,0.0,0,Role Reversal - Adopt Opponent's Position (hard_neg from Multi-Turn Chat Context),4ae92057-cafe-4344-8d91-c5310dd89540
+1.0,0.0,0.0,0.4,0.0,6.0,1.0,0.08333333333333333,1.0,16.666666666666668,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic Switching),898857d5-ea43-437d-aff7-594b3e28e859
+0.878487680020555,0.0,0.0,0.4,0.0,11.0,1.0,0.08333333333333333,0.5,7.9862516365505,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic Switching),35d60404-6553-40a2-8a92-a395cca6635d
+0.5717900469596205,0.0,0.0,0.4,0.0,7.0,1.0,0.0,0.3333333333333333,8.168429242280293,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic Switching),b7327f79-f841-4448-b7af-f6790abeb1e5
+0.28190238201434487,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,1.5661243445241382,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic Switching),d8276d6d-fbeb-4ffc-b94e-6bdef2dc6ea6
+0.0,0.0,0.0,0.4,0.0,17.0,1.0,0.0,0.2,0.0,0,Role Reversal - Adopt Opponent's Position (hard_neg from Topic Switching),4dc1b6c3-0780-4012-8670-4b4516d47473
+0.5157088290784598,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,5.730098100871776,0,Multi-Turn Chat Context (hard_neg from Exact Turn Recall),10dd9a9d-6345-4599-8fe9-1441792b7a77
+0.4825497118746198,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.5,3.7119208605739984,0,Multi-Turn Chat Context (hard_neg from Exact Turn Recall),e025743c-0a21-4756-b967-f7419f1e7a5d
+0.4702790652799037,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,3.9189922106658646,0,Multi-Turn Chat Context (hard_neg from Exact Turn Recall),061ffb2e-0824-4326-b8f8-6a746ac52220
+0.45071294309908994,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,2.5039607949949443,0,Multi-Turn Chat Context (hard_neg from Exact Turn Recall),ed090349-c520-4c6c-a5f5-64c91d65d5cd
+0.5054607709555864,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.595097917778058,0,Multi-Turn Chat Context (hard_neg from Topic-Based Retrieval),1e4d6d80-e7bd-45b8-ac56-416f29fa40d0
+0.4885403712835724,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.5,3.2569358085571496,0,Multi-Turn Chat Context (hard_neg from Topic-Based Retrieval),c8ad81f9-b1dd-4501-8b4e-e9d73931e481
+0.4826019865790222,0.0,0.0,0.4,0.0,16.0,1.0,0.0,0.3333333333333333,3.016262416118889,0,Multi-Turn Chat Context (hard_neg from Topic-Based Retrieval),0c7cd805-dc9e-474b-9c6c-7bcb75810daa
+0.4765277934232456,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.25,4.765277934232455,0,Multi-Turn Chat Context (hard_neg from Topic-Based Retrieval),c35e1417-c588-4c61-8a39-7938c7a22222
+0.47044239803249543,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.276749073022685,0,Multi-Turn Chat Context (hard_neg from Role Filtering),0633c70a-f4ee-4d5d-9684-1de945faa4a5
+0.46657458956870895,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.5,3.3326756397764923,0,Multi-Turn Chat Context (hard_neg from Role Filtering),41282710-fc48-4eac-acc6-360bbc825acc
+0.4594852451182683,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.3333333333333333,3.2820374651304878,0,Multi-Turn Chat Context (hard_neg from Role Filtering),d8b211d4-1a60-4e10-a8fd-012a43595c59
+0.4568971048396101,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,3.8074758736634178,0,Multi-Turn Chat Context (hard_neg from Role Filtering),3a30f41e-3981-444a-9992-d06d1633aabf
+1.0,0.0,0.0,0.4,0.0,8.0,1.0,0.14285714285714285,1.0,12.5,0,Multi-Turn Chat Context (hard_neg from Recent Context Retrieval),ff1904ca-cd48-4e93-90bb-bdad16917ec2
+0.5743218867823039,0.0,0.0,0.4,0.0,8.0,1.0,0.14285714285714285,0.5,7.179023584778799,0,Multi-Turn Chat Context (hard_neg from Recent Context Retrieval),c57b7170-3f27-4365-a380-532b32ab7e7c
+0.2836757948361756,0.0,0.0,0.4,0.0,8.0,1.0,0.14285714285714285,0.3333333333333333,3.545947435452195,0,Multi-Turn Chat Context (hard_neg from Recent Context Retrieval),334a553c-7f9a-4cce-b44d-c33f9445a0b5
+0.27941682721501737,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,3.492710340187717,0,Multi-Turn Chat Context (hard_neg from Recent Context Retrieval),62202240-1608-4db7-9432-0faf9c1b28a8
+0.18686868686868688,0.0,0.0,0.4,0.0,12.0,1.0,0.14285714285714285,0.2,1.5572390572390573,0,Multi-Turn Chat Context (hard_neg from Recent Context Retrieval),828d08cc-7253-47b2-a5a6-548e676125da
+0.499827474301834,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.543886130016673,0,Multi-Turn Chat Context (hard_neg from Irrelevant Query Handling),ecd10722-b917-45bf-b7c9-2352553b6018
+0.471440307607679,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.5,4.71440307607679,0,Multi-Turn Chat Context (hard_neg from Irrelevant Query Handling),1caadf22-dd30-40a1-bed2-15e7d482d2a7
+0.49110041608200994,0.0,0.0,0.4,0.0,12.0,1.0,0.0,1.0,4.092503467350083,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Original Stance Retrieval),21f42574-d3e4-428f-9098-6f8118a3d313
+0.47760750784667405,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.341886434969764,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Original Stance Retrieval),dd39cd5e-aaa2-44e5-b277-71ba529de53b
+0.46434207640630154,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,3.8695173033858463,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Original Stance Retrieval),372f2497-38a2-493b-bdd9-a012964aa204
+0.45340366454192793,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,3.7783638711827328,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Original Stance Retrieval),a47c56ca-2a13-4c6a-8973-9d2533724cd8
+0.49765989843680386,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,6.220748730460048,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Adopt Opponent's Position),97cff057-56a9-4f0a-be0c-b1c45d44ca83
+0.4966026799327563,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,6.207533499159454,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Adopt Opponent's Position),ad9cb1c8-ec47-4544-8e54-c9abf00d0781
+0.4813253228427166,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,6.016566535533958,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Adopt Opponent's Position),a3561d12-eea3-417d-8866-ae78063b4d61
+0.4743920652197702,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.25,3.6491697324597703,0,Multi-Turn Chat Context (hard_neg from Role Reversal - Adopt Opponent's Position),5257ec35-1882-447d-9c11-8a9314894225
+0.9118340163934427,0.0,0.0,0.4,0.0,11.0,1.0,0.14285714285714285,1.0,8.289400149031298,0,Multi-Turn Chat Context (hard_neg from Topic Switching),0281548a-214a-4d3f-a44f-b4bec59e6f13
+0.8857255747610038,0.0,0.0,0.4,0.0,7.0,1.0,0.14285714285714285,0.5,12.653222496585768,0,Multi-Turn Chat Context (hard_neg from Topic Switching),3d1ab791-8bcf-4e9f-bdf2-630bc0819538
+0.6899554931307487,0.0,0.0,0.4,0.0,6.0,1.0,0.2857142857142857,0.3333333333333333,11.499258218845812,0,Multi-Turn Chat Context (hard_neg from Topic Switching),a3c39a30-904c-4015-9bf6-ad5eeb51527b
+0.2220277838739301,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,1.2334876881885006,0,Multi-Turn Chat Context (hard_neg from Topic Switching),b4bbd732-50e5-4f78-be6f-338abc5b30e3
+0.0,0.0,0.0,0.4,0.0,17.0,1.0,0.0,0.2,0.0,0,Multi-Turn Chat Context (hard_neg from Topic Switching),c9420106-f6b4-40f0-8514-b20b5cd2eae4
+0.5377276052813315,0.0,0.0,0.4,0.0,10.0,1.0,0.0,1.0,5.377276052813314,0,Multi-Turn Chat Context (hard_neg from OCR Context Recall),406c76c0-65ee-4871-b863-a8c19be05b2a
+0.5339497411085526,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.5,2.9663874506030705,0,Multi-Turn Chat Context (hard_neg from OCR Context Recall),a689ee4a-6bb9-4641-b35d-5f472099286f
+0.4976728415385053,0.0,0.0,0.4,0.0,24.0,1.0,0.0,0.3333333333333333,2.073636839743772,0,Multi-Turn Chat Context (hard_neg from OCR Context Recall),c7112ca8-6706-4ea5-baf2-42591b1deceb
+0.4903781195216852,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.0864843293473765,0,Multi-Turn Chat Context (hard_neg from OCR Context Recall),1f3dac46-cf70-4358-a010-ba6a9e215b14
+0.5930502070258348,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,6.5894467447314975,0,Topic Switching (hard_neg from Exact Turn Recall),47d2576c-cd8c-4515-9678-48b74c1aa825
+0.5475679542436607,0.0,0.0,0.4,0.0,12.0,1.0,0.125,0.5,4.563066285363839,0,Topic Switching (hard_neg from Exact Turn Recall),f872e915-4d5e-4afa-bdca-150c317b33f1
+0.5200902540426987,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.3333333333333333,4.000694261866913,0,Topic Switching (hard_neg from Exact Turn Recall),2e171046-2c6a-4c39-849e-1755804e83df
+0.505599280977585,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,2.8088848943199167,0,Topic Switching (hard_neg from Exact Turn Recall),cf509e78-75d2-428a-89c8-320bfe4bdb2d
+0.5456429651373206,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.960390592157459,0,Topic Switching (hard_neg from Topic-Based Retrieval),492ba483-a765-40f2-b776-4631cf3930b2
+0.504889574545202,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.5,3.3659304969680135,0,Topic Switching (hard_neg from Topic-Based Retrieval),ac307b45-b608-46ab-be1c-e46bc7b013e3
+0.49208451320248947,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.3333333333333333,4.920845132024894,0,Topic Switching (hard_neg from Topic-Based Retrieval),f5e53ace-6d31-49ed-a3f0-15d603f81a4f
+0.4782594987749907,0.0,0.0,0.4,0.0,16.0,1.0,0.0,0.25,2.989121867343692,0,Topic Switching (hard_neg from Topic-Based Retrieval),3fab1b32-491b-447b-be49-fe315245d524
+0.5087512148526636,0.0,0.0,0.4,0.0,12.0,1.0,0.125,1.0,4.2395934571055305,0,Topic Switching (hard_neg from Role Filtering),5cff054f-5d2e-4ad4-8dee-013a591271ed
+0.5007772289672541,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.552520263338673,0,Topic Switching (hard_neg from Role Filtering),33db9939-dc03-4c32-b2b9-3cb4333e35d5
+0.48482477813707386,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.3333333333333333,3.463034129550527,0,Topic Switching (hard_neg from Role Filtering),ead3940b-6e9b-4216-aaf4-6b3afd732f7f
+0.4721667782925068,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.25,3.372619844946477,0,Topic Switching (hard_neg from Role Filtering),1ab789b5-a428-40aa-9a3b-d20330011bf5
+1.0,0.0,0.0,0.4,0.0,8.0,1.0,0.25,1.0,12.5,0,Topic Switching (hard_neg from Recent Context Retrieval),5346dd5e-cb7b-4e58-acb5-3fc3eea4d3ca
+0.719145769961543,0.0,0.0,0.4,0.0,12.0,1.0,0.25,0.5,5.992881416346192,0,Topic Switching (hard_neg from Recent Context Retrieval),4825d678-828e-4f8c-b502-cca2eefa3d94
+0.32512257171075676,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.3333333333333333,4.064032146384459,0,Topic Switching (hard_neg from Recent Context Retrieval),34a120b3-e0af-47cb-b897-c0e4c555b35d
+0.0912764298201863,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.25,1.1409553727523287,0,Topic Switching (hard_neg from Recent Context Retrieval),47876f5b-c7de-4fdc-a736-5e921464444d
+0.05945214726586275,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.2,0.7431518408232843,0,Topic Switching (hard_neg from Recent Context Retrieval),4b36cbff-5a8c-4463-8f33-034e1fd27d8a
+0.5086496306857698,0.0,0.0,0.4,0.0,11.0,1.0,0.125,1.0,4.624087551688817,0,Topic Switching (hard_neg from Irrelevant Query Handling),b8ddb75c-590a-47b6-afee-1caa5cee5830
+0.4996181069252962,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.5,4.996181069252962,0,Topic Switching (hard_neg from Irrelevant Query Handling),ed5831eb-ad3e-4118-81c1-df39f4cc50b2
+0.5467562652761936,0.0,0.0,0.4,0.0,11.0,1.0,0.125,1.0,4.970511502510851,0,Topic Switching (hard_neg from Role Reversal - Original Stance Retrieval),82d9ee10-4873-4d29-90e4-7bc0dfed6952
+0.5298616477894502,0.0,0.0,0.4,0.0,12.0,1.0,0.125,0.5,4.415513731578752,0,Topic Switching (hard_neg from Role Reversal - Original Stance Retrieval),e4b341ed-7744-4edc-8640-9f9396fd79ea
+0.48555787094022324,0.0,0.0,0.4,0.0,12.0,1.0,0.125,0.3333333333333333,4.046315591168527,0,Topic Switching (hard_neg from Role Reversal - Original Stance Retrieval),db771a69-5fa2-422d-8fca-d65795f88616
+0.47571834615358444,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,3.9643195512798703,0,Topic Switching (hard_neg from Role Reversal - Original Stance Retrieval),0a22d3c9-c00c-476b-b4c4-ce4b77c5fe12
+1.0,0.0,0.0,0.4,0.0,8.0,1.0,0.125,1.0,12.5,0,Topic Switching (hard_neg from Role Reversal - Adopt Opponent's Position),34def26f-f7e6-45b1-ba3c-4dd679b8f9d4
+0.5227048726907559,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,6.533810908634449,0,Topic Switching (hard_neg from Role Reversal - Adopt Opponent's Position),ff88b5cb-c9e2-4456-b0d0-49aa810b9b96
+0.100713137913957,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,1.2589142239244624,0,Topic Switching (hard_neg from Role Reversal - Adopt Opponent's Position),bdabe637-686b-4f11-a046-7c55cbc1a985
+0.0,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.25,0.0,0,Topic Switching (hard_neg from Role Reversal - Adopt Opponent's Position),03b4e54d-b486-452e-b208-f029f9076a37
+0.5750545517625022,0.0,0.0,0.4,0.0,6.0,1.0,0.0,1.0,9.584242529375038,0,Topic Switching (hard_neg from Multi-Turn Chat Context),c1c02816-9e55-4e31-a101-d6606e271a7e
+0.530722856684063,0.0,0.0,0.4,0.0,5.0,1.0,0.0,0.5,10.61445713368126,0,Topic Switching (hard_neg from Multi-Turn Chat Context),e815cbb0-4b4d-44ae-8751-d8bcddddfa20
+0.528466661386823,0.0,0.0,0.4,0.0,22.0,1.0,0.0,0.3333333333333333,2.4021211881219227,0,Topic Switching (hard_neg from Multi-Turn Chat Context),be8fc12b-27f0-4f76-97b2-2ae8924c011a
+0.5233795315167524,0.0,0.0,0.4,0.0,19.0,1.0,0.0,0.25,2.7546291132460654,0,Topic Switching (hard_neg from Multi-Turn Chat Context),31aaa5a2-a63d-47d7-a3e6-6b309d884d33
+0.6017010481732752,0.0,0.0,0.4,0.0,10.0,1.0,0.0,1.0,6.017010481732751,0,Topic Switching (hard_neg from OCR Context Recall),8064cb56-019f-48c0-909b-256f1a5ff966
+0.5568983250540276,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,4.6408193754502305,0,Topic Switching (hard_neg from OCR Context Recall),f2261733-37d1-460e-b414-99daa8f3c085
+0.5491296787649026,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.3333333333333333,3.0507204375827923,0,Topic Switching (hard_neg from OCR Context Recall),edf9dcd7-623d-4d48-b7cf-3bd9ae677bf7
+0.5406791552489769,0.0,0.0,0.4,0.0,24.0,1.0,0.0,0.25,2.252829813537404,0,Topic Switching (hard_neg from OCR Context Recall),9d00dc5c-332d-414c-be6d-6340b2469780
+0.5928469570704415,0.0,0.0,0.4,0.0,5.0,1.0,0.0,1.0,11.85693914140883,0,Topic Switching (hard_neg from Multi-Image Context),97e6901d-5634-46e4-a5f4-da6ac37f6637
+0.5606120573838168,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,7.00765071729771,0,Topic Switching (hard_neg from Multi-Image Context),7bc20d4c-90e7-4e44-9cfc-0a13d50d94c8
+0.559301186439774,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.3333333333333333,5.084556240361581,0,Topic Switching (hard_neg from Multi-Image Context),5aa1a9ff-0547-4fbc-8642-469c65d3c3f7
+0.5381147791742791,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.25,3.5874318611618605,0,Topic Switching (hard_neg from Multi-Image Context),3c3cbbf8-32ea-4022-88ea-f47fcdff342a
+0.5228920028504851,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.2,3.7349428775034648,0,Topic Switching (hard_neg from Multi-Image Context),b1aefb88-c577-4bb4-a164-d021c6247f64
+0.5205877759670026,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,5.784308621855584,0,OCR Context Recall (hard_neg from Exact Turn Recall),7568b859-f429-45d1-ad29-5d184639fcbe
+0.5167013865694294,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.5,3.9746260505340723,0,OCR Context Recall (hard_neg from Exact Turn Recall),16b41aa8-7cbf-4400-82c7-337275b6787b
+0.4953842487021909,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.3333333333333333,2.7521347150121716,0,OCR Context Recall (hard_neg from Exact Turn Recall),c61cee4f-5a67-4105-8b5b-ffee2a906a46
+0.48138835468932845,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.011569622411071,0,OCR Context Recall (hard_neg from Exact Turn Recall),72f13150-cd6a-42e3-8933-e77431c64430
+0.49008731778900877,0.0,0.0,0.4,0.0,15.0,1.0,0.0,1.0,3.2672487852600587,0,OCR Context Recall (hard_neg from Topic-Based Retrieval),43dac22a-d14f-49ca-a314-b15ef3087f8f
+0.48434813792667025,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.403164890242457,0,OCR Context Recall (hard_neg from Topic-Based Retrieval),a525a214-eeef-4b8d-bb56-0dfbd41410e2
+0.47663504140935564,0.0,0.0,0.4,0.0,16.0,1.0,0.0,0.3333333333333333,2.978969008808473,0,OCR Context Recall (hard_neg from Topic-Based Retrieval),28a57901-c55c-4a0a-904c-3ccfb36bb9f5
+0.46624858886374704,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.25,4.6624858886374705,0,OCR Context Recall (hard_neg from Topic-Based Retrieval),c15adad2-bfc6-480a-93c7-ce9124a40437
+0.46319362884358517,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.21085117130532,0,OCR Context Recall (hard_neg from Role Filtering),3d95febb-74e7-4a56-a039-6995d99d0834
+0.45807715572396857,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.5,3.2719796837426323,0,OCR Context Recall (hard_neg from Role Filtering),8894daa1-3ed6-45b9-97a9-2c41bb70cf62
+0.45784259226663415,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.3333333333333333,3.2703042304759578,0,OCR Context Recall (hard_neg from Role Filtering),81b826e1-e09a-49e5-906d-2f5c378ca80c
+0.4523121109113143,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,3.7692675909276194,0,OCR Context Recall (hard_neg from Role Filtering),8fdd3787-10b7-4f1d-acff-ee4c64f0ea6b
+0.75,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,9.375,0,OCR Context Recall (hard_neg from Recent Context Retrieval),f7b818a0-ca55-4074-aeb3-51f4e4cd6128
+0.6991086909610645,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.5,8.738858637013307,0,OCR Context Recall (hard_neg from Recent Context Retrieval),eae63c86-59f2-4eea-be02-4e663d7d002f
+0.6789517754603155,0.0,0.0,0.4,0.0,12.0,1.0,0.125,0.3333333333333333,5.657931462169296,0,OCR Context Recall (hard_neg from Recent Context Retrieval),32f44206-b8e5-4a8b-be4b-8ee23d17a507
+0.5001775547043467,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.25,6.252219433804333,0,OCR Context Recall (hard_neg from Recent Context Retrieval),b6d6aac0-3dcb-4afa-a6d5-7a94e073b3f5
+0.25,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.2,3.125,0,OCR Context Recall (hard_neg from Recent Context Retrieval),a9f14ad4-728f-45e7-92c1-9af00cd30115
+0.4900692800710023,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.455175273372748,0,OCR Context Recall (hard_neg from Irrelevant Query Handling),d9524dca-d014-44ff-89ba-9781fffda139
+0.45412298954975683,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.5,4.541229895497568,0,OCR Context Recall (hard_neg from Irrelevant Query Handling),b005eb49-4267-42cc-8cac-3556738b376e
+0.48538758294040696,0.0,0.0,0.4,0.0,12.0,1.0,0.0,1.0,4.044896524503391,0,OCR Context Recall (hard_neg from Role Reversal - Original Stance Retrieval),8c6c9564-24e0-4caf-93a7-d3ea34ae4007
+0.4853746076289942,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.4124964329908565,0,OCR Context Recall (hard_neg from Role Reversal - Original Stance Retrieval),d50f84a2-4f70-417c-b791-f001efddd3c6
+0.46862721284334313,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,3.905226773694526,0,OCR Context Recall (hard_neg from Role Reversal - Original Stance Retrieval),342fff6d-a5dd-44b4-8ee4-9228554df1b5
+0.5087638964414217,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,6.3595487055177715,0,OCR Context Recall (hard_neg from Role Reversal - Adopt Opponent's Position),3c3d0993-0118-43bf-9e5c-ec7a4776d2b7
+0.5077267007452807,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,6.346583759316009,0,OCR Context Recall (hard_neg from Role Reversal - Adopt Opponent's Position),2545cebe-03ea-4097-ad66-a9577f3cbe32
+0.4722488613901992,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,5.90311076737749,0,OCR Context Recall (hard_neg from Role Reversal - Adopt Opponent's Position),ab66a396-cd1e-401d-b649-78c1171c64ff
+0.4589167941525502,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.25,3.5301291857888475,0,OCR Context Recall (hard_neg from Role Reversal - Adopt Opponent's Position),a208523a-4c6b-40f9-a740-8f43f02017ab
+0.9677787053101471,0.0,0.0,0.4,0.0,5.0,1.0,0.125,1.0,19.35557410620294,0,OCR Context Recall (hard_neg from Multi-Turn Chat Context),3795ff0b-7546-421f-9894-55c586ed80a0
+0.7875000000000001,0.0,0.0,0.4,0.0,6.0,1.0,0.0,0.5,13.125000000000002,0,OCR Context Recall (hard_neg from Multi-Turn Chat Context),6d8b4f71-4fa7-432e-88e3-c1fb6d5cab4e
+0.24658847110808496,0.0,0.0,0.4,0.0,22.0,1.0,0.0,0.3333333333333333,1.1208566868549317,0,OCR Context Recall (hard_neg from Multi-Turn Chat Context),c9860a7a-b951-4055-bb89-07d1f799816a
+0.0,0.0,0.0,0.4,0.0,19.0,1.0,0.0,0.25,0.0,0,OCR Context Recall (hard_neg from Multi-Turn Chat Context),7bd5d6fa-6b92-4b53-96c7-514665749dfe
+0.9314349507124285,0.0,0.0,0.4,0.0,6.0,1.0,0.25,1.0,15.523915845207142,0,OCR Context Recall (hard_neg from Topic Switching),4a93bfc9-994e-4ddb-8d9a-a83d5392d285
+0.9118340163934427,0.0,0.0,0.4,0.0,7.0,1.0,0.125,0.5,13.026200234192038,0,OCR Context Recall (hard_neg from Topic Switching),9d8d5a55-0be4-446b-8562-21c999136b4f
+0.6372800628861869,0.0,0.0,0.4,0.0,11.0,1.0,0.125,0.3333333333333333,5.793455117147153,0,OCR Context Recall (hard_neg from Topic Switching),dd1a3d1d-b5f9-4aab-a9e7-e6a1445912ca
+0.4858807666112049,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,2.6993375922844716,0,OCR Context Recall (hard_neg from Topic Switching),b8df6a7b-0802-4821-9fc7-34da851cc10d
+0.0,0.0,0.0,0.4,0.0,17.0,1.0,0.0,0.2,0.0,0,OCR Context Recall (hard_neg from Topic Switching),2c33dde0-0926-4268-861f-214282e01827
+0.5885973984950402,0.0,0.0,0.4,0.0,14.0,1.0,0.0,1.0,4.20426713210743,0,OCR Context Recall (hard_neg from Multi-Image Context),cd44657d-9186-48f1-bf79-fb753c54b434
+0.5883781788265073,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,5.3488925347864305,0,OCR Context Recall (hard_neg from Multi-Image Context),59fa9da7-81c5-4193-beba-8dd3968bbbaf
+0.582735195444682,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.3333333333333333,3.884901302964547,0,OCR Context Recall (hard_neg from Multi-Image Context),2a7da0d9-245d-4593-9169-8ecb78d0ce9a
+0.5819355774753858,0.0,0.0,0.4,0.0,5.0,1.0,0.0,0.25,11.638711549507716,0,OCR Context Recall (hard_neg from Multi-Image Context),cd880bd8-d04f-40a1-ac13-0b84fdd21fba
+0.5322573820628714,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.2,6.6532172757858925,0,OCR Context Recall (hard_neg from Multi-Image Context),2d688e16-3a10-4dac-8f35-887637657f93
+0.46162490093228487,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,5.129165565914277,0,OCR Context Recall (hard_neg from Similar Content Disambiguation),4d2e1643-9223-406e-9d2f-77a090a0d183
+0.45858866719727454,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.168987883611587,0,OCR Context Recall (hard_neg from Similar Content Disambiguation),b868a136-f60e-4978-879e-b7f464c8ffe7
+0.5589670493883027,0.0,0.0,0.4,0.0,13.0,1.0,0.0,1.0,4.299746533756174,0,Multi-Image Context (hard_neg from Exact Turn Recall),f1515798-2ffb-4f91-b270-beb61564ada8
+0.5503941942213979,0.0,0.0,0.4,0.0,9.0,1.0,0.0,0.5,6.115491046904421,0,Multi-Image Context (hard_neg from Exact Turn Recall),caf30c5e-a069-41a1-947e-ef89a07033fb
+0.5369916449055074,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.3333333333333333,2.983286916141708,0,Multi-Image Context (hard_neg from Exact Turn Recall),73023b5e-8800-4077-9da0-2cdbd1fdb91b
+0.5251405328337724,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.376171106948103,0,Multi-Image Context (hard_neg from Exact Turn Recall),c785688e-73ed-41f1-a367-83f6ba5fd6af
+0.5569996124923541,0.0,0.0,0.4,0.0,15.0,1.0,0.0,1.0,3.7133307499490273,0,Multi-Image Context (hard_neg from Topic-Based Retrieval),a508edc6-20fd-49bf-a9fe-84d34477ae4c
+0.5421843358411419,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.928948507646744,0,Multi-Image Context (hard_neg from Topic-Based Retrieval),9df50707-9558-4dfe-8f22-f8776f408e42
+0.5388018744681339,0.0,0.0,0.4,0.0,16.0,1.0,0.0,0.3333333333333333,3.3675117154258367,0,Multi-Image Context (hard_neg from Topic-Based Retrieval),12e6c7dc-78d3-4d5b-bbd5-4f26f6fdd9d3
+0.5300806216432004,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.25,5.300806216432004,0,Multi-Image Context (hard_neg from Topic-Based Retrieval),2cce971e-14df-44ce-99c2-a342f6cbfdb7
+0.5491851365449082,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.992592150408257,0,Multi-Image Context (hard_neg from Role Filtering),8af139a3-5e0d-4f6c-a4a1-f2c8ef98132f
+0.5436175097214486,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.5,3.8829822122960613,0,Multi-Image Context (hard_neg from Role Filtering),5eec2bae-2338-4294-8525-0ef1c7f4def2
+0.534257580360515,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,4.4521465030042915,0,Multi-Image Context (hard_neg from Role Filtering),19c27eeb-88f9-495c-aae2-53fecd866831
+0.5190137177237762,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.25,3.7072408408841158,0,Multi-Image Context (hard_neg from Role Filtering),b567bbad-5d4b-42e1-9876-8ccb98089eca
+0.6217973696794055,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,7.772467120992568,0,Multi-Image Context (hard_neg from Recent Context Retrieval),1b6f8986-915e-4fc8-94e6-e5be53653300
+0.5685162357803728,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,4.737635298169773,0,Multi-Image Context (hard_neg from Recent Context Retrieval),d7d362be-b6fc-4eff-848b-7f21cb89850d
+0.5545374458017441,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,6.931718072521802,0,Multi-Image Context (hard_neg from Recent Context Retrieval),67f74f7e-7b13-417a-8bda-ff5d7fd252f4
+0.5213705083920086,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,6.5171313549001075,0,Multi-Image Context (hard_neg from Recent Context Retrieval),c958d6f2-b063-432b-a7ad-d3e5fd2784bd
+0.5082995642804495,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.2,6.353744553505619,0,Multi-Image Context (hard_neg from Recent Context Retrieval),a371f384-b418-4907-9f35-2a85e1cbad12
+0.5380958937592938,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,4.891780852357217,0,Multi-Image Context (hard_neg from Irrelevant Query Handling),2bfea708-fdb5-45dd-98e5-f4f4a46df4ab
+0.5168902028061628,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.5,5.168902028061628,0,Multi-Image Context (hard_neg from Irrelevant Query Handling),19d6d9cc-1d61-40f5-8083-9e35e2dddb9b
+0.563980753971749,0.0,0.0,0.4,0.0,12.0,1.0,0.0,1.0,4.699839616431242,0,Multi-Image Context (hard_neg from Role Reversal - Original Stance Retrieval),eca376c3-f1b6-4497-b5fc-80367763917f
+0.5434499430967262,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.940454028152057,0,Multi-Image Context (hard_neg from Role Reversal - Original Stance Retrieval),24f4c570-02ca-4521-af8e-7c8731c2dea3
+0.5257546583387683,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,4.381288819489736,0,Multi-Image Context (hard_neg from Role Reversal - Original Stance Retrieval),32274056-bf21-4b31-a287-848d1fbcc890
+0.5205842383631357,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.338201986359464,0,Multi-Image Context (hard_neg from Role Reversal - Original Stance Retrieval),1a7d5b4e-dde7-4791-9814-8dd60762b877
+0.75,0.0,0.0,0.4,0.0,8.0,1.0,0.0,1.0,9.375,0,Multi-Image Context (hard_neg from Role Reversal - Adopt Opponent's Position),d72f35a3-4746-4fc8-8a7a-c4eed21c818e
+0.6452556614126799,0.0,0.0,0.4,0.0,13.0,1.0,0.2,0.5,4.963505087789845,0,Multi-Image Context (hard_neg from Role Reversal - Adopt Opponent's Position),6997d11c-9d93-4a9e-84fc-78d382cd09e2
+0.4475396644596856,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,5.59424580574607,0,Multi-Image Context (hard_neg from Role Reversal - Adopt Opponent's Position),1feeb00d-273e-4bd8-a73a-4051cb9e8725
+0.0,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,0.0,0,Multi-Image Context (hard_neg from Role Reversal - Adopt Opponent's Position),f269ddb6-d5f1-482a-8ce2-231740259f93
+0.5572565408318176,0.0,0.0,0.4,0.0,6.0,1.0,0.0,1.0,9.287609013863628,0,Multi-Image Context (hard_neg from Multi-Turn Chat Context),41b3e661-46bb-45e2-86af-62b8bb76dd14
+0.5370961772980412,0.0,0.0,0.4,0.0,22.0,1.0,0.0,0.5,2.4413462604456417,0,Multi-Image Context (hard_neg from Multi-Turn Chat Context),4d91d92e-8cc2-44d8-a05f-cc0540fb9b62
+0.5043247837447807,0.0,0.0,0.4,0.0,5.0,1.0,0.0,0.3333333333333333,10.086495674895614,0,Multi-Image Context (hard_neg from Multi-Turn Chat Context),08d2aa58-f662-4994-833d-81701cd4370d
+0.49680725457261765,0.0,0.0,0.4,0.0,19.0,1.0,0.0,0.25,2.6147750240664087,0,Multi-Image Context (hard_neg from Multi-Turn Chat Context),4db5046b-99e9-40e6-847a-c79257c432c0
+1.0,0.0,0.0,0.4,0.0,6.0,1.0,0.2,1.0,16.666666666666668,0,Multi-Image Context (hard_neg from Topic Switching),d2d4ca54-c7fd-47e1-8f9e-64e103d6f81b
+0.951490570375659,0.0,0.0,0.4,0.0,18.0,1.0,0.2,0.5,5.286058724309217,0,Multi-Image Context (hard_neg from Topic Switching),6f0c0d25-139d-4b52-8b39-b225e61e8423
+0.23811526656733797,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.3333333333333333,2.1646842415212544,0,Multi-Image Context (hard_neg from Topic Switching),41c58f07-f036-45cd-ab7c-0da9c02021a5
+0.16600009830497198,0.0,0.0,0.4,0.0,7.0,1.0,0.0,0.25,2.371429975785314,0,Multi-Image Context (hard_neg from Topic Switching),16e000d3-4dc2-469d-bab7-be4e5a15762b
+0.0,0.0,0.0,0.4,0.0,17.0,1.0,0.0,0.2,0.0,0,Multi-Image Context (hard_neg from Topic Switching),2f69bff2-efb5-404d-a072-6d19543a29fb
+0.7875000000000001,0.0,0.0,0.4,0.0,12.0,1.0,0.0,1.0,6.562500000000001,0,Multi-Image Context (hard_neg from OCR Context Recall),161342cd-4c22-4828-ba47-1ad6e24e91c8
+0.4057363404908703,0.0,0.0,0.4,0.0,24.0,1.0,0.0,0.5,1.6905680853786265,0,Multi-Image Context (hard_neg from OCR Context Recall),89877544-5488-4579-9993-d0044831c589
+0.37618875746148905,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.3333333333333333,3.7618875746148905,0,Multi-Image Context (hard_neg from OCR Context Recall),a6c34b06-b380-4552-a0aa-c2228ecefa56
+0.2625,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,1.4583333333333335,0,Multi-Image Context (hard_neg from OCR Context Recall),4b5e19f8-7383-4363-8d64-6069f3427b25
+0.5588887315064744,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,5.080806650058858,0,Multi-Image Context (hard_neg from Similar Content Disambiguation),950b4f54-98e6-4134-9e5f-bb5245fd2e10
+0.5562318013555609,0.0,0.0,0.4,0.0,9.0,1.0,0.0,0.5,6.180353348395122,0,Multi-Image Context (hard_neg from Similar Content Disambiguation),efa38177-fa37-4331-8ff6-13539fce615e
+0.5467554099964256,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.3333333333333333,4.205810846126351,0,Multi-Image Context (hard_neg from Similar Content Disambiguation),955475ae-3a5d-43d1-ae05-ecb02720e066
+0.5983883562122894,0.0,0.0,0.4,0.0,4.0,1.0,0.0,1.0,14.959708905307235,0,Multi-Image Context (hard_neg from Long-Term Memory Retention),f2fcfc4e-e0af-474b-8a5a-aa5d280bb205
+0.5533150091252762,0.0,0.0,0.4,0.0,6.0,1.0,0.0,0.5,9.221916818754604,0,Multi-Image Context (hard_neg from Long-Term Memory Retention),52362495-fbfb-4434-a52b-e5e88aa1ee84
+0.551336517879363,0.0,0.0,0.4,0.0,3.0,1.0,0.0,0.3333333333333333,18.3778839293121,0,Multi-Image Context (hard_neg from Long-Term Memory Retention),1a1c6153-dea6-4530-8a28-bf7d5dbcefc6
+0.5512190286625276,0.0,0.0,0.4,0.0,3.0,1.0,0.0,0.25,18.373967622084255,0,Multi-Image Context (hard_neg from Long-Term Memory Retention),64814699-762c-4cd5-a1f9-29c531a61e71
+0.5424073023888083,0.0,0.0,0.4,0.0,4.0,1.0,0.0,0.2,13.560182559720207,0,Multi-Image Context (hard_neg from Long-Term Memory Retention),7e9e497e-e2eb-4ab7-b6e4-d0c35b1d817e
+0.545504014899478,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,6.061155721105311,0,Similar Content Disambiguation (hard_neg from Exact Turn Recall),891a4aee-99c6-4166-971b-0bfc6e65edd0
+0.5390231408455085,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,4.491859507045905,0,Similar Content Disambiguation (hard_neg from Exact Turn Recall),1f8d91ef-b473-42b2-9b00-5c5545e6ecb0
+0.5288111031440074,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.3333333333333333,4.0677777164923645,0,Similar Content Disambiguation (hard_neg from Exact Turn Recall),103e110c-ad03-4415-82b4-3acc303c3cd4
+0.5127156551707825,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,2.8484203065043476,0,Similar Content Disambiguation (hard_neg from Exact Turn Recall),7605d6e4-11e1-46f4-a2e9-4e0bbdc14129
+0.5516230964447811,0.0,0.0,0.4,0.0,10.0,1.0,0.0,1.0,5.516230964447811,0,Similar Content Disambiguation (hard_neg from Topic-Based Retrieval),c5fd07ad-ddcc-4adc-973d-b21161d0b785
+0.5328960023499595,0.0,0.0,0.4,0.0,16.0,1.0,0.0,0.5,3.3306000146872465,0,Similar Content Disambiguation (hard_neg from Topic-Based Retrieval),b874aa57-a6e6-449b-9319-d9299e696156
+0.5317803531036942,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.3333333333333333,4.83436684639722,0,Similar Content Disambiguation (hard_neg from Topic-Based Retrieval),9c51752d-2582-403c-b0aa-37d189cceb9b
+0.5302502498010047,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.25,3.5350016653400314,0,Similar Content Disambiguation (hard_neg from Topic-Based Retrieval),a9595d5e-8cab-464b-a504-36dcda4a833a
+1.0,0.0,0.0,0.4,0.0,11.0,1.0,0.2,1.0,9.090909090909092,0,Similar Content Disambiguation (hard_neg from Role Filtering),dcf40ce8-5114-4cfb-90b3-e07ca0021529
+0.5839710904184183,0.0,0.0,0.4,0.0,14.0,1.0,0.1,0.5,4.171222074417273,0,Similar Content Disambiguation (hard_neg from Role Filtering),488d5142-1d86-4e09-a724-93dc42ae1d55
+0.23534787859285172,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,1.9612323216070977,0,Similar Content Disambiguation (hard_neg from Role Filtering),ccdaa0fb-6576-4490-99bd-a4e16b776793
+0.0,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.25,0.0,0,Similar Content Disambiguation (hard_neg from Role Filtering),a31b838b-221a-463a-bd85-37cef25e4707
+0.9368686868686869,0.0,0.0,0.4,0.0,12.0,1.0,0.1,1.0,7.807239057239057,0,Similar Content Disambiguation (hard_neg from Recent Context Retrieval),03a2938c-8b14-48fd-8814-850ce88ff92f
+0.47974339513742936,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,5.996792439217867,0,Similar Content Disambiguation (hard_neg from Recent Context Retrieval),c352c712-9a4e-42bc-b913-8a7942a6831e
+0.36339292280108726,0.0,0.0,0.4,0.0,8.0,1.0,0.1,0.3333333333333333,4.54241153501359,0,Similar Content Disambiguation (hard_neg from Recent Context Retrieval),c2d84d45-8008-4a5a-a560-a935f79cc2a4
+0.32736233459727493,0.0,0.0,0.4,0.0,8.0,1.0,0.1,0.25,4.092029182465937,0,Similar Content Disambiguation (hard_neg from Recent Context Retrieval),c2de7c5a-7ede-4d37-a367-0c8d4bec274a
+0.25,0.0,0.0,0.4,0.0,8.0,1.0,0.1,0.2,3.125,0,Similar Content Disambiguation (hard_neg from Recent Context Retrieval),84076571-bc57-47d1-85a4-f7e6757a2cdf
+0.575837869867328,0.0,0.0,0.4,0.0,10.0,1.0,0.0,1.0,5.75837869867328,0,Similar Content Disambiguation (hard_neg from Irrelevant Query Handling),9d5a200f-7b17-47c6-919f-fe7e2dad2461
+0.5683483343360124,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,5.166803039418294,0,Similar Content Disambiguation (hard_neg from Irrelevant Query Handling),660cdf4a-a506-44b3-804f-bceb61c4ff80
+0.5443804530834098,0.0,0.0,0.4,0.0,12.0,1.0,0.0,1.0,4.536503775695081,0,Similar Content Disambiguation (hard_neg from Role Reversal - Original Stance Retrieval),996df1cf-6823-48c6-bad4-ff7c3347b58b
+0.5362030175213753,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.874572886557957,0,Similar Content Disambiguation (hard_neg from Role Reversal - Original Stance Retrieval),90e02074-cc2d-4663-b061-bbccb5955b9d
+0.5318148756503689,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,4.431790630419741,0,Similar Content Disambiguation (hard_neg from Role Reversal - Original Stance Retrieval),969ef5cb-b626-4f92-aaba-2926006ba14c
+0.5259450556409287,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.382875463674407,0,Similar Content Disambiguation (hard_neg from Role Reversal - Original Stance Retrieval),1f2b5bcc-2be1-4fff-96be-0b0723eb7b15
+1.0,0.0,0.0,0.4,0.0,13.0,1.0,0.1,1.0,7.692307692307692,0,Similar Content Disambiguation (hard_neg from Role Reversal - Adopt Opponent's Position),9db414ee-c1c9-4eb0-8b70-ca15f9f4fc3e
+0.23278797517146835,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,2.9098496896433543,0,Similar Content Disambiguation (hard_neg from Role Reversal - Adopt Opponent's Position),7a1c4e95-8814-4eb7-b3e7-7ca9f64bbc33
+0.03381557106232149,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,0.42269463827901865,0,Similar Content Disambiguation (hard_neg from Role Reversal - Adopt Opponent's Position),7ae2dd90-bafd-49f2-b3e8-8149dabce917
+0.0,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,0.0,0,Similar Content Disambiguation (hard_neg from Role Reversal - Adopt Opponent's Position),26509722-71a5-453c-98c6-a76d969d3cdd
+0.7875000000000001,0.0,0.0,0.4,0.0,6.0,1.0,0.0,1.0,13.125000000000002,0,Similar Content Disambiguation (hard_neg from Multi-Turn Chat Context),ded4413a-39c4-414c-8aa7-cd3d96877c7f
+0.2846869707264235,0.0,0.0,0.4,0.0,5.0,1.0,0.1,0.5,5.69373941452847,0,Similar Content Disambiguation (hard_neg from Multi-Turn Chat Context),e1df14d2-3b82-4e1f-8c07-e09fbfbad586
+0.2095956538350731,0.0,0.0,0.4,0.0,22.0,1.0,0.0,0.3333333333333333,0.9527075174321504,0,Similar Content Disambiguation (hard_neg from Multi-Turn Chat Context),f00e140f-6940-4866-a49a-27bbb86217da
+0.0,0.0,0.0,0.4,0.0,19.0,1.0,0.0,0.25,0.0,0,Similar Content Disambiguation (hard_neg from Multi-Turn Chat Context),c589d80d-3506-401c-845a-2f9de054cbfd
+1.0,0.0,0.0,0.4,0.0,18.0,1.0,0.0,1.0,5.555555555555555,0,Similar Content Disambiguation (hard_neg from Topic Switching),60abcc00-db3c-477d-b49d-93da8c950c21
+1.0,0.0,0.0,0.4,0.0,6.0,1.0,0.2,0.5,16.666666666666668,0,Similar Content Disambiguation (hard_neg from Topic Switching),5b541022-f6fb-478d-898a-dc8b019cefe4
+0.25451942169562064,0.0,0.0,0.4,0.0,7.0,1.0,0.1,0.3333333333333333,3.635991738508866,0,Similar Content Disambiguation (hard_neg from Topic Switching),c198b582-9e2f-47f4-8f77-ad9cb279d458
+0.1602651963570358,0.0,0.0,0.4,0.0,11.0,1.0,0.1,0.25,1.4569563305185071,0,Similar Content Disambiguation (hard_neg from Topic Switching),fe1bd42e-1d5d-4b14-89d7-d9dbf642bb39
+0.0,0.0,0.0,0.4,0.0,17.0,1.0,0.0,0.2,0.0,0,Similar Content Disambiguation (hard_neg from Topic Switching),1535a6df-fa97-4f7d-8d2f-1603d5454f50
+0.5286330331367383,0.0,0.0,0.4,0.0,24.0,1.0,0.0,1.0,2.202637638069743,0,Similar Content Disambiguation (hard_neg from OCR Context Recall),02bfe20b-2d3e-49b6-8324-e9a13ee7fded
+0.5137441355382707,0.0,0.0,0.4,0.0,10.0,1.0,0.0,0.5,5.137441355382706,0,Similar Content Disambiguation (hard_neg from OCR Context Recall),e24d8f56-9aa8-4e08-a55c-971059e3ada4
+0.5030362169648339,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.3333333333333333,4.191968474706949,0,Similar Content Disambiguation (hard_neg from OCR Context Recall),0b613e50-907b-404d-90d6-5b75d1bdd991
+0.4916137961813139,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,2.7311877565628553,0,Similar Content Disambiguation (hard_neg from OCR Context Recall),07d39eb2-f0b3-4e3e-8460-f7a9625e6fde
+0.5779913052322816,0.0,0.0,0.4,0.0,14.0,1.0,0.0,1.0,4.128509323087726,0,Similar Content Disambiguation (hard_neg from Multi-Image Context),79ef66d7-0343-44e4-a39f-476d40bdcf20
+0.564862257707662,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,5.135111433706018,0,Similar Content Disambiguation (hard_neg from Multi-Image Context),af6608d8-e7af-4609-af08-851ead87c679
+0.5493011299258332,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.3333333333333333,3.6620075328388886,0,Similar Content Disambiguation (hard_neg from Multi-Image Context),53591fd9-ba2a-4cd7-bddb-72b0bb5c5c9d
+0.5349739128470072,0.0,0.0,0.4,0.0,5.0,1.0,0.0,0.25,10.699478256940145,0,Similar Content Disambiguation (hard_neg from Multi-Image Context),ac3b6e2e-5411-4b7d-96cd-c4b4439391ed
+0.5153717617527712,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.2,6.44214702190964,0,Similar Content Disambiguation (hard_neg from Multi-Image Context),7a1c39be-ddbd-4df8-85ef-4bd7b22a970e
+0.75,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,8.333333333333334,0,Similar Content Disambiguation (hard_neg from Long-Term Memory Retention),e8ba6a1a-dcdf-4c82-b8a3-8f9edf584c4b
+0.6097010791703628,0.0,0.0,0.4,0.0,6.0,1.0,0.0,0.5,10.16168465283938,0,Similar Content Disambiguation (hard_neg from Long-Term Memory Retention),8e61c037-a95a-4ed8-987d-a4f7916bc4f8
+0.5411481497378224,0.0,0.0,0.4,0.0,4.0,1.0,0.1,0.3333333333333333,13.528703743445561,0,Similar Content Disambiguation (hard_neg from Long-Term Memory Retention),b860f37f-41c0-466c-be2c-bea880aa8899
+0.5302202214151532,0.0,0.0,0.4,0.0,2.0,1.0,0.0,0.25,26.51101107075766,0,Similar Content Disambiguation (hard_neg from Long-Term Memory Retention),d20ce8ba-c697-41b0-b12c-43f1c8d14d7c
+0.5000228966656847,0.0,0.0,0.4,0.0,4.0,1.0,0.1,0.2,12.500572416642116,0,Similar Content Disambiguation (hard_neg from Long-Term Memory Retention),686d7af3-4857-4c8d-9f73-f62a0b75885d
+0.5816353557633612,0.0,0.0,0.4,0.0,9.0,1.0,0.125,1.0,6.462615064037347,0,Long-Term Memory Retention (hard_neg from Exact Turn Recall),84b2cc80-c6f2-4e3e-80cf-a22f56e8b027
+0.5489978798882581,0.0,0.0,0.4,0.0,18.0,1.0,0.125,0.5,3.049988221601434,0,Long-Term Memory Retention (hard_neg from Exact Turn Recall),5319c08b-d4c2-442e-a54b-056acc69b447
+0.5247747449751753,0.0,0.0,0.4,0.0,13.0,1.0,0.0,0.3333333333333333,4.0367288075013485,0,Long-Term Memory Retention (hard_neg from Exact Turn Recall),1e24b4cc-97bf-4561-84b3-bfea5e79c679
+0.5118768265143717,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.25,4.265640220953098,0,Long-Term Memory Retention (hard_neg from Exact Turn Recall),ab9d5067-7f46-497c-b18c-ecd740e45467
+1.0,0.0,0.0,0.4,0.0,10.0,1.0,0.125,1.0,10.0,0,Long-Term Memory Retention (hard_neg from Topic-Based Retrieval),e9bf9ff6-1fae-40d2-a37f-db0b13e94ad6
+0.7374610923082814,0.0,0.0,0.4,0.0,11.0,1.0,0.25,0.5,6.704191748257103,0,Long-Term Memory Retention (hard_neg from Topic-Based Retrieval),30f56496-1a8e-4d5d-b9d8-c926eb41ad6e
+0.6507678377518424,0.0,0.0,0.4,0.0,15.0,1.0,0.25,0.3333333333333333,4.33845225167895,0,Long-Term Memory Retention (hard_neg from Topic-Based Retrieval),41a6d3d3-e75a-4f3a-84ae-c5b7661b5817
+0.0,0.0,0.0,0.4,0.0,16.0,1.0,0.125,0.25,0.0,0,Long-Term Memory Retention (hard_neg from Topic-Based Retrieval),ab954418-3c23-4606-9ac7-e4d635b65d26
+0.75,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,6.818181818181818,0,Long-Term Memory Retention (hard_neg from Role Filtering),c170ab31-6ebc-41ad-86ec-88fd0f97a6f0
+0.7309949273965475,0.0,0.0,0.4,0.0,12.0,1.0,0.125,0.5,6.091624394971229,0,Long-Term Memory Retention (hard_neg from Role Filtering),cc071696-faeb-4299-a430-e1c2524c711a
+0.3071227453931613,0.0,0.0,0.4,0.0,14.0,1.0,0.125,0.3333333333333333,2.1937338956654377,0,Long-Term Memory Retention (hard_neg from Role Filtering),d64efd93-e372-473d-883e-545586f3ff2f
+0.0,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.25,0.0,0,Long-Term Memory Retention (hard_neg from Role Filtering),d532d76e-d63c-488d-a285-6c9d70c766b3
+0.9368686868686869,0.0,0.0,0.4,0.0,12.0,1.0,0.125,1.0,7.807239057239057,0,Long-Term Memory Retention (hard_neg from Recent Context Retrieval),f162663f-c25e-4b0f-82f4-bb0498680411
+0.8100761108721751,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.5,10.125951385902189,0,Long-Term Memory Retention (hard_neg from Recent Context Retrieval),6d7fdb17-1002-4905-953f-dda2e3b26466
+0.5906502513546128,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.3333333333333333,7.3831281419326595,0,Long-Term Memory Retention (hard_neg from Recent Context Retrieval),d9135a6c-c10a-4184-832d-96e4fc3db5ae
+0.4756783463508494,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,5.945979329385617,0,Long-Term Memory Retention (hard_neg from Recent Context Retrieval),32e9a065-ccd5-45be-b1c0-26fa5fe7acf9
+0.25,0.0,0.0,0.4,0.0,8.0,1.0,0.125,0.2,3.125,0,Long-Term Memory Retention (hard_neg from Recent Context Retrieval),3f0a2e30-e92f-4882-afdf-4ef7a46dba48
+0.6127207845383797,0.0,0.0,0.4,0.0,10.0,1.0,0.125,1.0,6.127207845383797,0,Long-Term Memory Retention (hard_neg from Irrelevant Query Handling),696931da-14b5-4f54-9f61-1b1196c3315a
+0.5438643814132065,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.944221649210968,0,Long-Term Memory Retention (hard_neg from Irrelevant Query Handling),e101f278-e711-4d95-b132-832f43baab2a
+1.0,0.0,0.0,0.4,0.0,12.0,1.0,0.125,1.0,8.333333333333334,0,Long-Term Memory Retention (hard_neg from Role Reversal - Original Stance Retrieval),3d582201-f900-4f5d-95eb-8680daec7f76
+0.1552044703389382,0.0,0.0,0.4,0.0,12.0,1.0,0.125,0.5,1.2933705861578184,0,Long-Term Memory Retention (hard_neg from Role Reversal - Original Stance Retrieval),4d9b3640-a517-41a9-899b-4e649414e75c
+0.13208681695616573,0.0,0.0,0.4,0.0,11.0,1.0,0.125,0.3333333333333333,1.200789245056052,0,Long-Term Memory Retention (hard_neg from Role Reversal - Original Stance Retrieval),009a283c-29cf-469c-bad4-415e159e5ac1
+0.03831908338539776,0.0,0.0,0.4,0.0,12.0,1.0,0.125,0.25,0.3193256948783147,0,Long-Term Memory Retention (hard_neg from Role Reversal - Original Stance Retrieval),a4cecf17-4b75-4c6d-b0bc-329507b08d25
+1.0,0.0,0.0,0.4,0.0,13.0,1.0,0.0,1.0,7.692307692307692,0,Long-Term Memory Retention (hard_neg from Role Reversal - Adopt Opponent's Position),606bca49-58b0-4608-b2ef-97bf0fd18b57
+0.2142716658192234,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.5,2.6783958227402924,0,Long-Term Memory Retention (hard_neg from Role Reversal - Adopt Opponent's Position),9d1b77de-5f0e-4d99-a1f5-361943413dd2
+0.0012831871198730974,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.3333333333333333,0.016039838998413717,0,Long-Term Memory Retention (hard_neg from Role Reversal - Adopt Opponent's Position),79ecd6b8-dc03-4920-b92d-97f820cc55d8
+0.0,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.25,0.0,0,Long-Term Memory Retention (hard_neg from Role Reversal - Adopt Opponent's Position),ead763e7-de87-478e-87ca-2f7bfad2cb0c
+0.7875000000000001,0.0,0.0,0.4,0.0,6.0,1.0,0.0,1.0,13.125000000000002,0,Long-Term Memory Retention (hard_neg from Multi-Turn Chat Context),8038cef0-e663-4618-8dcb-16e6eb74506e
+0.6844335353059657,0.0,0.0,0.4,0.0,5.0,1.0,0.125,0.5,13.688670706119314,0,Long-Term Memory Retention (hard_neg from Multi-Turn Chat Context),72e77f97-0dad-4235-9040-34481f3368b8
+0.5230627636366657,0.0,0.0,0.4,0.0,22.0,1.0,0.125,0.3333333333333333,2.3775580165302985,0,Long-Term Memory Retention (hard_neg from Multi-Turn Chat Context),941b4adf-d1c3-43eb-8b8e-210bce68ca62
+0.0,0.0,0.0,0.4,0.0,19.0,1.0,0.125,0.25,0.0,0,Long-Term Memory Retention (hard_neg from Multi-Turn Chat Context),287c81f5-41c1-4e45-8933-4157510f3de4
+1.0,0.0,0.0,0.4,0.0,6.0,1.0,0.25,1.0,16.666666666666668,0,Long-Term Memory Retention (hard_neg from Topic Switching),1a0b207e-9161-4d63-b346-1ff8f7b58b0c
+0.6040227254747231,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.5,3.3556818081929065,0,Long-Term Memory Retention (hard_neg from Topic Switching),4456dc3e-6b9f-4d0a-86e0-903041e9c39f
+0.2748218607528865,0.0,0.0,0.4,0.0,7.0,1.0,0.125,0.3333333333333333,3.9260265821840927,0,Long-Term Memory Retention (hard_neg from Topic Switching),dd9569f5-0034-4d9b-8400-ba084c43d493
+0.1245060732787079,0.0,0.0,0.4,0.0,11.0,1.0,0.25,0.25,1.1318733934427991,0,Long-Term Memory Retention (hard_neg from Topic Switching),f08a9e17-ab88-4cbf-b129-03354cfe45f7
+0.0,0.0,0.0,0.4,0.0,17.0,1.0,0.0,0.2,0.0,0,Long-Term Memory Retention (hard_neg from Topic Switching),22c86332-b547-4d6f-983b-842b4eaf4c44
+0.5267431088705623,0.0,0.0,0.4,0.0,10.0,1.0,0.0,1.0,5.267431088705623,0,Long-Term Memory Retention (hard_neg from OCR Context Recall),d452eee1-354d-40c6-809f-82437d52c8e7
+0.5233286886728352,0.0,0.0,0.4,0.0,12.0,1.0,0.0,0.5,4.3610724056069605,0,Long-Term Memory Retention (hard_neg from OCR Context Recall),a1ec7180-32f6-4467-8079-442c854d780d
+0.5193046536286078,0.0,0.0,0.4,0.0,24.0,1.0,0.0,0.3333333333333333,2.163769390119199,0,Long-Term Memory Retention (hard_neg from OCR Context Recall),1ba9a07c-f7ac-454f-8ffa-960094f35ff1
+0.5061978158188197,0.0,0.0,0.4,0.0,18.0,1.0,0.0,0.25,2.812210087882332,0,Long-Term Memory Retention (hard_neg from OCR Context Recall),8aa0e23d-99fb-4e27-b0b3-4a07df542ecb
+0.5741481908609408,0.0,0.0,0.4,0.0,11.0,1.0,0.0,1.0,5.2195290078267345,0,Long-Term Memory Retention (hard_neg from Multi-Image Context),ea629a06-f00c-4658-b5e3-5b4c1070873c
+0.5685769458352453,0.0,0.0,0.4,0.0,14.0,1.0,0.0,0.5,4.061263898823181,0,Long-Term Memory Retention (hard_neg from Multi-Image Context),d19044bf-3cdb-4d19-aa74-8948210afdf2
+0.5598940986033538,0.0,0.0,0.4,0.0,5.0,1.0,0.0,0.3333333333333333,11.197881972067076,0,Long-Term Memory Retention (hard_neg from Multi-Image Context),40103f07-d373-4e20-902d-a6910fd35b9c
+0.5419080099167257,0.0,0.0,0.4,0.0,15.0,1.0,0.0,0.25,3.612720066111505,0,Long-Term Memory Retention (hard_neg from Multi-Image Context),a7e60723-748f-4e43-b5cc-01ac899102c7
+0.5339041540750475,0.0,0.0,0.4,0.0,8.0,1.0,0.0,0.2,6.673801925938094,0,Long-Term Memory Retention (hard_neg from Multi-Image Context),93acf86b-2023-4005-a9a6-8c1da0c9ee95
+0.75,0.0,0.0,0.4,0.0,9.0,1.0,0.0,1.0,8.333333333333334,0,Long-Term Memory Retention (hard_neg from Similar Content Disambiguation),65d8f515-d5d5-42b6-bb7c-f724175ab68f
+0.5247265638615264,0.0,0.0,0.4,0.0,11.0,1.0,0.0,0.5,4.77024148965024,0,Long-Term Memory Retention (hard_neg from Similar Content Disambiguation),37ad3745-0b35-4b93-828a-47362889d452
+0.25,0.0,0.0,0.4,0.0,13.0,1.0,0.125,0.3333333333333333,1.923076923076923,0,Long-Term Memory Retention (hard_neg from Similar Content Disambiguation),13818c44-f499-42f9-aaaa-d9a7fc783a5c

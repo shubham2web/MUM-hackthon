@@ -1,0 +1,12 @@
+# Hybrid Memory System Dependencies
+
+# Embedding Service
+sentence-transformers>=2.2.2  # Local embeddings (recommended)
+# openai>=1.0.0  # Optional: for OpenAI embeddings (uncomment if needed)
+
+# Vector Store
+chromadb>=0.4.22  # Persistent vector database (recommended)
+faiss-cpu>=1.7.4  # Alternative: in-memory vector search
+
+# Core Dependencies (likely already installed)
+numpy>=1.24.0

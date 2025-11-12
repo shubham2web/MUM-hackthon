@@ -1,0 +1,124 @@
+{
+  "results": {
+    "summary": {
+      "total_tests": 13,
+      "passed": 0,
+      "pass_rate": 0.0,
+      "avg_precision": 0.0,
+      "avg_recall": 0.0,
+      "avg_f1": 0.0,
+      "avg_relevance_score": 0.0,
+      "target_met": false
+    },
+    "individual_results": [
+      {
+        "test": "Exact Turn Recall",
+        "description": "Tests ability to retrieve exact turn content when explicitly requested",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Topic-Based Retrieval",
+        "description": "Tests semantic search for topic-related arguments across multiple turns",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Role Filtering",
+        "description": "Tests ability to filter memories by role metadata",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Recent Context Retrieval",
+        "description": "Tests ability to prioritize recent context over older content",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Irrelevant Query Handling",
+        "description": "Tests that system doesn't hallucinate or return false positives for irrelevant queries",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Role Reversal - Original Stance Retrieval",
+        "description": "CRITICAL: Tests if reversed agent can retrieve their original position to argue against it",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Role Reversal - Adopt Opponent's Position",
+        "description": "Tests if reversed agent can adopt the opponent's previous arguments as their own",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Multi-Turn Chat Context",
+        "description": "Tests retrieval of previous explanations in multi-turn conversation",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Topic Switching",
+        "description": "Tests ability to retrieve correct topic context after switching topics",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "OCR Context Recall",
+        "description": "Tests retrieval of previous OCR fact-checking analyses",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Multi-Image Context",
+        "description": "Tests ability to connect related misinformation across multiple images",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Similar Content Disambiguation",
+        "description": "Tests ability to distinguish between very similar statements",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      },
+      {
+        "test": "Long-Term Memory Retention",
+        "description": "Tests retrieval of early content after many subsequent memories",
+        "error": "maximum recursion depth exceeded",
+        "passed": false
+      }
+    ]
+  },
+  "statistics": {
+    "total_queries": 4277,
+    "baseline_queries": 0,
+    "precision_queries": 4264,
+    "baseline_percentage": "0.0%",
+    "precision_percentage": "99.7%",
+    "mode_history": [
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision",
+      "precision"
+    ]
+  },
+  "timestamp": "2025-11-11T20:43:46.871219"
+}

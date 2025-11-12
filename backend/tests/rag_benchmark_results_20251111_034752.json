@@ -1,0 +1,242 @@
+{
+  "summary": {
+    "total_tests": 13,
+    "passed": 5,
+    "pass_rate": 0.38461538461538464,
+    "avg_precision": 0.3294871794871795,
+    "avg_recall": 0.9230769230769231,
+    "avg_f1": 0.4750915750915751,
+    "avg_relevance_score": 0.7141288020861073,
+    "target_met": false
+  },
+  "individual_results": [
+    {
+      "test": "Exact Turn Recall",
+      "description": "Tests ability to retrieve exact turn content when explicitly requested",
+      "metrics": {
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1_score": 0.4,
+        "relevance_score": 0.6183197351703418,
+        "retrieved_count": 4,
+        "expected_count": 1,
+        "true_positives": 1
+      },
+      "passed": false,
+      "query": "What did the proponent say about safety in turn 1?",
+      "expected_count": 1,
+      "retrieved_count": 4
+    },
+    {
+      "test": "Topic-Based Retrieval",
+      "description": "Tests semantic search for topic-related arguments across multiple turns",
+      "metrics": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1_score": 0.6666666666666666,
+        "relevance_score": 0.6123672885720799,
+        "retrieved_count": 4,
+        "expected_count": 2,
+        "true_positives": 2
+      },
+      "passed": false,
+      "query": "Arguments about economic costs and affordability",
+      "expected_count": 2,
+      "retrieved_count": 4
+    },
+    {
+      "test": "Role Filtering",
+      "description": "Tests ability to filter memories by role metadata",
+      "metrics": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1_score": 0.6666666666666666,
+        "relevance_score": 0.625502773983611,
+        "retrieved_count": 4,
+        "expected_count": 2,
+        "true_positives": 2
+      },
+      "passed": false,
+      "query": "What environmental arguments did the opponent make?",
+      "expected_count": 2,
+      "retrieved_count": 4
+    },
+    {
+      "test": "Recent Context Retrieval",
+      "description": "Tests ability to prioritize recent context over older content",
+      "metrics": {
+        "precision": 0.4,
+        "recall": 1.0,
+        "f1_score": 0.5714285714285715,
+        "relevance_score": 0.9013223194985761,
+        "retrieved_count": 5,
+        "expected_count": 2,
+        "true_positives": 2
+      },
+      "passed": true,
+      "query": "Most recent arguments in the debate about modern technology",
+      "expected_count": 2,
+      "retrieved_count": 5
+    },
+    {
+      "test": "Irrelevant Query Handling",
+      "description": "Tests that system doesn't hallucinate or return false positives for irrelevant queries",
+      "metrics": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1_score": 0.0,
+        "relevance_score": 0.0,
+        "retrieved_count": 2,
+        "expected_count": 0,
+        "true_positives": 0
+      },
+      "passed": false,
+      "query": "What was said about cryptocurrency mining and blockchain technology?",
+      "expected_count": 0,
+      "retrieved_count": 2
+    },
+    {
+      "test": "Role Reversal - Original Stance Retrieval",
+      "description": "CRITICAL: Tests if reversed agent can retrieve their original position to argue against it",
+      "metrics": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1_score": 0.6666666666666666,
+        "relevance_score": 0.6275998803827751,
+        "retrieved_count": 4,
+        "expected_count": 2,
+        "true_positives": 2
+      },
+      "passed": false,
+      "query": "What was my original argument FOR solar energy that I now need to critique?",
+      "expected_count": 2,
+      "retrieved_count": 4
+    },
+    {
+      "test": "Role Reversal - Adopt Opponent's Position",
+      "description": "Tests if reversed agent can adopt the opponent's previous arguments as their own",
+      "metrics": {
+        "precision": 0.5,
+        "recall": 1.0,
+        "f1_score": 0.6666666666666666,
+        "relevance_score": 0.68732755466334,
+        "retrieved_count": 4,
+        "expected_count": 2,
+        "true_positives": 2
+      },
+      "passed": false,
+      "query": "What arguments against nuclear energy should I now adopt after role reversal?",
+      "expected_count": 2,
+      "retrieved_count": 4
+    },
+    {
+      "test": "Multi-Turn Chat Context",
+      "description": "Tests retrieval of previous explanations in multi-turn conversation",
+      "metrics": {
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1_score": 0.4,
+        "relevance_score": 0.5616309282721224,
+        "retrieved_count": 4,
+        "expected_count": 1,
+        "true_positives": 1
+      },
+      "passed": false,
+      "query": "What did you explain about entanglement earlier?",
+      "expected_count": 1,
+      "retrieved_count": 4
+    },
+    {
+      "test": "Topic Switching",
+      "description": "Tests ability to retrieve correct topic context after switching topics",
+      "metrics": {
+        "precision": 0.2,
+        "recall": 1.0,
+        "f1_score": 0.33333333333333337,
+        "relevance_score": 1.0,
+        "retrieved_count": 5,
+        "expected_count": 1,
+        "true_positives": 1
+      },
+      "passed": true,
+      "query": "Previous discussion about AI safety concerns and alignment",
+      "expected_count": 1,
+      "retrieved_count": 5
+    },
+    {
+      "test": "OCR Context Recall",
+      "description": "Tests retrieval of previous OCR fact-checking analyses",
+      "metrics": {
+        "precision": 0.25,
+        "recall": 1.0,
+        "f1_score": 0.4,
+        "relevance_score": 1.0,
+        "retrieved_count": 4,
+        "expected_count": 1,
+        "true_positives": 1
+      },
+      "passed": true,
+      "query": "What did we find about vaccine misinformation earlier?",
+      "expected_count": 1,
+      "retrieved_count": 4
+    },
+    {
+      "test": "Multi-Image Context",
+      "description": "Tests ability to connect related misinformation across multiple images",
+      "metrics": {
+        "precision": 0.4,
+        "recall": 1.0,
+        "f1_score": 0.5714285714285715,
+        "relevance_score": 0.649603946576549,
+        "retrieved_count": 5,
+        "expected_count": 2,
+        "true_positives": 2
+      },
+      "passed": false,
+      "query": "Previous climate misinformation we analyzed",
+      "expected_count": 2,
+      "retrieved_count": 5
+    },
+    {
+      "test": "Similar Content Disambiguation",
+      "description": "Tests ability to distinguish between very similar statements",
+      "metrics": {
+        "precision": 0.3333333333333333,
+        "recall": 1.0,
+        "f1_score": 0.5,
+        "relevance_score": 1.0,
+        "retrieved_count": 3,
+        "expected_count": 1,
+        "true_positives": 1
+      },
+      "passed": true,
+      "query": "What was said about carbon emissions during plant operation specifically?",
+      "expected_count": 1,
+      "retrieved_count": 3
+    },
+    {
+      "test": "Long-Term Memory Retention",
+      "description": "Tests retrieval of early content after many subsequent memories",
+      "metrics": {
+        "precision": 0.2,
+        "recall": 1.0,
+        "f1_score": 0.33333333333333337,
+        "relevance_score": 1.0,
+        "retrieved_count": 5,
+        "expected_count": 1,
+        "true_positives": 1
+      },
+      "passed": true,
+      "query": "What was the opening statement about solar energy?",
+      "expected_count": 1,
+      "retrieved_count": 5
+    }
+  ],
+  "metadata": {
+    "execution_time": 2.449196,
+    "start_time": "2025-11-11T03:47:50.377466",
+    "end_time": "2025-11-11T03:47:52.826662",
+    "memory_backend": "unknown",
+    "embedding_model": "unknown"
+  }
+}
