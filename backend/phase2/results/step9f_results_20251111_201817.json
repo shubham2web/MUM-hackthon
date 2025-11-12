@@ -1,0 +1,78 @@
+[
+  {
+    "strategy": "9f-0-baseline",
+    "description": "No reranking (control)",
+    "retrieve_k": 5,
+    "rerank_k": 5,
+    "results": {
+      "summary": {
+        "total_tests": 0,
+        "passed": 0,
+        "pass_rate": 0.0,
+        "avg_precision": 0.0,
+        "avg_recall": 0.0,
+        "avg_f1": 0.0,
+        "avg_relevance_score": 0.0,
+        "target_met": false
+      },
+      "individual_results": []
+    }
+  },
+  {
+    "strategy": "9f-1-rerank-10",
+    "description": "Retrieve 10, rerank to top 5",
+    "retrieve_k": 10,
+    "rerank_k": 5,
+    "results": {
+      "summary": {
+        "total_tests": 0,
+        "passed": 0,
+        "pass_rate": 0.0,
+        "avg_precision": 0.0,
+        "avg_recall": 0.0,
+        "avg_f1": 0.0,
+        "avg_relevance_score": 0.0,
+        "target_met": false
+      },
+      "individual_results": []
+    }
+  },
+  {
+    "strategy": "9f-2-rerank-20",
+    "description": "Retrieve 20, rerank to top 5",
+    "retrieve_k": 20,
+    "rerank_k": 5,
+    "results": {
+      "summary": {
+        "total_tests": 0,
+        "passed": 0,
+        "pass_rate": 0.0,
+        "avg_precision": 0.0,
+        "avg_recall": 0.0,
+        "avg_f1": 0.0,
+        "avg_relevance_score": 0.0,
+        "target_met": false
+      },
+      "individual_results": []
+    }
+  },
+  {
+    "strategy": "9f-3-rerank-30",
+    "description": "Retrieve 30, rerank to top 5",
+    "retrieve_k": 30,
+    "rerank_k": 5,
+    "results": {
+      "summary": {
+        "total_tests": 0,
+        "passed": 0,
+        "pass_rate": 0.0,
+        "avg_precision": 0.0,
+        "avg_recall": 0.0,
+        "avg_f1": 0.0,
+        "avg_relevance_score": 0.0,
+        "target_met": false
+      },
+      "individual_results": []
+    }
+  }
+]

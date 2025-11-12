@@ -56,6 +56,7 @@ def get_secret(key, default=None):
 API_KEY = get_secret("API_KEY")
 GROQ_API_KEY = get_secret("GROQ_API_KEY")
 NEWS_API_KEY = get_secret("NEWS_API_KEY")
+OPENAI_API_KEY = get_secret("OPENAI_API_KEY")  # For OpenAI embeddings (optional)
 
 # It's good practice to support multiple API tokens for services like HuggingFace.
 # This allows for load balancing or fallback if one token hits a rate limit.
