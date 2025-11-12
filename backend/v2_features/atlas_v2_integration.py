@@ -75,10 +75,8 @@ class ATLASv2:
         
         # Step 1: Gather Evidence
         self.logger.info("Step 1: Gathering diversified evidence...")
-        # Run blocking function in thread pool to avoid blocking async loop
-        evidence_articles = await asyncio.to_thread(
-            get_diversified_evidence, claim, num_results=10
-        )
+        # get_diversified_evidence is async, so just await it directly
+        evidence_articles = await get_diversified_evidence(claim, num_results=10)
         
         evidence_texts = [article.get('text', '') or article.get('summary', '') 
                          for article in evidence_articles if article.get('text') or article.get('summary')]
@@ -127,7 +125,9 @@ class ATLASv2:
             for i in range(reversal_rounds):
                 reversed_roles = self.reversal_engine.create_reversal_map(current_roles)
                 
-                reversal_round = self.reversal_engine.conduct_reversal_round(
+                # Run reversal round in thread pool since it uses synchronous streaming
+                reversal_round = await asyncio.to_thread(
+                    self.reversal_engine.conduct_reversal_round,
                     round_number=i + 1,
                     topic=claim,
                     reversed_roles=reversed_roles,
@@ -242,13 +242,18 @@ Provide your analysis:
             
             # Generate response
             try:
-                response_text = ""
-                for chunk in self.ai_agent.stream(
-                    user_message=prompt,
-                    system_prompt=role.system_prompt,
-                    max_tokens=500
-                ):
-                    response_text += chunk
+                # Run streaming in thread pool to avoid blocking
+                def collect_stream():
+                    result = ""
+                    for chunk in self.ai_agent.stream(
+                        user_message=prompt,
+                        system_prompt=role.system_prompt,
+                        max_tokens=500
+                    ):
+                        result += chunk
+                    return result
+                
+                response_text = await asyncio.to_thread(collect_stream)
                 
                 # Audit for bias
                 bias_flags = self.bias_auditor.audit_response(

@@ -122,10 +122,21 @@ class RoleReversalEngine:
                 evidence=evidence
             )
             
-            # Generate argument from new perspective
-            # (This would integrate with your AI agent)
-            # For now, placeholder
-            new_arguments[agent_id] = f"[Role: {new_role}] Argument generated"
+            # Generate argument from new perspective using AI agent
+            try:
+                response_text = ""
+                for chunk in ai_agent.stream(
+                    user_message=prompt,
+                    system_prompt=f"You are now playing the role of {new_role}. Argue from this perspective.",
+                    max_tokens=400
+                ):
+                    response_text += chunk
+                
+                new_arguments[agent_id] = response_text
+                self.logger.info(f"Generated reversal argument for {agent_id} as {new_role}")
+            except Exception as e:
+                self.logger.error(f"Error generating reversal argument: {e}")
+                new_arguments[agent_id] = f"[Error: Could not generate argument for {new_role}]"
         
         # Calculate convergence
         convergence_score = self._calculate_convergence(

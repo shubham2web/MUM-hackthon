@@ -353,32 +353,6 @@
             padding-right: 52px !important;
             text-align: right !important;
         }
-
-        /* v2.0 Toggle Light Mode Styles */
-        body.light-mode .v2-toggle-label {
-            color: #0f3a4b !important;
-            font-weight: 700 !important;
-        }
-        
-        body.light-mode .v2-toggle-track {
-            background-color: rgba(14, 116, 144, 0.3) !important;
-            border: 2px solid #0e7490 !important;
-        }
-        
-        body.light-mode #v2Toggle:checked + .v2-toggle-track {
-            background-color: #0891b2 !important;
-            border-color: #0e7490 !important;
-            box-shadow: 0 0 8px rgba(8, 145, 178, 0.4) !important;
-        }
-        
-        body.light-mode .v2-toggle-slider {
-            background-color: #ffffff !important;
-            box-shadow: 0 2px 6px rgba(14, 116, 144, 0.5) !important;
-        }
-        
-        body.light-mode #v2Toggle:checked + .v2-toggle-track .v2-toggle-slider {
-            background-color: #ffffff !important;
-        }
         
         /* Debate mode styling */
         .debate-message {
@@ -526,15 +500,6 @@
         /* Adjust toggle background and slider visibility in light mode */
         body.light-mode .chat-header label {
             background-color: rgba(15,23,42,0.06) !important;
-        }
-
-        body.light-mode #v2ToggleSlider {
-            background-color: #ffffff !important; /* keep slider thumb visible */
-        }
-
-        /* When enabled, use accent color for slider track in light mode */
-        body.light-mode #v2Toggle:checked + span {
-            background-color: #3b82f6 !important;
         }
     </style>
     <style>
@@ -925,6 +890,228 @@
         }
     };
 
+    // ATLAS v2.0 Module - Enhanced Analysis
+    const ATLASv2 = {
+        baseURL: 'http://127.0.0.1:8000',
+
+        async analyzeWithV2(claim, options = {}) {
+            console.log('🚀 ATLAS v2.0 Analysis Starting...');
+            console.log('Claim:', claim);
+            console.log('Options:', options);
+
+            try {
+                const response = await fetch(`${this.baseURL}/v2/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        claim: claim,
+                        num_agents: options.num_agents || 4,
+                        enable_reversal: options.enable_reversal !== false,
+                        reversal_rounds: options.reversal_rounds || 1
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`v2.0 API error: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+                console.log('✅ v2.0 Response received:', data);
+                
+                return {
+                    success: true,
+                    data: data
+                };
+
+            } catch (error) {
+                console.error('❌ v2.0 Analysis Error:', error);
+                return {
+                    success: false,
+                    error: error.message
+                };
+            }
+        }
+    };
+
+    // V2 UI Renderer - Creates beautiful v2.0 response cards
+    const V2UI = {
+        createV2ResponseCard(data) {
+            const card = document.createElement('div');
+            card.className = 'v2-response-card';
+            card.style.cssText = `
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(168, 85, 247, 0.15) 50%, rgba(236, 72, 153, 0.15) 100%);
+                border: 2px solid transparent;
+                border-image: linear-gradient(135deg, #3b82f6, #a855f7, #ec4899) 1;
+                border-radius: 16px;
+                padding: 24px;
+                margin: 16px 0;
+                box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
+                position: relative;
+                overflow: hidden;
+            `;
+
+            let html = `
+                <div style="position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%); pointer-events: none;"></div>
+                <div style="position: relative; z-index: 1;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
+                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #a855f7); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);">
+                            🔬
+                        </div>
+                        <div>
+                            <h3 style="color: #fff; margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.5px;">Enhanced Analysis</h3>
+                            <div style="color: rgba(255, 255, 255, 0.6); font-size: 12px; margin-top: 2px;">Powered by ATLAS v2.0</div>
+                        </div>
+                    </div>
+            `;
+            
+            // Credibility Score Section
+            if (data.credibility) {
+                const score = data.credibility.overall_score;
+                const percentage = (score * 100).toFixed(0);
+                const color = score >= 0.75 ? '#10b981' : score >= 0.5 ? '#f59e0b' : '#ef4444';
+                const emoji = score >= 0.75 ? '✅' : score >= 0.5 ? '⚠️' : '❌';
+                
+                html += `
+                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 24px;">${emoji}</span>
+                                <span style="font-weight: 700; font-size: 16px; color: #fff;">Credibility Score</span>
+                            </div>
+                            <div style="background: ${color}; color: #fff; padding: 6px 16px; border-radius: 20px; font-weight: 800; font-size: 20px; box-shadow: 0 4px 12px ${color}40;">
+                                ${percentage}%
+                            </div>
+                        </div>
+                        <div style="background: rgba(255,255,255,0.1); height: 12px; border-radius: 6px; overflow: hidden; position: relative;">
+                            <div style="position: absolute; top: 0; left: 0; height: 100%; width: ${percentage}%; background: linear-gradient(90deg, ${color}, ${color}dd); transition: width 1s ease-out; box-shadow: 0 0 10px ${color}80;"></div>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; font-size: 13px;">
+                            <div style="background: rgba(59, 130, 246, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #3b82f6;">
+                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Source Trust</div>
+                                <div style="color: #3b82f6; font-weight: 700; font-size: 16px;">${(data.credibility.source_trust * 100).toFixed(0)}%</div>
+                            </div>
+                            <div style="background: rgba(168, 85, 247, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #a855f7;">
+                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Evidence Alignment</div>
+                                <div style="color: #a855f7; font-weight: 700; font-size: 16px;">${(data.credibility.semantic_alignment * 100).toFixed(0)}%</div>
+                            </div>
+                            <div style="background: rgba(236, 72, 153, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #ec4899;">
+                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Temporal Consistency</div>
+                                <div style="color: #ec4899; font-weight: 700; font-size: 16px;">${(data.credibility.temporal_consistency * 100).toFixed(0)}%</div>
+                            </div>
+                            <div style="background: rgba(16, 185, 129, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #10b981;">
+                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Source Diversity</div>
+                                <div style="color: #10b981; font-weight: 700; font-size: 16px;">${(data.credibility.evidence_diversity * 100).toFixed(0)}%</div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 12px; color: rgba(255,255,255,0.8); border-left: 3px solid ${color};">
+                            <strong style="color: ${color};">Confidence Level:</strong> ${data.credibility.confidence_level}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Synthesis Section
+            if (data.synthesis) {
+                html += `
+                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span style="font-size: 24px;">💡</span>
+                            <span style="font-weight: 700; font-size: 16px; color: #fff;">Analysis Synthesis</span>
+                        </div>
+                        <div style="color: rgba(255,255,255,0.95); line-height: 1.8; font-size: 14px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 4px solid #3b82f6;">
+                            ${this.markdownToHtml(data.synthesis)}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Debate Insights
+            if (data.debate && data.debate.agents) {
+                html += `
+                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span style="font-size: 24px;">🎭</span>
+                            <span style="font-weight: 700; font-size: 16px; color: #fff;">Multi-Agent Debate</span>
+                        </div>
+                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                            ${data.debate.agents.map(agent => `
+                                <div style="background: rgba(59, 130, 246, 0.2); padding: 8px 14px; border-radius: 20px; font-size: 12px; color: #3b82f6; font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);">
+                                    ${agent.name}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Role Reversal Section
+            if (data.role_reversal && data.role_reversal.rounds && data.role_reversal.rounds.length > 0) {
+                html += `
+                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span style="font-size: 24px;">🔄</span>
+                            <span style="font-weight: 700; font-size: 16px; color: #fff;">Role Reversal Analysis</span>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
+                            <div style="background: rgba(168, 85, 247, 0.2); padding: 12px; border-radius: 8px; border-left: 3px solid #a855f7;">
+                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Reversal Rounds</div>
+                                <div style="color: #a855f7; font-weight: 700; font-size: 18px;">${data.role_reversal.rounds.length}</div>
+                            </div>
+                            <div style="background: rgba(236, 72, 153, 0.2); padding: 12px; border-radius: 8px; border-left: 3px solid #ec4899;">
+                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Convergence Rate</div>
+                                <div style="color: #ec4899; font-weight: 700; font-size: 18px;">
+                                    ${data.role_reversal.convergence ? (data.role_reversal.convergence.convergence_rate * 100).toFixed(1) + '%' : 'N/A'}
+                                </div>
+                            </div>
+                        </div>
+                        <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 12px; color: rgba(255,255,255,0.8);">
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <span>${data.role_reversal.convergence && data.role_reversal.convergence.stable_consensus ? '✅' : '⚠️'}</span>
+                                <span>
+                                    ${data.role_reversal.convergence && data.role_reversal.convergence.stable_consensus 
+                                        ? 'Stable consensus reached through perspective reversal' 
+                                        : 'Multiple perspectives examined for bias reduction'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Bias Audit
+            if (data.bias_report && data.bias_report.total_flags > 0) {
+                html += `
+                    <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)); padding: 20px; border-radius: 12px; margin-top: 16px; border: 1px solid rgba(239, 68, 68, 0.3);">
+                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                            <span style="font-size: 24px;">⚠️</span>
+                            <span style="font-weight: 700; font-size: 16px; color: #ef4444;">Bias Detection</span>
+                        </div>
+                        <div style="font-size: 13px; color: rgba(255,255,255,0.8);">
+                            ${data.bias_report.total_flags} potential bias instance(s) detected and flagged for transparency
+                        </div>
+                    </div>
+                `;
+            }
+
+            html += '</div></div>';
+            card.innerHTML = html;
+            return card;
+        },
+
+        markdownToHtml(text) {
+            // Enhanced markdown conversion
+            return text
+                .replace(/### (.*?)(\n|$)/g, '<h3 style="color: #3b82f6; font-size: 15px; margin: 12px 0 8px 0; font-weight: 700;">$1</h3>')
+                .replace(/## (.*?)(\n|$)/g, '<h2 style="color: #3b82f6; font-size: 16px; margin: 16px 0 10px 0; font-weight: 700;">$1</h2>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #fff; font-weight: 600;">$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em style="color: rgba(255,255,255,0.9);">$1</em>')
+                .replace(/- (.*?)(\n|$)/g, '<div style="margin: 6px 0; padding-left: 12px; border-left: 2px solid rgba(59, 130, 246, 0.5);">• $1</div>')
+                .replace(/\n\n/g, '</p><p style="margin: 10px 0;">')
+                .replace(/\n/g, '<br>');
+        }
+    };
+
     // Messages Module
     const Messages = {
         container: null,
@@ -1256,7 +1443,6 @@
         async handleSend() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
-            const v2Enabled = document.getElementById('v2Toggle').checked;
 
             if (!message || this.isProcessing) return;
 
@@ -1311,6 +1497,8 @@
             );
 
             try {
+                // Check v2 toggle state
+                const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
                 console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
                 
                 let response;
@@ -1339,9 +1527,9 @@
                         // Use v2.0 enhanced analysis
                         response = await Promise.race([
                             ATLASv2.analyzeWithV2(message, {
-                                num_agents: 6,
+                                num_agents: 4,
                                 enable_reversal: true,
-                                reversal_rounds: 2
+                                reversal_rounds: 1
                             }),
                             timeoutPromise
                         ]);
@@ -1352,9 +1540,9 @@
                         if (response.success && response.data) {
                             // Use V2UI to render enhanced response
                             const v2Card = V2UI.createV2ResponseCard(response.data);
-                            Messages.addAIMessageHTML(v2Card);
+                            this.addV2Card(v2Card);
                         } else {
-                            Messages.addAIMessage(response.error || 'v2.0 analysis failed');
+                            Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
                         }
                     } else {
                         console.log('💬 Using standard chat analysis...');
@@ -1540,6 +1728,16 @@
                 message = "👋 Hello! I'm **Atlas**, your misinformation fighter.\n\n💬 **Chat Mode**: I'll provide clear, factual analysis of your questions.\n\n💡 **Tip**: Toggle v2.0 for enhanced multi-perspective analysis, or switch to Debate mode for structured debates!";
             }
             Messages.addAIMessage(message);
+        },
+
+        addV2Card(cardElement) {
+            // Add v2.0 response card to messages
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+            messageDiv.style.background = 'transparent';
+            messageDiv.appendChild(cardElement);
+            Messages.container.appendChild(messageDiv);
+            Messages.scrollToBottom();
         }
     };
 
@@ -1923,36 +2121,7 @@
         }
     };
 
-    // Global function to update toggle colors based on theme
-    window.updateToggleColors = () => {
-        const v2Toggle = document.getElementById('v2Toggle');
-        const v2Slider = document.getElementById('v2ToggleSlider');
-        const isLightMode = document.body.classList.contains('light-mode');
-        
-        if (v2Slider && v2Slider.parentElement) {
-            if (v2Toggle && v2Toggle.checked) {
-                if (isLightMode) {
-                    v2Slider.parentElement.style.backgroundColor = '#0891b2';
-                    v2Slider.parentElement.style.borderColor = '#0e7490';
-                    v2Slider.parentElement.style.boxShadow = '0 0 8px rgba(8, 145, 178, 0.4)';
-                } else {
-                    v2Slider.parentElement.style.backgroundColor = '#3b82f6';
-                    v2Slider.parentElement.style.borderColor = '';
-                    v2Slider.parentElement.style.boxShadow = '';
-                }
-            } else {
-                if (isLightMode) {
-                    v2Slider.parentElement.style.backgroundColor = 'rgba(14, 116, 144, 0.3)';
-                    v2Slider.parentElement.style.borderColor = '#0e7490';
-                    v2Slider.parentElement.style.boxShadow = '';
-                } else {
-                    v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
-                    v2Slider.parentElement.style.borderColor = '';
-                    v2Slider.parentElement.style.boxShadow = '';
-                }
-            }
-        }
-    };
+
 
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', () => {
@@ -1969,27 +2138,22 @@
             v2Toggle.addEventListener('change', function() {
                 if (this.checked) {
                     v2Slider.style.transform = 'translateX(26px)';
-                    console.log('v2.0 Enhanced Analysis: ENABLED');
+                    v2Slider.parentElement.style.backgroundColor = '#3b82f6';
+                    console.log('✅ v2.0 Enhanced Analysis: ENABLED');
                 } else {
                     v2Slider.style.transform = 'translateX(0)';
-                    console.log('v2.0 Enhanced Analysis: DISABLED');
+                    v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                    console.log('❌ v2.0 Enhanced Analysis: DISABLED');
                 }
-                window.updateToggleColors();
             });
-            
-            // Call on page load
-            window.updateToggleColors();
         }
-
+        
         // Theme Switcher - Load saved theme first
         const savedTheme = localStorage.getItem('atlas-theme') || 'dark';
         if (savedTheme === 'light') {
             document.body.classList.add('light-mode');
         }
         
-        // Now update toggle colors after theme is set
-        window.updateToggleColors();
-
         // Settings modal - with debugging
         const settingsBtn = document.getElementById('settingsNavBtn');
         const settingsModal = document.getElementById('settingsModal');
@@ -2049,9 +2213,6 @@
                     document.body.classList.remove('light-mode');
                     localStorage.setItem('atlas-theme', 'dark');
                 }
-                
-                // Update v2 toggle colors for new theme
-                window.updateToggleColors();
                 
                 console.log(`Theme switched to: ${theme}`);
             });
