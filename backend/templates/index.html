@@ -842,7 +842,7 @@
     <script>
     // API Module with detailed logging
     const API = {
-        baseURL: 'http://127.0.0.1:8000', // Backend server port
+        baseURL: 'http://127.0.0.1:5000', // Backend server port
 
         async sendMessage(message, mode = 'analytical') {
             console.log('=== API Call ===');
@@ -892,7 +892,7 @@
 
     // ATLAS v2.0 Module - Enhanced Analysis
     const ATLASv2 = {
-        baseURL: 'http://127.0.0.1:8000',
+        baseURL: 'http://127.0.0.1:5000',
 
         async analyzeWithV2(claim, options = {}) {
             console.log('🚀 ATLAS v2.0 Analysis Starting...');
