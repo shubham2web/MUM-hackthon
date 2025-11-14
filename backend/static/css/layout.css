@@ -97,13 +97,13 @@ body.light-mode .sidebar::before {
 .logo {
     width: 40px;
     height: 40px;
-    background: linear-gradient(135deg, #42b5eb, #1f58f5);
-    border-radius: 12px;
+    background: #1f58f5;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     margin-right: 12px;
-    box-shadow: 0 0 8px rgba(66,181,235,0.4), 0 0 16px rgba(31,88,245,0.3);
+    box-shadow: 0 0 10px rgba(31,88,245,0.5), 0 0 20px rgba(31,88,245,0.3);
     flex-shrink: 0;
     transition: all 0.3s ease;
 }
@@ -113,9 +113,10 @@ body.light-mode .sidebar::before {
 }
 
 .logo svg {
-    width: 24px;
-    height: 24px;
+    width: 22px;
+    height: 22px;
     color: white;
+    filter: drop-shadow(0 0 3px rgba(255,255,255,0.4));
 }
 
 .logo-text {
@@ -234,6 +235,7 @@ body.light-mode .chat-title {
     flex-direction: column;
     gap: 0;
     scroll-behavior: smooth;
+    z-index: 1;
 }
 
 .chat-messages::-webkit-scrollbar {
@@ -263,7 +265,8 @@ body.light-mode .chat-title {
         inset -1px 0 10px rgba(0, 0, 0, 0.5),
         0 1px 3px rgba(0, 0, 0, 0.3);
     position: relative;
-    overflow: hidden;
+    overflow: visible;
+    z-index: 100;
 }
 
 .input-container::before {
