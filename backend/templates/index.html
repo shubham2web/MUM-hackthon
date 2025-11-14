@@ -305,12 +305,11 @@
         .message-avatar svg {
             width: 20px !important;
             height: 20px !important;
-            stroke: #00d9ff !important; /* Bright cyan color */
-            filter: brightness(1.3) !important; /* Make it brighter */
+            stroke: currentColor !important;
         }
         
         .ai-message .message-avatar {
-            background: linear-gradient(135deg, #1e3a8a 0%, #1e40af 100%) !important; /* Deep blue gradient */
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important; /* Blue gradient matching user message */
             color: white !important;
         }
         
@@ -503,6 +502,40 @@
         }
     </style>
     <style>
+        /* Settings modal styles */
+        #settingsModal.modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.55);
+            z-index: 9999;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        #settingsModal.modal-overlay.active {
+            display: flex !important;
+            opacity: 1;
+        }
+
+        #settingsModal .modal-content {
+            background: rgba(18,18,20,0.96);
+            color: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            width: 100%;
+            max-width: 520px;
+            transform: scale(0.9);
+            transition: transform 0.3s ease;
+        }
+
+        #settingsModal.modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
         /* Settings panel specific styles to ensure high contrast */
         #settingsPanel.modal-overlay {
             position: fixed;
@@ -574,14 +607,14 @@
             display: block;
             /* Force a visible stroke color regardless of inherited color */
             stroke: currentColor;
-            color: #00d9ff; /* bright cyan accent for dark mode */
+            color: #3b82f6; /* Blue color to match theme */
             fill: none;
             vertical-align: middle;
             opacity: 1;
         }
 
         .sidebar .logo-text {
-            color: #00d9ff;
+            color: #3b82f6;
             font-weight: 700;
             margin-left: 8px;
         }
@@ -801,33 +834,73 @@
             </h2>
             
             <!-- Theme Setting -->
-            <div class="setting-item">
-                <div class="setting-header">
-                    <div class="setting-info">
-                        <h3 class="setting-title">Appearance</h3>
-                        <p class="setting-description">Choose your preferred theme</p>
+            <div class="setting-item" style="padding: 12px 16px; margin-bottom: 8px;">
+                <div class="setting-header" style="margin-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
+                    <h3 class="setting-title" style="margin: 0; font-size: 15px; font-weight: 500;">Appearance</h3>
+                    <div class="theme-dropdown" style="position: relative; min-width: 130px;">
+                        <button class="dropdown-btn" id="themeDropdownBtn" style="width: 100%; padding: 6px 10px; background: #2d2d32; border: 1px solid #404040; border-radius: 5px; color: #e8e8e8; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13px;">
+                            <span id="selectedTheme">Dark</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu" id="themeDropdownMenu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; background: rgba(45,45,50,0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden;">
+                            <div class="dropdown-item" data-theme="system" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s;">
+                                System
+                            </div>
+                            <div class="dropdown-item active" data-theme="dark" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s; background: rgba(255,255,255,0.08); position: relative;">
+                                Dark
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="dropdown-item" data-theme="light" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s;">
+                                Light
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="theme-options">
-                    <button class="theme-btn active" id="darkModeBtn" data-theme="dark">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
-                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+            </div>
+
+            <!-- Language Setting -->
+            <div class="setting-item" style="padding: 12px 16px; margin-bottom: 8px;">
+                <div class="setting-header" style="margin-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
+                    <h3 class="setting-title" style="margin: 0; font-size: 15px; font-weight: 500;">Language</h3>
+                    <div class="language-dropdown" style="position: relative; min-width: 130px;">
+                        <button class="dropdown-btn" id="languageDropdownBtn" style="width: 100%; padding: 6px 10px; background: #2d2d32; border: 1px solid #404040; border-radius: 5px; color: #e8e8e8; display: flex; align-items: center; justify-content: space-between; cursor: pointer; font-size: 13px;">
+                            <span id="selectedLanguage">English</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </button>
+                        <div class="dropdown-menu" id="languageDropdownMenu" style="display: none; position: absolute; top: 100%; right: 0; margin-top: 4px; background: rgba(45,45,50,0.98); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); z-index: 1000; overflow: hidden;">
+                            <div class="dropdown-item active" data-language="en" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s; background: rgba(255,255,255,0.08); position: relative;">
+                                English
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div class="dropdown-item" data-language="hi" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s;">
+                                हिन्दी (Hindi)
+                            </div>
+                            <div class="dropdown-item" data-language="mr" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s;">
+                                मराठी (Marathi)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Delete Chat History -->
+            <div class="setting-item" style="padding: 12px 16px;">
+                <div class="setting-header" style="margin-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
+                    <h3 class="setting-title" style="margin: 0; font-size: 15px; font-weight: 500;">Chat History</h3>
+                    <button id="deleteHistoryBtn" style="background: #dc2626; border: none; color: white; padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
+                            <polyline points="3 6 5 6 21 6"></polyline>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
                         </svg>
-                        <span>Dark</span>
-                    </button>
-                    <button class="theme-btn" id="lightModeBtn" data-theme="light">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
-                            <circle cx="12" cy="12" r="5"></circle>
-                            <line x1="12" y1="1" x2="12" y2="3"></line>
-                            <line x1="12" y1="21" x2="12" y2="23"></line>
-                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-                            <line x1="1" y1="12" x2="3" y2="12"></line>
-                            <line x1="21" y1="12" x2="23" y2="12"></line>
-                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-                        </svg>
-                        <span>Light</span>
+                        Delete All
                     </button>
                 </div>
             </div>
@@ -2048,7 +2121,7 @@
         }
         
         // Settings modal - with debugging
-        const settingsBtn = document.getElementById('settingsNavBtn');
+        const settingsBtn = document.getElementById('settingsBtn');
         const settingsModal = document.getElementById('settingsModal');
         const settingsClose = document.getElementById('closeSettingsBtn');
         const themeButtons = document.querySelectorAll('.theme-btn');
@@ -2060,7 +2133,7 @@
         // Open settings modal
         if (settingsBtn) {
             settingsBtn.style.cursor = 'pointer';
-            settingsBtn.onclick = (e) => {
+            settingsBtn.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 console.log('Settings button clicked!');
@@ -2069,7 +2142,7 @@
                     console.log('Active class added to modal');
                     console.log('Modal display:', window.getComputedStyle(settingsModal).display);
                 }
-            };
+            });
         } else {
             console.error('Settings button NOT found!');
         }
@@ -2089,31 +2162,180 @@
             }
         });
 
-        // Theme switching
-        themeButtons.forEach(btn => {
-            btn.addEventListener('click', () => {
-                const theme = btn.dataset.theme;
+        // Theme dropdown
+        const themeDropdownBtn = document.getElementById('themeDropdownBtn');
+        const themeDropdownMenu = document.getElementById('themeDropdownMenu');
+        const selectedTheme = document.getElementById('selectedTheme');
+        const themeItems = document.querySelectorAll('#themeDropdownMenu .dropdown-item');
+
+        // Toggle dropdown
+        themeDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            themeDropdownMenu.style.display = themeDropdownMenu.style.display === 'none' ? 'block' : 'none';
+            // Close language dropdown if open
+            const languageDropdownMenu = document.getElementById('languageDropdownMenu');
+            if (languageDropdownMenu) languageDropdownMenu.style.display = 'none';
+        });
+
+        // Handle theme selection
+        themeItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const theme = this.dataset.theme;
+                console.log('Theme selected:', theme);
                 
-                // Update active button
-                themeButtons.forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
+                // Update selected text
+                selectedTheme.textContent = this.textContent.trim();
                 
-                // Apply theme
+                // Update active state
+                themeItems.forEach(i => {
+                    i.classList.remove('active');
+                    i.style.background = '';
+                    // Remove checkmark if exists
+                    const checkmark = i.querySelector('svg');
+                    if (checkmark) checkmark.remove();
+                });
+                
+                this.classList.add('active');
+                this.style.background = 'rgba(255,255,255,0.08)';
+                
+                // Add checkmark
+                const checkmarkSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                checkmarkSvg.setAttribute('viewBox', '0 0 24 24');
+                checkmarkSvg.setAttribute('fill', 'none');
+                checkmarkSvg.setAttribute('stroke', 'currentColor');
+                checkmarkSvg.setAttribute('stroke-width', '2');
+                checkmarkSvg.style.width = '16px';
+                checkmarkSvg.style.height = '16px';
+                checkmarkSvg.style.position = 'absolute';
+                checkmarkSvg.style.right = '12px';
+                checkmarkSvg.style.top = '50%';
+                checkmarkSvg.style.transform = 'translateY(-50%)';
+                const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+                polyline.setAttribute('points', '20 6 9 17 4 12');
+                checkmarkSvg.appendChild(polyline);
+                this.appendChild(checkmarkSvg);
+                
+                // Apply theme functionality
                 if (theme === 'light') {
                     document.body.classList.add('light-mode');
                     localStorage.setItem('atlas-theme', 'light');
-                } else {
+                } else if (theme === 'dark') {
                     document.body.classList.remove('light-mode');
                     localStorage.setItem('atlas-theme', 'dark');
+                } else if (theme === 'system') {
+                    // Detect system theme preference
+                    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                    if (prefersDark) {
+                        document.body.classList.remove('light-mode');
+                        localStorage.setItem('atlas-theme', 'dark');
+                    } else {
+                        document.body.classList.add('light-mode');
+                        localStorage.setItem('atlas-theme', 'light');
+                    }
                 }
                 
-                console.log(`Theme switched to: ${theme}`);
+                console.log(`Theme applied: ${theme}`);
+                
+                // Close dropdown
+                themeDropdownMenu.style.display = 'none';
+            });
+
+            // Hover effect
+            item.addEventListener('mouseenter', function() {
+                if (!this.classList.contains('active')) {
+                    this.style.background = 'rgba(255,255,255,0.04)';
+                }
+            });
+            item.addEventListener('mouseleave', function() {
+                if (!this.classList.contains('active')) {
+                    this.style.background = '';
+                }
             });
         });
 
-        // Set active theme button on load
-        const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
-        document.querySelector(`.theme-btn[data-theme="${currentTheme}"]`)?.classList.add('active');
+        // Language dropdown
+        const languageDropdownBtn = document.getElementById('languageDropdownBtn');
+        const languageDropdownMenu = document.getElementById('languageDropdownMenu');
+        const selectedLanguage = document.getElementById('selectedLanguage');
+        const languageItems = document.querySelectorAll('#languageDropdownMenu .dropdown-item');
+
+        // Toggle dropdown
+        languageDropdownBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            languageDropdownMenu.style.display = languageDropdownMenu.style.display === 'none' ? 'block' : 'none';
+            // Close theme dropdown if open
+            if (themeDropdownMenu) themeDropdownMenu.style.display = 'none';
+        });
+
+        // Handle language selection
+        languageItems.forEach(item => {
+            item.addEventListener('click', function() {
+                const language = this.dataset.language;
+                console.log('Language selected (UI only, no function):', language);
+                
+                // Update selected text
+                selectedLanguage.textContent = this.textContent.trim();
+                
+                // Update active state
+                languageItems.forEach(i => {
+                    i.classList.remove('active');
+                    i.style.background = '';
+                    // Remove checkmark if exists
+                    const checkmark = i.querySelector('svg');
+                    if (checkmark) checkmark.remove();
+                });
+                
+                this.classList.add('active');
+                this.style.background = 'rgba(255,255,255,0.08)';
+                
+                // Add checkmark
+                const checkmarkSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                checkmarkSvg.setAttribute('viewBox', '0 0 24 24');
+                checkmarkSvg.setAttribute('fill', 'none');
+                checkmarkSvg.setAttribute('stroke', 'currentColor');
+                checkmarkSvg.setAttribute('stroke-width', '2');
+                checkmarkSvg.style.width = '16px';
+                checkmarkSvg.style.height = '16px';
+                checkmarkSvg.style.position = 'absolute';
+                checkmarkSvg.style.right = '12px';
+                checkmarkSvg.style.top = '50%';
+                checkmarkSvg.style.transform = 'translateY(-50%)';
+                const polyline = document.createElementNS('http://www.w3.org/2000/svg', 'polyline');
+                polyline.setAttribute('points', '20 6 9 17 4 12');
+                checkmarkSvg.appendChild(polyline);
+                this.appendChild(checkmarkSvg);
+                
+                // Close dropdown
+                languageDropdownMenu.style.display = 'none';
+            });
+
+            // Hover effect
+            item.addEventListener('mouseenter', function() {
+                if (!this.classList.contains('active')) {
+                    this.style.background = 'rgba(255,255,255,0.04)';
+                }
+            });
+            item.addEventListener('mouseleave', function() {
+                if (!this.classList.contains('active')) {
+                    this.style.background = '';
+                }
+            });
+        });
+
+        // Close dropdowns when clicking outside
+        document.addEventListener('click', () => {
+            if (themeDropdownMenu) themeDropdownMenu.style.display = 'none';
+            if (languageDropdownMenu) languageDropdownMenu.style.display = 'none';
+        });
+
+        // Delete chat history button (UI only, no function)
+        const deleteHistoryBtn = document.getElementById('deleteHistoryBtn');
+        if (deleteHistoryBtn) {
+            deleteHistoryBtn.addEventListener('click', () => {
+                console.log('Delete history button clicked (UI only)');
+                // Add confirmation dialog or animation here if needed
+            });
+        }
     });
     </script>
 
