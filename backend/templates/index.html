@@ -288,7 +288,7 @@
         .loading-message .typing-indicator span {
             display: block !important;
             opacity: 1 !important;
-            animation: typing 1.4s infinite !important;
+            animation: typing 1.1s linear infinite !important;
         }
         
         .user-message {
@@ -510,9 +510,18 @@
             color: #0f172a;
         }
 
-        /* Only change the sidebar in light (bright) mode to a very light shade of #09577a */
+        /* Sidebar gradient for light mode: lighter at top, slightly darker at bottom */
         body.light-mode .sidebar {
-            background: #90cfe2 !important;
+                background: linear-gradient(180deg,
+                    #8bd5e6 0%,
+                    #ccf1f8 10%,
+                    #afe6f0 25%,
+                    #b0e1eb 45%,
+                    #9de3f0 65%,
+                    #72c5d8 85%,
+                    #3fb8d3 100%);
+                background-repeat: no-repeat !important;
+                background-attachment: fixed !important;
         }
         body.light-mode .message-text {
             background: #f3f4f6 !important;
@@ -533,7 +542,7 @@
         }
         /* Make the top header background lighter in bright (light) mode */
         body.light-mode .chat-header {
-            background: linear-gradient(90deg, #0594d6 40%, #8bccf1 60%, #dfe7e9 100%); /* soft, very light cyan */
+            background: linear-gradient(90deg, #3187af 40%, #7eb6cf 60%, #e5ebec 100%); /* soft, very light cyan */
             border-bottom: 1px solid rgba(15,23,42,0.04);
             color: #0f172a;
         }
@@ -543,6 +552,7 @@
             color: #f1f4f5 !important; /* light shade of #338cb5 */
             text-shadow: 0 4px 10px rgba(157, 214, 235, 0.986) !important; /* dark cyan glow */
         }
+
         /* Dark mode fallback: keep blue glow used previously */
         body:not(.light-mode) .chat-header .chat-title.mode-chat,
         body:not(.light-mode) .chat-header .chat-title.mode-debate {
@@ -1430,9 +1440,9 @@
                     </div>
                     <div class="message-text">
                         <div class="typing-indicator" style="display: flex !important; opacity: 1 !important;">
-                            <span style="animation: typing 1.4s infinite ease-in-out;"></span>
-                            <span style="animation: typing 1.4s infinite ease-in-out; animation-delay: 0.2s;"></span>
-                            <span style="animation: typing 1.4s infinite ease-in-out; animation-delay: 0.4s;"></span>
+                            <span></span>
+                            <span></span>
+                            <span></span>
                         </div>
                     </div>
                 </div>
