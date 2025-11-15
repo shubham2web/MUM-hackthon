@@ -273,6 +273,24 @@
             align-items: flex-start !important;
         }
         
+        /* Loading message should always be visible immediately */
+        .loading-message {
+            opacity: 1 !important;
+            animation: none !important;
+            transform: translateY(0) !important;
+        }
+        
+        .loading-message .typing-indicator {
+            display: flex !important;
+            opacity: 1 !important;
+        }
+        
+        .loading-message .typing-indicator span {
+            display: block !important;
+            opacity: 1 !important;
+            animation: typing 1.4s infinite !important;
+        }
+        
         .user-message {
             align-items: flex-end !important;
         }
@@ -402,12 +420,19 @@
         }
         
         .debate-content {
-            color: #e5e7eb;
+            color: #e5e7eb !important; /* Light gray for dark mode */
             line-height: 1.6;
         }
         
         .debate-content p {
             margin: 8px 0;
+            color: inherit;
+        }
+
+        /* Light mode overrides for Debate messages: ensure readable dark text */
+        body.light-mode .debate-content,
+        body.light-mode .debate-content p {
+            color: #0b1220 !important; /* near-black for high contrast */
         }
     </style>
     <style>
@@ -1394,6 +1419,8 @@
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message ai-message loading-message';
             loadingDiv.id = 'loading-indicator';
+            loadingDiv.style.opacity = '1';
+            loadingDiv.style.transform = 'translateY(0)';
             loadingDiv.innerHTML = `
                 <div class="message-content">
                     <div class="message-avatar">
@@ -1402,8 +1429,10 @@
                         </svg>
                     </div>
                     <div class="message-text">
-                        <div class="typing-indicator">
-                            <span></span><span></span><span></span>
+                        <div class="typing-indicator" style="display: flex !important; opacity: 1 !important;">
+                            <span style="animation: typing 1.4s infinite ease-in-out;"></span>
+                            <span style="animation: typing 1.4s infinite ease-in-out; animation-delay: 0.2s;"></span>
+                            <span style="animation: typing 1.4s infinite ease-in-out; animation-delay: 0.4s;"></span>
                         </div>
                     </div>
                 </div>
@@ -1414,7 +1443,13 @@
 
         hideLoading() {
             const loading = document.getElementById('loading-indicator');
-            if (loading) loading.remove();
+            if (loading) {
+                loading.remove();
+                console.log('🔴 Loading indicator removed');
+            }
+            // Also remove any other loading messages that might exist
+            const allLoading = document.querySelectorAll('.loading-message');
+            allLoading.forEach(el => el.remove());
         },
 
         scrollToBottom() {
@@ -1721,12 +1756,13 @@
                         timeoutPromise
                     ]);
                     
-                    Messages.hideLoading();
+                    // DON'T hide loading yet - let it continue until first debate message arrives
                     
                     // Should be SSE stream
                     if (response && response.isStream) {
                         await this.handleDebateStream(response.response, message);
                     } else {
+                        Messages.hideLoading();
                         Messages.addAIMessage('Error: Expected debate stream but got regular response.');
                     }
                 }
@@ -1798,6 +1834,7 @@
             let currentRole = null;
             let currentContent = '';
             let messageDiv = null;
+            let firstMessageReceived = false; // Track if we've received first message
             
             try {
                 while (true) {
@@ -1827,6 +1864,9 @@
                                 
                                 // Handle "end" event - debate complete
                                 if (json.message === "Debate complete.") {
+                                    // Ensure loading is hidden
+                                    Messages.hideLoading();
+                                    
                                     // Flush any remaining content
                                     if (currentContent && messageDiv) {
                                         messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
@@ -1850,6 +1890,13 @@
                                 
                                 // Check for role change
                                 if (json.role && json.role !== currentRole) {
+                                    // Hide loading indicator on first message
+                                    if (!firstMessageReceived) {
+                                        console.log('🎯 First debate message received, hiding loading...');
+                                        Messages.hideLoading();
+                                        firstMessageReceived = true;
+                                    }
+                                    
                                     // Flush previous content
                                     if (currentContent && messageDiv) {
                                         messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
@@ -1877,6 +1924,7 @@
                 }
             } catch (error) {
                 console.error('Error in debate stream:', error);
+                Messages.hideLoading(); // Hide loading on error
                 Messages.addAIMessage('❌ Error streaming debate: ' + error.message);
             }
         },
