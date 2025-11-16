@@ -1460,9 +1460,9 @@
             
             Messages.showLoading();
 
-            // Add timeout for the request (90 seconds)
+            // Add timeout for the request (180 seconds / 3 minutes for OCR + AI analysis)
             const timeoutPromise = new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Request timed out')), 90000)
+                setTimeout(() => reject(new Error('Request timed out')), 180000)
             );
 
             try {
@@ -1991,7 +1991,7 @@
 
                 console.log(`📤 Sending "${file.name}" to OCR endpoint with scraper enabled...`);
                 
-                const response = await fetch('http://127.0.0.1:5000/ocr_upload', {
+                const response = await fetch('http://127.0.0.1:8000/ocr_upload', {
                     method: 'POST',
                     body: formData
                 });
