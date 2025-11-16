@@ -27,20 +27,25 @@
 .sidebar::before {
     content: '';
     position: absolute;
-    top: -100%;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(180deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.05) 40%, 
-        rgba(255, 255, 255, 0.12) 50%, 
-        rgba(255, 255, 255, 0.05) 60%, 
+    /* place the shine just outside the right edge of the sidebar */
+    top: -10%;
+    right: -44px; /* start just outside the sidebar (works when collapsed) */
+    width: 44px;
+    height: 120%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,0.04) 30%,
+        rgba(255,255,255,0.12) 50%,
+        rgba(255,255,255,0.04) 70%,
         transparent 100%);
-    animation: sidebarShineMove 8s ease-in-out infinite;
+    transform: translateX(0);
+    animation: sidebarShineHorizontal 2.6s ease-in-out infinite;
     pointer-events: none;
-    z-index: 1;
+    z-index: 1; /* keep below nav items and toggle (toggle has z-index:10) */
 }
+
+/* Disable the previous sidebar shine entirely; replaced by a subtle background star animation in dark mode */
+.sidebar::before { display: none !important; }
 
 .sidebar > *:not(.toggle-btn) {
     position: relative;
@@ -56,23 +61,32 @@ body.light-mode .sidebar {
 }
 
 body.light-mode .sidebar::before {
-    background: linear-gradient(180deg, 
-        transparent 0%, 
-        rgba(255, 255, 255, 0.3) 40%, 
-        rgba(255, 255, 255, 0.5) 50%, 
-        rgba(255, 255, 255, 0.3) 60%, 
+    /* keep the horizontal right-edge placement but increase brightness for light mode */
+    right: -44px;
+    width: 44px;
+    height: 120%;
+    top: -10%;
+    background: linear-gradient(90deg,
+        transparent 0%,
+        rgba(255,255,255,0.28) 30%,
+        rgba(255,255,255,0.6) 50%,
+        rgba(255,255,255,0.28) 70%,
         transparent 100%);
+    animation: sidebarShineHorizontal 2.6s ease-in-out infinite;
 }
 
-@keyframes sidebarShineMove {
+@keyframes sidebarShineHorizontal {
     0% {
-        top: -100%;
+        transform: translateX(0);
+        opacity: 0;
     }
-    50% {
-        top: 100%;
+    10% {
+        opacity: 1;
     }
     100% {
-        top: 100%;
+        /* move far to the right so the ray appears to sweep outward from the sidebar */
+        transform: translateX(calc(100vw));
+        opacity: 0;
     }
 }
 
@@ -204,6 +218,8 @@ body.light-mode .logo-text {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    position: relative;
+    z-index: 1;
 }
 
 /* Light mode chat header */
@@ -282,7 +298,9 @@ body.light-mode .chat-title {
         rgba(255, 255, 255, 0.15) 50%, 
         rgba(255, 255, 255, 0.05) 60%, 
         transparent 100%);
-    animation: shineMove 8s ease-in-out infinite;
+    /* Disabled the moving shine per user request */
+    display: none !important;
+    animation: none !important;
     pointer-events: none;
 }
 
@@ -312,6 +330,9 @@ body.light-mode .input-container::before {
         rgba(255, 255, 255, 0.6) 50%, 
         rgba(255, 255, 255, 0.3) 60%, 
         transparent 100%);
+    /* ensure light-mode also has no moving shine */
+    display: none !important;
+    animation: none !important;
 }
 
 /* === MOBILE === */
