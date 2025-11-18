@@ -74,6 +74,16 @@ if MEMORY_AVAILABLE:
     app.register_blueprint(memory_bp)
     logging.info("✅ Hybrid Memory System endpoints registered at /memory/*")
 
+# --- Register Chat Persistence Blueprint (MongoDB-backed) ---
+try:
+    from api.chat_routes import chat_bp
+    CHAT_API_AVAILABLE = True
+    app.register_blueprint(chat_bp)
+    logging.info("✅ Chat persistence API endpoints registered at /api/chats/*")
+except Exception as e:
+    CHAT_API_AVAILABLE = False
+    logging.warning(f"Chat API not available: {e}")
+
 executor = ThreadPoolExecutor(max_workers=10)
 
 # --- JSON logging (production-ready) ---
@@ -120,6 +130,7 @@ async def check_api_key():
     if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
+        request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
         not API_KEY or 
         request.method == 'OPTIONS'):
         return
@@ -902,6 +913,15 @@ async def startup():
     """Initialize database before server starts accepting requests"""
     await AsyncDbManager.init_db()
     logging.info("Database has been initialized.")
+    # Initialize chat persistence DB if chat API is available
+    try:
+        if 'CHAT_API_AVAILABLE' in globals() and CHAT_API_AVAILABLE:
+            # Import here to avoid import-time dependency issues with pymongo/motor
+            from services.chat_store import init_chat_db
+            await init_chat_db()
+            logging.info("Chat persistence database initialized.")
+    except Exception as e:
+        logging.warning(f"Failed to initialize chat DB: {e}")
 
 if __name__ == "__main__":
     if DEBUG_MODE and os.path.exists(DATABASE_FILE):

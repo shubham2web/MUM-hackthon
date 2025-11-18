@@ -436,6 +436,140 @@
         }
     </style>
     <style>
+        /* New Chat Modal styling (match Settings modal but with light-mode overrides) */
+        #newChatModal.modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.55);
+            z-index: 10000;
+            opacity: 0;
+            transition: opacity 0.18s ease;
+        }
+
+        #newChatModal.modal-overlay.active {
+            display: flex !important;
+            opacity: 1;
+        }
+
+        #newChatModal .modal-content {
+            background: rgba(20,20,22,0.98);
+            color: #eef2f7;
+            border-radius: 10px;
+            padding: 18px;
+            box-shadow: 0 10px 34px rgba(0,0,0,0.6);
+            width: 100%;
+            max-width: 520px;
+            transform: translateY(-6px);
+            transition: transform 0.18s ease, opacity 0.18s ease;
+        }
+
+        #newChatModal.modal-overlay.active .modal-content {
+            transform: translateY(0);
+        }
+
+        /* Input and buttons inside modal */
+        #newChatModal .message-input {
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.02);
+            color: inherit;
+        }
+
+        #newChatModal .input-btn {
+            border: 1px solid rgba(255,255,255,0.08);
+            background: rgba(255,255,255,0.03);
+            color: #fff;
+            cursor: pointer;
+            border-radius: 8px;
+            padding: 8px 12px;
+            min-width: 92px; /* ensure Cancel fits */
+            text-align: center;
+        }
+
+        #newChatModal .input-btn:hover { background: rgba(255,255,255,0.06); }
+
+        #newChatModal .input-btn.primary {
+            background: var(--accent-color);
+            border: none;
+            color: #fff;
+        }
+
+        /* Light mode overrides */
+        body.light-mode #newChatModal .modal-content {
+            background: #ffffff;
+            color: #0b1220;
+            box-shadow: 0 8px 30px rgba(9,10,12,0.06);
+        }
+
+        body.light-mode #newChatModal .message-input {
+            border: 1px solid rgba(9,10,12,0.08);
+            background: #ffffff;
+            color: #0b1220;
+        }
+
+        body.light-mode #newChatModal .input-btn {
+            background: rgba(9,10,12,0.04);
+            color: #0b1220;
+            border: 1px solid rgba(9,10,12,0.06);
+        }
+
+        body.light-mode #newChatModal .input-btn.primary {
+            background: linear-gradient(135deg, #0891b2, #0e7490);
+            color: #fff;
+            border: none;
+        }
+        
+        /* Placeholder color tweaks for visibility */
+        #newChatModal .message-input::placeholder { color: rgba(255,255,255,0.45); }
+        body.light-mode #newChatModal .message-input::placeholder { color: rgba(11,18,32,0.45); }
+    </style>
+    <style>
+        /* History panel (overlay box that appears when clicking History) */
+        #historyPanel {
+            position: fixed;
+            left: 80px; /* sit next to the sidebar */
+            top: 80px;
+            width: 320px;
+            max-height: calc(100vh - 160px);
+            overflow: auto;
+            background: rgba(12,12,14,0.95);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 12px;
+            box-shadow: 0 12px 40px rgba(2,6,23,0.7);
+            z-index: 1200;
+            display: none;
+            flex-direction: column;
+            padding: 12px;
+        }
+
+        #historyPanel.active { display: flex; }
+
+        #historyPanel .history-header {
+            display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px;
+        }
+
+        #historyPanel .history-title { font-weight:700; color: #e6eef8; }
+        #historyPanel .history-close { background:transparent; border:none; color: #cbd5e1; cursor:pointer; font-size:18px; }
+
+        #historyList { list-style:none; margin:0; padding:0; }
+        #historyList li { padding:10px; border-radius:8px; margin-bottom:8px; cursor:pointer; display:flex; flex-direction:column; gap:4px; }
+        #historyList li .h-title { font-weight:600; color:#e6eef8; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+        #historyList li .h-meta { font-size:12px; color:rgba(230,238,248,0.6); }
+
+        /* Light mode overrides */
+        body.light-mode #historyPanel { background: #ffffff; border: 1px solid rgba(9,10,12,0.06); box-shadow: 0 8px 24px rgba(9,10,12,0.06); }
+        body.light-mode #historyPanel .history-title { color: #0b1220; }
+        body.light-mode #historyList li .h-meta { color: rgba(11,18,32,0.6); }
+        /* Ensure list item titles are visible in light mode */
+        body.light-mode #historyList li .h-title { color: #0b1220; }
+        body.light-mode #historyList li { background: #f8fafc; }
+        /* Make delete icon visible in light mode */
+        #historyList li .history-delete-btn { color: rgba(255,255,255,0.7); }
+        body.light-mode #historyList li .history-delete-btn { color: rgba(11,18,32,0.65); }
+    </style>
+    <style>
         /* Message box outline and visibility for dark & light modes */
         .input-container {
             /* keep existing layout but ensure top border separation */
@@ -842,7 +976,7 @@
                     </svg>
                     <span class="nav-text">Debate</span>
                 </a>
-                <div class="nav-item">
+                <div class="nav-item" id="historyBtn" role="button" tabindex="0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
                         <polyline points="12 7 12 12 16 14"></polyline>
@@ -857,7 +991,29 @@
                     <span class="nav-text">Settings</span>
                 </div>
             </nav>
+
+            <!-- Chat list hidden by default; shown only via History panel -->
+            <div id="chatListContainer" style="padding:12px; border-top: 1px solid rgba(255,255,255,0.04); display:none;">
+                <ul id="chatList" style="list-style:none; margin:0; padding:0; max-height:260px; overflow:auto;">
+                    <!-- Chats will be populated here (kept for accessibility but hidden) -->
+                </ul>
+            </div>
+            <!-- Sidebar footer: persistent New Chat button at bottom of sidebar -->
+            <div id="sidebarFooter" style="padding:12px; border-top: 1px solid rgba(255,255,255,0.04);">
+                <button id="newChatBtn" class="input-btn" style="width:100%; padding:10px 12px; margin-top:8px;">+ New Chat</button>
+            </div>
         </aside>
+
+        <!-- History Panel (opened when clicking History) -->
+        <div id="historyPanel" role="dialog" aria-hidden="true">
+            <div class="history-header">
+                <div class="history-title">Recent Chats</div>
+                <button class="history-close" id="historyCloseBtn" aria-label="Close history">✕</button>
+            </div>
+            <div style="flex:1; overflow:auto;">
+                <ul id="historyList"></ul>
+            </div>
+        </div>
 
         <!-- Chat Container -->
         <main class="chat-container">
@@ -1025,19 +1181,7 @@
                 </div>
             </div>
 
-            <!-- Delete Chat History -->
-            <div class="setting-item" style="padding: 12px 16px;">
-                <div class="setting-header" style="margin-bottom: 0; display: flex; align-items: center; justify-content: space-between;">
-                    <h3 class="setting-title" style="margin: 0; font-size: 15px; font-weight: 500;">Chat History</h3>
-                    <button id="deleteHistoryBtn" style="background: #dc2626; border: none; color: white; padding: 7px 14px; border-radius: 6px; font-size: 13px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 500;">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 15px; height: 15px;">
-                            <polyline points="3 6 5 6 21 6"></polyline>
-                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                        </svg>
-                        Delete All
-                    </button>
-                </div>
-            </div>
+            <!-- Chat History section removed from Settings (Delete All option hidden) -->
 
             <div class="modal-buttons" style="margin-top: 30px;">
                 <button id="closeSettingsBtn" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Close</button>
@@ -1046,7 +1190,22 @@
     </div>
 
     <!-- Settings UI/Logic -->
-    <script>
+            <!-- New Chat Modal -->
+            <div id="newChatModal" class="modal-overlay" style="display:none; opacity:0; align-items:center; justify-content:center;">
+                <div class="modal-content" style="max-width:460px; width:92%; padding:18px;">
+                    <h2 style="margin:0 0 10px 0;">New chat</h2>
+                    <div style="margin-top:6px;">
+                        <label style="display:block; font-size:13px; color:var(--text-secondary); margin-bottom:8px;">New chat title (optional):</label>
+                        <input id="newChatTitle" type="text" placeholder="Optional title" class="message-input" style="width:100%; padding:10px 12px; border-radius:8px;" />
+                    </div>
+                    <div style="display:flex; gap:10px; justify-content:flex-end; margin-top:16px;">
+                        <button id="cancelNewChatBtn" class="input-btn" style="padding:8px 12px;">Cancel</button>
+                        <button id="confirmNewChatBtn" class="input-btn primary" style="padding:8px 12px;">OK</button>
+                    </div>
+                </div>
+            </div>
+
+            <script>
     (function(){
         // Defer all DOM queries until document ready to ensure elements exist
         function openSettings(modal) { if (!modal) return; modal.classList.add('active'); modal.style.display = 'flex'; setTimeout(()=> modal.style.opacity = '1', 10); }
@@ -1062,7 +1221,6 @@
             const langBtn = document.getElementById('languageDropdownBtn');
             const langMenu = document.getElementById('languageDropdownMenu');
             const selectedLang = document.getElementById('selectedLanguage');
-            const deleteBtn = document.getElementById('deleteHistoryBtn');
 
             // Safe defaults for menus
             if (themeMenu) themeMenu.style.display = themeMenu.style.display || 'none';
@@ -1156,19 +1314,7 @@
             // Clicking outside modal content closes it
             modal?.addEventListener('click', (e) => { if (e.target === modal) closeSettings(modal); });
 
-            // Delete history handler
-            deleteBtn?.addEventListener('click', async () => {
-                const ok = confirm('Delete all chat history? This cannot be undone.');
-                if (!ok) return;
-                try { ['chatHistory','initialPrompt','ocrResult','ocrResults','chatSession'].forEach(k => localStorage.removeItem(k)); } catch(e){}
-                try {
-                    const resp = await fetch('/delete_history', { method: 'POST' });
-                    if (resp.ok) alert('Chat history deleted.'); else alert('Local history cleared. Server responded: ' + resp.status);
-                } catch (e) {
-                    alert('Local history cleared. (Server delete unavailable)');
-                }
-                closeSettings(modal);
-            });
+            // Delete history option removed from Settings to avoid accidental data loss
 
             // Keyboard escape closes modal and menus
             document.addEventListener('keydown', (e) => {
@@ -1183,6 +1329,63 @@
             if (typeof window.openSettings !== 'function') window.openSettings = () => openSettings(modal);
             if (typeof window.closeSettings !== 'function') window.closeSettings = () => closeSettings(modal);
         });
+        
+        // New Chat modal handlers
+        document.addEventListener('DOMContentLoaded', () => {
+            const newModal = document.getElementById('newChatModal');
+            const newInput = document.getElementById('newChatTitle');
+            const cancelBtn = document.getElementById('cancelNewChatBtn');
+            const confirmBtn = document.getElementById('confirmNewChatBtn');
+
+            function openNewChatModal(prefill = '') {
+                if (!newModal) return;
+                newModal.style.display = 'flex';
+                // use active class for transitions defined elsewhere
+                setTimeout(() => { newModal.style.opacity = '1'; newModal.classList.add('active'); }, 10);
+                if (newInput) { newInput.value = prefill; setTimeout(()=> newInput.focus(), 80); }
+            }
+
+            function closeNewChatModal() {
+                if (!newModal) return;
+                newModal.style.opacity = '0';
+                newModal.classList.remove('active');
+                setTimeout(()=> { newModal.style.display = 'none'; }, 200);
+            }
+
+            cancelBtn?.addEventListener('click', (e) => { e.preventDefault(); closeNewChatModal(); });
+
+            confirmBtn?.addEventListener('click', async (e) => {
+                e.preventDefault();
+                const title = (newInput && newInput.value && newInput.value.trim()) ? newInput.value.trim() : 'New Chat';
+                try {
+                    const created = await ChatStore.createChat(title);
+                    if (created && (created._id || created.id)) {
+                        ChatStore.currentChatId = created._id || created.id;
+                        await ChatStore.listChats();
+                        await ChatStore.openChat(created._id || created.id);
+                    }
+                    closeNewChatModal();
+                } catch (err) {
+                    console.warn('New chat create failed', err);
+                    alert('Could not create chat');
+                }
+            });
+
+            newInput?.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); confirmBtn?.click(); }
+                if (e.key === 'Escape') { e.preventDefault(); closeNewChatModal(); }
+            });
+
+            // Close modal when clicking outside content
+            newModal?.addEventListener('click', (e) => {
+                if (e.target === newModal) closeNewChatModal();
+            });
+
+            // Expose opener
+            if (typeof window.openNewChatModal !== 'function') window.openNewChatModal = openNewChatModal;
+            if (typeof window.closeNewChatModal !== 'function') window.closeNewChatModal = closeNewChatModal;
+        });
+
     })();
     </script>
 
@@ -1528,11 +1731,19 @@
                 }
             }
 
-            // Clear messages container and add single welcome message
+            // Restore per-mode chat if present, otherwise clear messages and add welcome
             const messages = document.getElementById('chatMessages');
-            if (messages) {
-                messages.innerHTML = '';
-                this.addWelcomeMessage();
+            try {
+                const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[this.currentMode] : null;
+                if (mappedId) {
+                    // Attempt to open the mapped chat for this mode
+                    try { ChatStore.openChat(mappedId); ChatStore.currentChatId = mappedId; }
+                    catch (e) { console.warn('Failed to open mapped chat', e); if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } }
+                } else {
+                    if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
+                }
+            } catch (e) {
+                if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
             }
 
             // Check for OCR result from sessionStorage (old single file format)
@@ -1547,6 +1758,21 @@
             if (ocrResults) {
                 this.handleMultipleOCRResults(JSON.parse(ocrResults));
                 sessionStorage.removeItem('ocrResults'); // Clear after using
+            }
+
+            // If homepage set an initial prompt (text or link), auto-fill and send it
+            const initialPrompt = sessionStorage.getItem('initialPrompt');
+            if (initialPrompt) {
+                try {
+                    const inputEl = document.getElementById('messageInput');
+                    if (inputEl) {
+                        inputEl.value = initialPrompt;
+                        // remove so it doesn't resend on reload
+                        sessionStorage.removeItem('initialPrompt');
+                        // Give the UI a moment to settle then send
+                        setTimeout(() => { try { this.handleSend(); } catch (e) { console.warn('Auto send failed', e); } }, 250);
+                    }
+                } catch (e) { console.warn('initialPrompt handling error', e); }
             }
 
             // Update navigation active state
@@ -1583,7 +1809,7 @@
             }
         },
 
-        handleMultipleOCRResults(ocrResults) {
+        async handleMultipleOCRResults(ocrResults) {
             // Clear welcome message
             const messages = document.getElementById('chatMessages');
             if (messages) {
@@ -1597,7 +1823,17 @@
             // Optionally, you could ask the AI to analyze all the extracted text together
             const allText = ocrResults.map(r => `From ${r.filename}: ${r.extractedText}`).join('\n\n');
             const initialPrompt = sessionStorage.getItem('initialPrompt');
-            
+
+            // Ensure we have an active chat to persist messages
+            try {
+                if (!ChatStore.currentChatId) {
+                    const titleCandidate = initialPrompt || (ocrResults[0] && ocrResults[0].filename) || 'New Chat';
+                    const title = (titleCandidate && titleCandidate.length > 40) ? titleCandidate.slice(0,40) + '...' : titleCandidate;
+                    const created = await ChatStore.createChat(title);
+                    if (created && (created._id || created.id)) ChatStore.currentChatId = created._id || created.id;
+                }
+            } catch (e) { console.warn('Could not create chat for OCR results', e); }
+
             if (initialPrompt) {
                 setTimeout(async () => {
                     Messages.showLoading('Analyzing uploaded images with evidence gathering...');
@@ -1610,6 +1846,13 @@
                             // We'll use the extracted text to trigger scraper analysis
                             const analysisPrompt = `${initialPrompt}\n\nAnalyze this text extracted from ${ocrData.filename}:\n\n${ocrData.extractedText}`;
                             
+                            // Add user message for this uploaded file and persist it
+                            try {
+                                const userText = `Uploaded ${ocrData.filename}: ${ocrData.extractedText || ''}`;
+                                Messages.addUserMessage(`📷 ${ocrData.filename}`);
+                                if (ChatStore.currentChatId) await ChatStore.appendMessage(ChatStore.currentChatId, 'user', userText);
+                            } catch (e) { console.warn('append user ocr failed before analysis', e); }
+
                             const response = await fetch('/chat', {
                                 method: 'POST',
                                 headers: {
@@ -1628,11 +1871,15 @@
                             if (i === 0) {
                                 Messages.hideLoading();
                             }
-                            
+
                             if (data.analysis || data.result || data.answer) {
                                 const aiMessage = data.analysis || data.result || data.answer;
-                                Messages.addAIMessage(`**Analysis of "${ocrData.filename}" (${i + 1}/${ocrResults.length}):**\n\n${aiMessage}`);
+                                const displayMsg = `**Analysis of "${ocrData.filename}" (${i + 1}/${ocrResults.length}):**\n\n${aiMessage}`;
+                                Messages.addAIMessage(displayMsg);
+                                // Persist assistant reply to chat store (best-effort)
+                                try { if (ChatStore.currentChatId) await ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
                             }
+
                             
                             // Small delay between processing multiple files
                             if (i < ocrResults.length - 1) {
@@ -1672,11 +1919,18 @@
             }
             window.history.pushState({}, '', url);
 
-            // Clear and show appropriate welcome message
+            // Try to restore the chat for the selected mode; fallback to welcome
             const messages = document.getElementById('chatMessages');
-            if (messages) {
-                messages.innerHTML = '';
-                this.addWelcomeMessage();
+            try {
+                const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[mode] : null;
+                if (mappedId) {
+                    try { ChatStore.openChat(mappedId); ChatStore.currentChatId = mappedId; }
+                    catch (e) { console.warn('Failed to open chat for mode', e); if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } }
+                } else {
+                    if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
+                }
+            } catch (e) {
+                if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
             }
             
             console.log(`✅ Switched to ${mode} mode`);
@@ -1703,8 +1957,22 @@
 
             this.isProcessing = true;
             input.value = '';
-            
+            // Ensure we have a chat to append to. Create one if necessary.
+            try {
+                if (!ChatStore.currentChatId) {
+                    const title = message.length > 40 ? message.slice(0, 40) + '...' : message;
+                    const created = await ChatStore.createChat(title || 'New Chat');
+                    if (created && (created._id || created.id)) {
+                        ChatStore.currentChatId = created._id || created.id;
+                        await ChatStore.listChats();
+                    }
+                }
+            } catch (e) { console.warn('Could not create/open chat before send', e); }
+
             Messages.addUserMessage(message);
+
+            // Persist the user message to the chat store (best-effort)
+            try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'user', message); } catch (e) { console.warn('append user message failed', e); }
             
             // Process all attached files before sending message
             if (Attachments.attachedFiles && Attachments.attachedFiles.length > 0) {
@@ -1797,6 +2065,11 @@
                             // Use V2UI to render enhanced response
                             const v2Card = V2UI.createV2ResponseCard(response.data);
                             this.addV2Card(v2Card);
+                            // Persist a short synthesis from v2 response if available
+                            try {
+                                const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
+                                if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
+                            } catch (e) { console.warn('append v2 response failed', e); }
                         } else {
                             Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
                         }
@@ -1818,6 +2091,8 @@
                                         'No response received.';
                                         
                         Messages.addAIMessage(aiMessage);
+                        // Persist assistant reply (best-effort)
+                        try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
                     }
                 }
                 
@@ -2378,6 +2653,305 @@
     };
 
     // Sidebar Module
+    // ChatStore: minimal frontend integration with /api/chats
+    const ChatStore = {
+        baseURL: API.baseURL,
+        currentChatId: null,
+        currentChatIdByMode: JSON.parse(localStorage.getItem('chatIdsByMode') || '{}'),
+
+        init() {
+                const newBtn = document.getElementById('newChatBtn');
+                if (newBtn) newBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    try { if (typeof window.openNewChatModal === 'function') window.openNewChatModal(); else window.openNewChatModal = null; } catch (err) { console.warn('openNewChatModal missing', err); }
+                });
+
+            // Click handler for list delegation
+            const list = document.getElementById('chatList');
+            if (list) list.addEventListener('click', (e) => {
+                const li = e.target.closest('li[data-id]');
+                if (li) this.openChat(li.dataset.id);
+            });
+        },
+
+        async renderList(chats) {
+            const list = document.getElementById('chatList');
+            if (!list) return;
+            list.innerHTML = '';
+            if (!chats || chats.length === 0) {
+                const empty = document.createElement('li');
+                empty.style.padding = '8px';
+                empty.style.color = 'rgba(255,255,255,0.6)';
+                empty.textContent = 'No chats yet';
+                list.appendChild(empty);
+                return;
+            }
+
+            chats.forEach(c => {
+                const li = document.createElement('li');
+                li.dataset.id = c._id || c.id || c.id_str || '';
+                li.style.padding = '8px 10px';
+                li.style.cursor = 'pointer';
+                li.style.borderRadius = '6px';
+                li.style.marginBottom = '6px';
+                li.style.background = 'transparent';
+                li.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;"><div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${this.escapeHtml(c.title || 'Untitled')}</div><div style="font-size:12px;color:rgba(255,255,255,0.5);">${this.formatTimestamp(c.created_at || c.createdAt || Date.now())}</div></div></div>`;
+                list.appendChild(li);
+            });
+        },
+
+        formatTimestamp(ts) {
+            if (!ts) return '';
+            try {
+                // Accept Date objects, timestamps, or ISO strings
+                if (ts instanceof Date) return ts.toLocaleString();
+                const s = String(ts);
+                // If ISO-like string has no timezone designator, treat it as UTC by appending 'Z'
+                // e.g. '2025-11-17T11:33:54.925100' -> '2025-11-17T11:33:54.925100Z'
+                const needsZ = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?$/.test(s);
+                const normalized = needsZ ? (s + 'Z') : s;
+                const parsed = Date.parse(normalized);
+                if (isNaN(parsed)) return s;
+                return new Date(parsed).toLocaleString();
+            } catch (e) { return String(ts); }
+        },
+
+        async listChats() {
+            try {
+                const headers = {};
+                if (typeof API_KEY !== 'undefined') headers['X-API-Key'] = API_KEY;
+                const resp = await fetch(`${this.baseURL}/api/chats`, { headers });
+                if (!resp.ok) throw new Error('Failed to list chats');
+                const data = await resp.json();
+                await this.renderList(data.chats || data || []);
+                return data;
+            } catch (e) {
+                console.warn('listChats error', e);
+                return [];
+            }
+        },
+
+        async createChat(title = 'New Chat') {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (typeof API_KEY !== 'undefined') headers['X-API-Key'] = API_KEY;
+                const resp = await fetch(`${this.baseURL}/api/chats`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ title })
+                });
+                if (!resp.ok) {
+                    const txt = await resp.text().catch(()=>null);
+                    throw new Error('Create chat failed: ' + (txt || resp.status));
+                }
+                const data = await resp.json();
+                this.currentChatId = data.chat && (data.chat._id || data.chat.id || data.chat.id_str) || data._id || data.id;
+                try {
+                    const mode = (window.Chat && window.Chat.currentMode) || 'analytical';
+                    this.currentChatIdByMode[mode] = this.currentChatId;
+                    try { localStorage.setItem('chatIdsByMode', JSON.stringify(this.currentChatIdByMode)); } catch(e){}
+                } catch(e) { console.warn('Could not persist chat id by mode', e); }
+                return data.chat || data;
+            } catch (e) { console.warn('createChat error', e); throw e; }
+        },
+
+        async openChat(id) {
+            try {
+                if (!id) return;
+                this.currentChatId = id;
+                try {
+                    const mode = (window.Chat && window.Chat.currentMode) || 'analytical';
+                    this.currentChatIdByMode[mode] = id;
+                    try { localStorage.setItem('chatIdsByMode', JSON.stringify(this.currentChatIdByMode)); } catch(e){}
+                } catch(e) { console.warn('Could not persist open chat id by mode', e); }
+                const headers = {};
+                if (typeof API_KEY !== 'undefined') headers['X-API-Key'] = API_KEY;
+                const resp = await fetch(`${this.baseURL}/api/chats/${id}`, { headers });
+                if (!resp.ok) throw new Error('Open chat failed');
+                const data = await resp.json();
+
+                // Render messages into Messages container
+                const messagesEl = document.getElementById('chatMessages');
+                if (messagesEl) {
+                    messagesEl.innerHTML = '';
+                    const msgs = data.messages || data.chat && data.chat.messages || [];
+                    msgs.forEach(m => {
+                        if (m.role === 'user') Messages.addUserMessage(m.text || m.content || '');
+                        else Messages.addAIMessage(m.text || m.content || '');
+                    });
+                }
+
+                // Update active UI in list
+                const lis = document.querySelectorAll('#chatList li');
+                lis.forEach(li => li.style.background = li.dataset.id === id ? 'rgba(255,255,255,0.06)' : 'transparent');
+                // Update chat title
+                const titleEl = document.getElementById('chatTitle');
+                if (titleEl) titleEl.textContent = data.title || (data.chat && data.chat.title) || 'Chat with Atlas';
+            } catch (e) { console.warn('openChat error', e); }
+        },
+
+        async appendMessage(chatId, role, text) {
+            try {
+                if (!chatId) return null;
+                const headers = { 'Content-Type': 'application/json' };
+                if (typeof API_KEY !== 'undefined') headers['X-API-Key'] = API_KEY;
+                const resp = await fetch(`${this.baseURL}/api/chats/${chatId}/messages`, {
+                    method: 'POST', headers,
+                    body: JSON.stringify({ role, text })
+                });
+                if (!resp.ok) throw new Error('append message failed');
+                return await resp.json();
+            } catch (e) { console.warn('appendMessage error', e); return null; }
+        },
+
+        async deleteChat(id) {
+            try {
+                if (!id) throw new Error('no id');
+                const headers = {};
+                if (typeof API_KEY !== 'undefined') headers['X-API-Key'] = API_KEY;
+                const resp = await fetch(`${this.baseURL}/api/chats/${id}`, { method: 'DELETE', headers });
+                if (!resp.ok) throw new Error('delete failed');
+                return await resp.json();
+            } catch (e) { console.warn('deleteChat error', e); throw e; }
+        },
+
+        async clearAllChats() {
+            try {
+                const headers = { 'Content-Type': 'application/json' };
+                if (typeof API_KEY !== 'undefined') headers['X-API-Key'] = API_KEY;
+                const resp = await fetch(`${this.baseURL}/api/chats/clear`, { method: 'POST', headers });
+                if (!resp.ok) {
+                    const txt = await resp.text().catch(()=>null);
+                    throw new Error('clear failed: ' + (txt || resp.status));
+                }
+                return await resp.json();
+            } catch (e) { console.warn('clearAllChats error', e); throw e; }
+        },
+
+        async showHistoryPanel() {
+            try {
+                const panel = document.getElementById('historyPanel');
+                const listEl = document.getElementById('historyList');
+                if (!panel || !listEl) return;
+                panel.classList.add('active');
+                panel.setAttribute('aria-hidden', 'false');
+
+                // Temporary loading state
+                listEl.innerHTML = '<li style="padding:10px;color:rgba(255,255,255,0.6)">Loading...</li>';
+
+                const headers = {};
+                if (typeof API_KEY !== 'undefined') headers['X-API-Key'] = API_KEY;
+                const resp = await fetch(`${this.baseURL}/api/chats`, { headers });
+                if (!resp.ok) throw new Error('Failed to fetch chats');
+                const data = await resp.json();
+                const chats = data.chats || data || [];
+
+                listEl.innerHTML = '';
+                // (New Chat button moved to persistent sidebar footer)
+                // Add Clear All button
+                const existingClear = document.getElementById('historyClearBtn');
+                if (!existingClear) {
+                    const clearBtn = document.createElement('button');
+                    clearBtn.id = 'historyClearBtn';
+                    clearBtn.textContent = 'Clear All';
+                    clearBtn.className = 'input-btn';
+                    clearBtn.style.cssText = 'width:100%; padding:8px 10px; margin-bottom:8px; background:#ef4444; color:white; border:none;';
+                    clearBtn.addEventListener('click', async () => {
+                        const ok = confirm('Delete all chats from history? This cannot be undone.');
+                        if (!ok) return;
+                        try {
+                            await ChatStore.clearAllChats();
+                            // refresh list
+                            await ChatStore.showHistoryPanel();
+                        } catch (err) { console.warn('clearAll error', err); alert('Failed to clear history'); }
+                    });
+                    panel.insertBefore(clearBtn, panel.querySelector('div'));
+                }
+                if (!chats || chats.length === 0) {
+                    const empty = document.createElement('li');
+                    empty.style.padding = '8px';
+                    empty.style.color = 'rgba(255,255,255,0.6)';
+                    empty.textContent = 'No chats yet';
+                    listEl.appendChild(empty);
+                } else {
+                    chats.forEach(c => {
+                        const id = c._id || c.id || c.id_str || '';
+                        const li = document.createElement('li');
+                        li.dataset.id = id;
+                        li.style.padding = '10px';
+                        li.style.cursor = 'pointer';
+                        li.style.borderRadius = '6px';
+                        li.style.background = 'transparent';
+                        li.style.display = 'flex';
+                        li.style.alignItems = 'center';
+                        li.style.justifyContent = 'space-between';
+
+                        const info = document.createElement('div');
+                        info.style.flex = '1';
+                        info.style.minWidth = '0';
+
+                        const title = document.createElement('div');
+                        title.className = 'h-title';
+                        title.textContent = c.title || 'Untitled';
+
+                        const meta = document.createElement('div');
+                        meta.className = 'h-meta';
+                        meta.textContent = this.formatTimestamp(c.created_at || c.createdAt || Date.now());
+
+                        info.appendChild(title);
+                        info.appendChild(meta);
+
+                        // Delete button for this chat
+                        const delBtn = document.createElement('button');
+                        delBtn.className = 'history-delete-btn';
+                        delBtn.title = 'Delete chat';
+                        delBtn.style.cssText = 'margin-left:8px;background:transparent;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:16px;padding:6px;';
+                        delBtn.innerHTML = '🗑️';
+                        delBtn.addEventListener('click', async (ev) => {
+                            ev.stopPropagation();
+                            const ok = confirm('Delete this chat?');
+                            if (!ok) return;
+                            try {
+                                await ChatStore.deleteChat(id);
+                                // remove li from DOM
+                                li.remove();
+                            } catch (err) { console.warn('deleteChat error', err); alert('Failed to delete chat'); }
+                        });
+
+                        // clicking the info opens chat
+                        info.addEventListener('click', async () => {
+                            await this.openChat(id);
+                            panel.classList.remove('active');
+                            panel.setAttribute('aria-hidden','true');
+                        });
+
+                        li.appendChild(info);
+                        li.appendChild(delBtn);
+                        listEl.appendChild(li);
+                    });
+                }
+
+                // Close button
+                const closeBtn = document.getElementById('historyCloseBtn');
+                if (closeBtn) closeBtn.onclick = () => { panel.classList.remove('active'); panel.setAttribute('aria-hidden','true'); };
+
+                // Close when clicking outside (one-time handler)
+                const outsideHandler = (e) => {
+                    if (!panel.contains(e.target) && !document.getElementById('historyBtn').contains(e.target)) {
+                        panel.classList.remove('active');
+                        panel.setAttribute('aria-hidden','true');
+                        document.removeEventListener('click', outsideHandler);
+                    }
+                };
+                setTimeout(() => document.addEventListener('click', outsideHandler), 10);
+
+            } catch (e) {
+                console.warn('showHistoryPanel error', e);
+            }
+        },
+
+        escapeHtml(text) { const div = document.createElement('div'); div.textContent = text || ''; return div.innerHTML; }
+    };
+
     const Sidebar = {
         init() {
             const toggleBtn = document.getElementById('toggleBtn');
@@ -2427,6 +3001,31 @@
         // apply saved theme before initializing components
         const _saved = localStorage.getItem('atlas-theme') || 'dark';
         applyTheme(_saved);
+
+        // Initialize chat persistence UI (do not auto-list chats; History button opens them)
+        try { ChatStore.init(); } catch (e) { console.warn('ChatStore init error', e); }
+
+        // HISTORY button: show recent chats when clicked
+        try {
+            const historyBtn = document.getElementById('historyBtn');
+            if (historyBtn) {
+                historyBtn.addEventListener('click', async (ev) => {
+                    ev.preventDefault();
+                    try {
+                        // Show history overlay panel
+                        await ChatStore.showHistoryPanel();
+
+                        // Visually mark History active
+                        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+                        historyBtn.classList.add('active');
+                    } catch (err) {
+                        console.warn('History click error', err);
+                    }
+                });
+                // keyboard accessibility
+                historyBtn.addEventListener('keypress', (e) => { if (e.key === 'Enter' || e.key === ' ') { historyBtn.click(); } });
+            }
+        } catch (err) { console.warn('Failed to wire History button', err); }
 
         Chat.init();
         Sidebar.init();

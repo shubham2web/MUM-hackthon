@@ -262,6 +262,12 @@ async function processTextFile(file) {
                 },
                 originalFile: file
             };
+            // Also expose as ocrData so submit flow treats it as OCR result
+            textFileData.ocrData = {
+                extractedText: textContent,
+                wordCount: textFileData.textData.wordCount,
+                confidence: 100
+            };
             
             // Add to preview
             createAttachmentPreview(textFileData);
@@ -331,7 +337,12 @@ async function processImageWithOCR(file) {
                 name: file.name,
                 type: file.type,
                 size: file.size,
-                originalFile: file
+                originalFile: file,
+                ocrData: {
+                    extractedText: result.ocr_result.text,
+                    confidence: result.ocr_result.confidence,
+                    wordCount: result.ocr_result.word_count
+                }
             };
 
             // Add to preview like regular file
@@ -377,7 +388,7 @@ submitLinkBtn.addEventListener('click', () => {
     const url = linkInput.value.trim();
     if (isValidUrl(url)) {
         const hostname = new URL(url).hostname;
-        const linkFile = { name: hostname, type: 'link', originalUrl: url };
+        const linkFile = { name: hostname, type: 'link', originalUrl: url, ocrData: { extractedText: url, wordCount: 0, confidence: 100 } };
         createAttachmentPreview(linkFile);
         hideLinkModal();
     } else {
@@ -408,23 +419,30 @@ async function handleSubmit() {
     console.log('📤 Mode:', currentMode);
     console.log('📤 Attached files:', attachedFiles.length);
 
-    // Check if any attached files have OCR data
-    const ocrFiles = attachedFiles.filter(f => f.ocrData);
+    // Check if any attached files have OCR/text/link data
+    const ocrFiles = attachedFiles.filter(f => f.ocrData || f.textData || f.type === 'link');
     
     if (ocrFiles.length > 0) {
-        // Store OCR results in sessionStorage
+        // Store OCR results in sessionStorage (normalize fields)
         const ocrResults = ocrFiles.map(f => ({
             filename: f.name,
-            extractedText: f.ocrData.extractedText,
-            confidence: f.ocrData.confidence,
-            wordCount: f.ocrData.wordCount
+            extractedText: (f.ocrData && f.ocrData.extractedText) || (f.textData && f.textData.extractedText) || (f.originalUrl || ''),
+            confidence: (f.ocrData && f.ocrData.confidence) || 100,
+            wordCount: (f.ocrData && f.ocrData.wordCount) || (f.textData && f.textData.wordCount) || 0
         }));
         
         sessionStorage.setItem('ocrResults', JSON.stringify(ocrResults));
-        console.log('✅ Stored OCR results for', ocrFiles.length, 'files');
+        console.log('✅ Stored OCR/text/link results for', ocrFiles.length, 'files');
     }
 
-    sessionStorage.setItem('initialPrompt', promptValue);
+    // If user didn't type a prompt but attached a link, use the first link as initial prompt
+    let finalPrompt = promptValue;
+    if (!finalPrompt || finalPrompt.length === 0) {
+        const firstLink = attachedFiles.find(f => f.type === 'link' && f.originalUrl);
+        if (firstLink) finalPrompt = firstLink.originalUrl;
+    }
+
+    sessionStorage.setItem('initialPrompt', finalPrompt || '');
     sessionStorage.setItem('chatMode', currentMode);
 
     console.log('✅ Stored in sessionStorage');
