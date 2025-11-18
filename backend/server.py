@@ -720,14 +720,26 @@ async def generate_debate(topic: str):
     try:
         yield format_sse({"topic": topic, "model_used": DEFAULT_MODEL, "debate_id": debate_id, "memory_enabled": memory is not None}, "metadata")
 
-        evidence_bundle = await get_diversified_evidence(topic)
+        # Try to get evidence, but don't fail the debate if it errors
+        try:
+            evidence_bundle = await asyncio.wait_for(
+                get_diversified_evidence(topic),
+                timeout=30.0
+            )
+            logging.info(f"📚 Gathered {len(evidence_bundle)} sources for debate")
+        except Exception as e:
+            logging.warning(f"Evidence gathering failed for debate: {e}. Continuing without evidence.")
+            evidence_bundle = []
         
         # Truncate articles to prevent payload bloat (limit each article to 300 chars)
-        article_text = "\n\n".join(
-            f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')[:300]}..."
-            for article in evidence_bundle[:3]  # Limit to 3 articles max
-        )
-        transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\nSources:\n{article_text}\n\n"
+        if evidence_bundle:
+            article_text = "\n\n".join(
+                f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')[:300]}..."
+                for article in evidence_bundle[:3]  # Limit to 3 articles max
+            )
+            transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\nSources:\n{article_text}\n\n"
+        else:
+            transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\n"
 
         debaters = {"proponent": ROLE_PROMPTS["proponent"], "opponent": ROLE_PROMPTS["opponent"]}
 
