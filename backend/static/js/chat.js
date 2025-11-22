@@ -405,6 +405,17 @@
                                         'No response received.';
                                         
                         Messages.addAIMessage(aiMessage);
+                        
+                        // === GOD MODE: Render visualization after message is added ===
+                        if (response.meta) {
+                            // Get the last AI message that was just added
+                            const lastMessage = document.querySelector('.ai-message:last-of-type');
+                            if (lastMessage) {
+                                Messages.renderGodModeArtifacts(lastMessage, response.meta);
+                                console.log('✨ God Mode artifacts rendered:', response.meta);
+                            }
+                        }
+                        
                         // Persist assistant reply (best-effort)
                         try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
                     }

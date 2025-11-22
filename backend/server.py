@@ -3,6 +3,7 @@ import json
 import logging
 import mimetypes
 import os
+import time
 import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
@@ -246,13 +247,30 @@ async def analyze_topic():
         
         loop = asyncio.get_running_loop()
         
+        # --- GOD MODE: START TIMING FOR RAG ---
+        rag_start_time = time.time()
+        rag_status = "INTERNAL_KNOWLEDGE"  # Default
+        
         try:
             # Get evidence with timeout
             evidence_bundle = await asyncio.wait_for(
                 get_diversified_evidence(topic),
-                timeout=30.0
+                timeout=60.0
             )
             logging.info(f"Found {len(evidence_bundle)} sources")
+            
+            # --- GOD MODE: Calculate RAG performance ---
+            rag_duration = time.time() - rag_start_time
+            
+            # If evidence was returned in under 1.5 seconds, it's a Cache Hit
+            if rag_duration < 1.5 and evidence_bundle:
+                rag_status = "CACHE_HIT"
+                logging.info(f"⚡ CACHE HIT: {rag_duration:.2f}s")
+            elif evidence_bundle:
+                rag_status = "LIVE_FETCH"
+                logging.info(f"🌐 LIVE FETCH: {rag_duration:.2f}s")
+            else:
+                rag_status = "INTERNAL_KNOWLEDGE"
             
         except asyncio.TimeoutError:
             logging.warning("Evidence gathering timed out")
@@ -383,6 +401,7 @@ async def analyze_topic():
                 'domain': art.get('domain') or (art.get('url','').split('/')[2] if art.get('url') else '')
             })
 
+        # Return final result
         return jsonify({
             "success": True,
             "topic": topic,
@@ -390,7 +409,15 @@ async def analyze_topic():
             "model": model,
             "sources_used": len(evidence_bundle),
             "sources": sources_list,
-            "session_id": session_id if memory else None
+            "session_id": session_id if memory else None,
+            
+            # --- GOD MODE: Add metadata for UI visualization ---
+            "meta": {
+                "rag_status": rag_status,
+                "latency": round(time.time() - rag_start_time, 2),
+                "memory_active": True if memory else False,
+                "primary_source": sources_list[0]['domain'] if sources_list else None
+            }
         })
         
     except Exception as e:
@@ -736,7 +763,7 @@ async def generate_debate(topic: str):
         try:
             evidence_bundle = await asyncio.wait_for(
                 get_diversified_evidence(topic),
-                timeout=30.0
+                timeout=60.0
             )
             logging.info(f"📚 Gathered {len(evidence_bundle)} sources for debate")
         except Exception as e:
