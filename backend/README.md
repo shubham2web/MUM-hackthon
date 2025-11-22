@@ -1,3 +1,39 @@
+# Backend data files
+
+This folder contains backend code and (in development) a sample `data/chats.json` file.
+
+To avoid accidentally sharing user chat history via the repository, the application now uses a per-user chat store by default.
+
+Behavior
+- By default the file-backed fallback will store chats in a per-user path:
+  - Windows: `%LOCALAPPDATA%\atlas_chat\chats.json`
+  - Unix: `$XDG_DATA_HOME/atlas_chat/chats.json` or `~/.local/share/atlas_chat/chats.json`
+- You can override the path by setting the environment variable `ATLAS_CHAT_STORE_PATH` or `ATLAS_CHAT_DATA_PATH` to an absolute file path.
+- On first run, if the repo contains `backend/data/chats.json`, the server will copy it into your per-user path (best-effort) and then continue using the per-user file.
+
+Recommended Git cleanup (one-time)
+1. Copy your current repo `backend/data/chats.json` to the per-user path (PowerShell):
+
+```powershell
+$target = Join-Path $env:LOCALAPPDATA 'atlas_chat\chats.json'
+New-Item -ItemType Directory -Path (Split-Path $target) -Force | Out-Null
+Copy-Item -Path .\backend\data\chats.json -Destination $target -Force
+```
+
+2. Stop tracking the repo file and commit the change:
+
+```powershell
+git rm --cached backend/data/chats.json
+git commit -m "Stop tracking chat history; use per-user chat store"
+git pull --rebase origin main
+```
+
+If you prefer to keep the file in the repo for now, stash your changes first, pull, then apply the stash.
+
+Security note
+- This change prevents casual sharing of chat histories by removing the repo as the canonical store. For multi-device or cross-user persistence, integrate a proper server-side user account or API key-based ownership and store `owner_id` in chat metadata.
+
+If you'd like, I can automate the git untrack step in a script or implement server-side ownership next.
 # ATLAS Backend - Organized Structure
 
 ## 📁 Directory Structure
