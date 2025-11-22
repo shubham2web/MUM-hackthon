@@ -1,0 +1,626 @@
+// Chat Module
+    const Chat = {
+        currentMode: 'analytical',
+        isProcessing: false,
+        initialized: false, // Add flag to prevent duplicate initialization
+
+        init() {
+            if (this.initialized) return; // Prevent multiple initialization
+            
+            Messages.init('#chatMessages');
+            this.setupEventListeners();
+            
+            // Check URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            const modeParam = urlParams.get('mode');
+            
+            // Also check sessionStorage for chatMode (from homepage)
+            const storedMode = sessionStorage.getItem('chatMode');
+            
+            if (modeParam === 'debate' || storedMode === 'debate') {
+                this.currentMode = 'debate';
+            } else if (storedMode === 'simplified') {
+                this.currentMode = 'simplified';
+            } else {
+                this.currentMode = 'analytical';
+            }
+            
+            // Clear the stored mode after using
+            sessionStorage.removeItem('chatMode');
+            
+            // Update page title based on mode
+            const chatTitle = document.getElementById('chatTitle');
+            if (chatTitle) {
+                if (this.currentMode === 'debate') {
+                    chatTitle.textContent = '🎭 Atlas Debate Mode';
+                    chatTitle.classList.add('mode-debate');
+                    chatTitle.classList.remove('mode-chat');
+                } else {
+                    chatTitle.textContent = '💬 Chat with Atlas';
+                    chatTitle.classList.add('mode-chat');
+                    chatTitle.classList.remove('mode-debate');
+                }
+            }
+
+            // Restore per-mode chat if present, otherwise clear messages and add welcome
+            const messages = document.getElementById('chatMessages');
+            try {
+                const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[this.currentMode] : null;
+                if (mappedId) {
+                    // Attempt to open the mapped chat for this mode
+                    try { ChatStore.openChat(mappedId); ChatStore.currentChatId = mappedId; }
+                    catch (e) { console.warn('Failed to open mapped chat', e); if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } }
+                } else {
+                    if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
+                }
+            } catch (e) {
+                if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
+            }
+
+            // Check for OCR result from sessionStorage (old single file format)
+            const ocrResult = sessionStorage.getItem('ocrResult');
+            if (ocrResult) {
+                this.handleOCRResult(JSON.parse(ocrResult));
+                sessionStorage.removeItem('ocrResult'); // Clear after using
+            }
+
+            // Check for OCR results from homepage (new multiple files format)
+            const ocrResults = sessionStorage.getItem('ocrResults');
+            if (ocrResults) {
+                this.handleMultipleOCRResults(JSON.parse(ocrResults));
+                sessionStorage.removeItem('ocrResults'); // Clear after using
+            }
+
+            // If homepage set an initial prompt (text or link), auto-fill and send it
+            const initialPrompt = sessionStorage.getItem('initialPrompt');
+            if (initialPrompt) {
+                try {
+                    const inputEl = document.getElementById('messageInput');
+                    if (inputEl) {
+                        inputEl.value = initialPrompt;
+                        // remove so it doesn't resend on reload
+                        sessionStorage.removeItem('initialPrompt');
+                        // Give the UI a moment to settle then send
+                        setTimeout(() => { try { this.handleSend(); } catch (e) { console.warn('Auto send failed', e); } }, 250);
+                    }
+                } catch (e) { console.warn('initialPrompt handling error', e); }
+            }
+
+            // Update navigation active state
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                const navMode = nav.getAttribute('data-mode');
+                // Match debate mode, or match chat for analytical/simplified modes
+                if (navMode === 'debate' && this.currentMode === 'debate') {
+                    nav.classList.add('active');
+                } else if (navMode === 'chat' && this.currentMode !== 'debate') {
+                    nav.classList.add('active');
+                } else {
+                    nav.classList.remove('active');
+                }
+            });
+
+            this.initialized = true; // Mark as initialized
+        },
+
+        handleOCRResult(ocrData) {
+            // Clear welcome message
+            const messages = document.getElementById('chatMessages');
+            if (messages) {
+                messages.innerHTML = '';
+            }
+
+            // Add user message showing the image was uploaded
+            Messages.addUserMessage(`📷 Uploaded image: ${ocrData.filename}`);
+
+            // Add AI analysis if available
+            if (ocrData.aiAnalysis) {
+                setTimeout(() => {
+                    Messages.addAIMessage(ocrData.aiAnalysis);
+                }, 500);
+            }
+        },
+
+        async handleMultipleOCRResults(ocrResults) {
+            // Clear welcome message
+            const messages = document.getElementById('chatMessages');
+            if (messages) {
+                messages.innerHTML = '';
+            }
+
+            // Add user message showing files were uploaded
+            const fileNames = ocrResults.map(r => r.filename).join(', ');
+            Messages.addUserMessage(`📷 Uploaded ${ocrResults.length} image(s): ${fileNames}`);
+
+            // Optionally, you could ask the AI to analyze all the extracted text together
+            const allText = ocrResults.map(r => `From ${r.filename}: ${r.extractedText}`).join('\n\n');
+            const initialPrompt = sessionStorage.getItem('initialPrompt');
+
+            // Ensure we have an active chat to persist messages
+            try {
+                if (!ChatStore.currentChatId) {
+                    const titleCandidate = initialPrompt || (ocrResults[0] && ocrResults[0].filename) || 'New Chat';
+                    const title = (titleCandidate && titleCandidate.length > 40) ? titleCandidate.slice(0,40) + '...' : titleCandidate;
+                    const created = await ChatStore.createChat(title);
+                    if (created && (created._id || created.id)) ChatStore.currentChatId = created._id || created.id;
+                }
+            } catch (e) { console.warn('Could not create chat for OCR results', e); }
+
+            if (initialPrompt) {
+                setTimeout(async () => {
+                    Messages.showLoading('Analyzing uploaded images with evidence gathering...');
+                    try {
+                        // Process each image with scraper-enhanced analysis
+                        for (let i = 0; i < ocrResults.length; i++) {
+                            const ocrData = ocrResults[i];
+                            
+                            // Create FormData for re-processing with scraper
+                            // We'll use the extracted text to trigger scraper analysis
+                            const analysisPrompt = `${initialPrompt}\n\nAnalyze this text extracted from ${ocrData.filename}:\n\n${ocrData.extractedText}`;
+                            
+                            // Add user message for this uploaded file and persist it
+                            try {
+                                const userText = `Uploaded ${ocrData.filename}: ${ocrData.extractedText || ''}`;
+                                Messages.addUserMessage(`📷 ${ocrData.filename}`);
+                                if (ChatStore.currentChatId) await ChatStore.appendMessage(ChatStore.currentChatId, 'user', userText);
+                            } catch (e) { console.warn('append user ocr failed before analysis', e); }
+
+                            const response = await fetch('/chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-Key': API_KEY
+                                },
+                                body: JSON.stringify({
+                                    message: analysisPrompt,
+                                    mode: this.currentMode,
+                                    use_scraper: true  // Enable scraper for fact-checking
+                                })
+                            });
+
+                            const data = await response.json();
+                            
+                            if (i === 0) {
+                                Messages.hideLoading();
+                            }
+
+                            if (data.analysis || data.result || data.answer) {
+                                const aiMessage = data.analysis || data.result || data.answer;
+                                const displayMsg = `**Analysis of "${ocrData.filename}" (${i + 1}/${ocrResults.length}):**\n\n${aiMessage}`;
+                                Messages.addAIMessage(displayMsg);
+                                // Persist assistant reply to chat store (best-effort)
+                                try { if (ChatStore.currentChatId) await ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
+                            }
+
+                            
+                            // Small delay between processing multiple files
+                            if (i < ocrResults.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
+                        }
+                    } catch (error) {
+                        Messages.hideLoading();
+                        Messages.addAIMessage('❌ Error analyzing images: ' + error.message);
+                    }
+                }, ocrResults.length * 300 + 500);
+            }
+        },
+
+        switchMode(mode) {
+            this.currentMode = mode;
+            
+            const chatTitle = document.getElementById('chatTitle');
+            if (chatTitle) {
+                if (mode === 'debate') {
+                    chatTitle.textContent = '🎭 Atlas Debate Mode';
+                    chatTitle.classList.add('mode-debate');
+                    chatTitle.classList.remove('mode-chat');
+                } else {
+                    chatTitle.textContent = '💬 Chat with Atlas';
+                    chatTitle.classList.add('mode-chat');
+                    chatTitle.classList.remove('mode-debate');
+                }
+            }
+            
+            // Update URL without reloading
+            const url = new URL(window.location);
+            if (mode === 'debate') {
+                url.searchParams.set('mode', 'debate');
+            } else {
+                url.searchParams.delete('mode');
+            }
+            window.history.pushState({}, '', url);
+
+            // Try to restore the chat for the selected mode; fallback to welcome
+            const messages = document.getElementById('chatMessages');
+            try {
+                const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[mode] : null;
+                if (mappedId) {
+                    try { ChatStore.openChat(mappedId); ChatStore.currentChatId = mappedId; }
+                    catch (e) { console.warn('Failed to open chat for mode', e); if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } }
+                } else {
+                    if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
+                }
+            } catch (e) {
+                if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
+            }
+            
+            console.log(`✅ Switched to ${mode} mode`);
+        },
+
+        setupEventListeners() {
+            const sendBtn = document.getElementById('sendBtn');
+            const input = document.getElementById('messageInput');
+
+            sendBtn?.addEventListener('click', () => this.handleSend());
+            input?.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.handleSend();
+                }
+            });
+        },
+
+        async handleSend() {
+            const input = document.getElementById('messageInput');
+            const message = input.value.trim();
+
+            if (!message || this.isProcessing) return;
+
+            this.isProcessing = true;
+            input.value = '';
+            // Ensure we have a chat to append to. Create one if necessary.
+            try {
+                if (!ChatStore.currentChatId) {
+                    const title = message.length > 40 ? message.slice(0, 40) + '...' : message;
+                    const created = await ChatStore.createChat(title || 'New Chat');
+                    if (created && (created._id || created.id)) {
+                        ChatStore.currentChatId = created._id || created.id;
+                        await ChatStore.listChats();
+                    }
+                }
+            } catch (e) { console.warn('Could not create/open chat before send', e); }
+
+            Messages.addUserMessage(message);
+
+            // Persist the user message to the chat store (best-effort)
+            try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'user', message); } catch (e) { console.warn('append user message failed', e); }
+            
+            // Process all attached files before sending message
+            if (Attachments.attachedFiles && Attachments.attachedFiles.length > 0) {
+                Messages.addAIMessage(`🔄 Processing ${Attachments.attachedFiles.length} attached file(s)...`);
+                
+                for (let i = 0; i < Attachments.attachedFiles.length; i++) {
+                    const file = Attachments.attachedFiles[i];
+                    const fileName = file.name.toLowerCase();
+                    
+                    // Add separator for multiple files
+                    if (Attachments.attachedFiles.length > 1) {
+                        Messages.addAIMessage(`\n--- Processing file ${i + 1} of ${Attachments.attachedFiles.length}: ${file.name} ---\n`);
+                    }
+                    
+                    // Check if it's an image or text file
+                    const isImage = fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png');
+                    const isTextFile = fileName.endsWith('.md') || fileName.endsWith('.txt');
+                    
+                    if (isImage) {
+                        await Attachments.processImageWithOCR(file);
+                    } else if (isTextFile) {
+                        await Attachments.processTextFile(file);
+                    }
+                    
+                    // Small delay between files
+                    if (i < Attachments.attachedFiles.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+                
+                // Clear attached files after processing
+                Attachments.attachedFiles = [];
+                Messages.addAIMessage(`✅ All files processed successfully!\n\n`);
+                
+                // Don't send additional message to chat endpoint - OCR already provided analysis
+                this.isProcessing = false;
+                return;
+            }
+            
+            Messages.showLoading();
+
+            // Add timeout for the request (180 seconds / 3 minutes for OCR + AI analysis)
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Request timed out')), 180000)
+            );
+
+            try {
+                // Check v2 toggle state
+                const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
+                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
+                
+                // Collect conversation history from chat messages
+                const conversationHistory = this.getConversationHistory();
+                
+                let response;
+                
+                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+                if (this.currentMode === 'debate') {
+                    console.log('🎭 Running debate mode...');
+                    response = await Promise.race([
+                        API.sendMessage(message, 'debate', conversationHistory),
+                        timeoutPromise
+                    ]);
+                    
+                    // DON'T hide loading yet - let it continue until first debate message arrives
+                    
+                    // Should be SSE stream
+                    if (response && response.isStream) {
+                        await this.handleDebateStream(response.response, message);
+                    } else {
+                        Messages.hideLoading();
+                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                    }
+                }
+                // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
+                else {
+                    if (v2Enabled && typeof ATLASv2 !== 'undefined') {
+                        console.log('💎 Using v2.0 enhanced analysis...');
+                        // Use v2.0 enhanced analysis
+                        response = await Promise.race([
+                            ATLASv2.analyzeWithV2(message, {
+                                num_agents: 4,
+                                enable_reversal: true,
+                                reversal_rounds: 1
+                            }),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received v2.0 response:', response);
+                        Messages.hideLoading();
+                        
+                        if (response.success && response.data) {
+                            // Use V2UI to render enhanced response
+                            const v2Card = V2UI.createV2ResponseCard(response.data);
+                            this.addV2Card(v2Card);
+                            // Persist a short synthesis from v2 response if available
+                            try {
+                                const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
+                                if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
+                            } catch (e) { console.warn('append v2 response failed', e); }
+                        } else {
+                            Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
+                        }
+                    } else {
+                        console.log('💬 Using standard chat analysis...');
+                        // Use standard v1.0 analysis
+                        response = await Promise.race([
+                            API.sendMessage(message, 'analytical', conversationHistory),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received response:', response);
+                        Messages.hideLoading();
+                        
+                        // Regular chat response
+                        const aiMessage = response.analysis || 
+                                        response.result || 
+                                        response.answer ||
+                                        'No response received.';
+                                        
+                        Messages.addAIMessage(aiMessage);
+                        // Persist assistant reply (best-effort)
+                        try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
+                    }
+                }
+                
+            } catch (error) {
+                Messages.hideLoading();
+                
+                if (error.message === 'Request timed out') {
+                    Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
+                } else {
+                    Messages.addAIMessage('❌ Error: ' + error.message);
+                }
+                
+                console.error('Chat error:', error);
+            } finally {
+                this.isProcessing = false;
+            }
+        },
+
+        async handleDebateStream(response, originalTopic) {
+            console.log('📡 Handling debate stream...');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            let currentRole = null;
+            let currentContent = '';
+            let messageDiv = null;
+            let firstMessageReceived = false; // Track if we've received first message
+            
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (!line.trim() || line.startsWith(':')) continue;
+                        
+                        if (line.startsWith('data: ')) {
+                            const data = line.substring(6).trim();
+                            
+                            if (data === '[DONE]') {
+                                // Flush any remaining content
+                                if (currentContent && messageDiv) {
+                                    messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                }
+                                console.log('✅ Debate stream complete');
+                                return;
+                            }
+                            
+                            try {
+                                const json = JSON.parse(data);
+                                
+                                // Handle "end" event - debate complete
+                                if (json.message === "Debate complete.") {
+                                    // Ensure loading is hidden
+                                    Messages.hideLoading();
+                                    
+                                    // Flush any remaining content
+                                    if (currentContent && messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                    
+                                    // Add completion message
+                                    const completionDiv = document.createElement('div');
+                                    completionDiv.className = 'message ai-message';
+                                    completionDiv.innerHTML = `
+                                        <div style="text-align: center; padding: 20px; border: 2px solid #10b981; border-radius: 8px; background: rgba(16, 185, 129, 0.1);">
+                                            <div style="font-size: 24px; margin-bottom: 10px;">✅</div>
+                                            <div style="font-weight: 600; color: #10b981; margin-bottom: 5px;">Debate Complete</div>
+                                            <div style="color: #6b7280; font-size: 14px;">The moderator has provided the final synthesis above.</div>
+                                        </div>
+                                    `;
+                                    Messages.container.appendChild(completionDiv);
+                                    Messages.container.scrollTop = Messages.container.scrollHeight;
+                                    console.log('✅ Debate completed successfully');
+                                    return;
+                                }
+                                
+                                // Check for role change
+                                if (json.role && json.role !== currentRole) {
+                                    // Hide loading indicator on first message
+                                    if (!firstMessageReceived) {
+                                        console.log('🎯 First debate message received, hiding loading...');
+                                        Messages.hideLoading();
+                                        firstMessageReceived = true;
+                                    }
+                                    
+                                    // Flush previous content
+                                    if (currentContent && messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                    
+                                    // Start new message
+                                    currentRole = json.role;
+                                    currentContent = '';
+                                    messageDiv = this.createDebateMessage(currentRole);
+                                }
+                                
+                                // Append content (backend sends "text" not "content")
+                                if (json.text || json.content) {
+                                    currentContent += (json.text || json.content);
+                                    if (messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                }
+                                
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e, data);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error in debate stream:', error);
+                Messages.hideLoading(); // Hide loading on error
+                Messages.addAIMessage('❌ Error streaming debate: ' + error.message);
+            }
+        },
+
+        createDebateMessage(role) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+            Messages.container.appendChild(messageDiv);
+            Messages.container.scrollTop = Messages.container.scrollHeight;
+            return messageDiv;
+        },
+
+        formatDebateContent(content, role) {
+            let icon, label, colorClass;
+            
+            if (role === 'proponent') {
+                icon = '🔵';
+                label = 'PROPONENT';
+                colorClass = 'proponent';
+            } else if (role === 'opponent') {
+                icon = '🔴';
+                label = 'OPPONENT';
+                colorClass = 'opponent';
+            } else if (role === 'moderator') {
+                icon = '🎙️';
+                label = 'MODERATOR';
+                colorClass = 'moderator';
+            } else {
+                icon = '💬';
+                label = role.toUpperCase();
+                colorClass = 'default';
+            }
+            
+            return `
+                <div class="debate-message ${colorClass}">
+                    <div class="debate-header">
+                        <span class="debate-icon">${icon}</span>
+                        <strong>${label}</strong>
+                    </div>
+                    <div class="debate-content">${this.markdownToHtml(content)}</div>
+                </div>
+            `;
+        },
+
+        markdownToHtml(text) {
+            // Basic markdown conversion
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        },
+
+        addWelcomeMessage() {
+            let message;
+            if (this.currentMode === 'debate') {
+                message = "🎭 **Welcome to Debate Mode!**\n\nI'll analyze your topic by presenting arguments from both sides:\n• 🔵 **Proponent** - Arguments in favor\n• 🔴 **Opponent** - Counter-arguments\n• 🎙️ **Moderator** - Synthesis and balance\n\nAsk me to debate any topic!";
+            } else {
+                message = "👋 Hello! I'm **Atlas**, your misinformation fighter.\n\n💬 **Chat Mode**: I'll provide clear, factual analysis of your questions.\n\n💡 **Tip**: Toggle v2.0 for enhanced multi-perspective analysis, or switch to Debate mode for structured debates!";
+            }
+            Messages.addAIMessage(message);
+        },
+
+        addV2Card(cardElement) {
+            // Add v2.0 response card to messages
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+            messageDiv.style.background = 'transparent';
+            messageDiv.appendChild(cardElement);
+            Messages.container.appendChild(messageDiv);
+            Messages.scrollToBottom();
+        },
+
+        getConversationHistory() {
+            // Collect all user and AI messages from the chat for context
+            const history = [];
+            const messagesContainer = document.getElementById('chatMessages');
+            if (!messagesContainer) return history;
+
+            const messageElements = messagesContainer.querySelectorAll('.message');
+            messageElements.forEach(msgEl => {
+                const isUser = msgEl.classList.contains('user-message');
+                const messageTextEl = msgEl.querySelector('.message-text');
+                
+                if (messageTextEl) {
+                    const text = messageTextEl.textContent.trim();
+                    // Skip empty messages, loading indicators, and system messages
+                    if (text && !msgEl.classList.contains('loading-message') && text.length > 0) {
+                        history.push({
+                            role: isUser ? 'user' : 'assistant',
+                            content: text
+                        });
+                    }
+                }
+            });
+
+            // Limit history to last 10 messages to avoid token limits
+            return history.slice(-10);
+        }
+    };
