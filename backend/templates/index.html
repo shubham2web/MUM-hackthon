@@ -93,7 +93,10 @@
         <div id="historyPanel" role="dialog" aria-hidden="true">
             <div class="history-header">
                 <div class="history-title">Recent Chats</div>
-                <button class="history-close" id="historyCloseBtn" aria-label="Close history">✕</button>
+                <div style="display: flex; gap: 10px; align-items: center;">
+                    <button class="history-clear-btn" id="clearHistoryBtn" title="Clear all history" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s;">Clear All</button>
+                    <button class="history-close" id="historyCloseBtn" aria-label="Close history">✕</button>
+                </div>
             </div>
             <div style="flex:1; overflow:auto;">
                 <ul id="historyList"></ul>

@@ -1,8 +1,8 @@
 // Settings Module - Theme, Language, Modal Management
-(function(){
+(function () {
     // Defer all DOM queries until document ready to ensure elements exist
-    function openSettings(modal) { if (!modal) return; modal.classList.add('active'); modal.style.display = 'flex'; setTimeout(()=> modal.style.opacity = '1', 10); }
-    function closeSettings(modal) { if (!modal) return; modal.style.opacity = '0'; setTimeout(()=> { modal.classList.remove('active'); modal.style.display = 'none'; }, 200); }
+    function openSettings(modal) { if (!modal) return; modal.classList.add('active'); modal.style.display = 'flex'; setTimeout(() => modal.style.opacity = '1', 10); }
+    function closeSettings(modal) { if (!modal) return; modal.style.opacity = '0'; setTimeout(() => { modal.classList.remove('active'); modal.style.display = 'none'; }, 200); }
 
     document.addEventListener('DOMContentLoaded', () => {
         const modal = document.getElementById('settingsModal');
@@ -71,7 +71,7 @@
         // Dropdown item handlers
         themeMenu?.querySelectorAll('.dropdown-item').forEach(item => {
             item.addEventListener('click', () => {
-                const theme = item.getAttribute('data-value');
+                const theme = item.getAttribute('data-theme');
                 if (theme) { applyAppearanceLocal(theme, true); if (themeMenu) themeMenu.style.display = 'none'; }
             });
             item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); } });
@@ -79,7 +79,7 @@
 
         langMenu?.querySelectorAll('.dropdown-item').forEach(item => {
             item.addEventListener('click', () => {
-                const lang = item.getAttribute('data-value');
+                const lang = item.getAttribute('data-language');
                 if (lang) { applyLanguageLocal(lang, true); if (langMenu) langMenu.style.display = 'none'; }
             });
             item.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); } });
@@ -110,7 +110,7 @@
         if (typeof window.openSettings !== 'function') window.openSettings = () => openSettings(modal);
         if (typeof window.closeSettings !== 'function') window.closeSettings = () => closeSettings(modal);
     });
-    
+
     // New Chat modal handlers
     document.addEventListener('DOMContentLoaded', () => {
         const newModal = document.getElementById('newChatModal');

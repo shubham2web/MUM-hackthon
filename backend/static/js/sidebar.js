@@ -28,6 +28,20 @@ const Sidebar = {
             });
         }
 
+        // Wire Clear History button
+        const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+        if (clearHistoryBtn) {
+            clearHistoryBtn.addEventListener('click', async (e) => {
+                e.preventDefault();
+                if (confirm('Are you sure you want to clear all history? This cannot be undone.')) {
+                    if (typeof ChatStore !== 'undefined' && typeof ChatStore.clearAllChats === 'function') {
+                        await ChatStore.clearAllChats();
+                        await ChatStore.showHistoryPanel();
+                    }
+                }
+            });
+        }
+
         // Close history panel when clicking outside
         document.addEventListener('click', (e) => {
             const panel = document.getElementById('historyPanel');
