@@ -128,7 +128,7 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
+    if (request.endpoint in ['home', 'about', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
@@ -165,6 +165,11 @@ async def add_header(response):
 async def home():
     """Landing/Hero page"""
     return await render_template("homepage.html")
+
+@app.route("/about")
+async def about():
+    """About page"""
+    return await render_template("about.html")
 
 @app.route("/chat")
 async def chat():

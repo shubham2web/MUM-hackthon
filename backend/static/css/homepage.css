@@ -10,19 +10,28 @@ body {
     font-family: 'Space Grotesk', sans-serif;
     margin: 0;
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    justify-content: flex-start;
     align-items: center;
     height: 100vh;
     overflow: hidden;
     position: relative;
+    padding-top: 80px;
 }
 
 /* Top header styling */
+.header-top {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    z-index: 50;
+}
+
 .top-header {
-    position: absolute;
-    top: 5%;
-    left: 50%;
-    transform: translateX(-50%);
+    position: static;
     font-size: 28px;
     font-weight: 800;
     text-transform: uppercase;
@@ -33,17 +42,151 @@ body {
                  0 0 28px rgba(190, 245, 245, 0.671),
                  0 0 46px rgba(194, 233, 233, 0.76);
     animation: cyber-glitch 2s infinite;
+    margin: 0 0 30px 0;
+    z-index: 10;
+    text-align: center;
+    width: 100%;
+    display: block;
+}
+
+.about-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    background: rgba(0, 0, 0, 0.1);
+    color: #29ddf5;
+    border: 2px solid rgba(41, 221, 245, 0.3);
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px) saturate(150%);
+    -webkit-backdrop-filter: blur(5px) saturate(150%);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.about-btn:hover {
+    background: rgba(41, 221, 245, 0.1);
+    border: 2px solid #29ddf5;
+    color: #29ddf5;
+    text-shadow: 0 0 15px rgba(41, 221, 245, 0.8);
+    box-shadow: 0 0 20px rgba(41, 221, 245, 0.6), inset 0 0 20px rgba(41, 221, 245, 0.1), 0 4px 15px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(8px) saturate(150%);
+    -webkit-backdrop-filter: blur(8px) saturate(150%);
+}
+
+.about-btn .glitch-char {
+    display: none;
+}
+
+@keyframes charGlitch {
+    0% {
+        text-shadow: 
+            -3px 0 #ff00ff,
+            3px 0 #00ffff,
+            0 0 8px rgba(31, 88, 245, 0.4);
+        transform: translateY(20px) translateX(-2px);
+        color: #1f58f5;
+    }
+    10% {
+        text-shadow: 
+            -2px 0 #00ffff,
+            2px 0 #ff00ff,
+            0 0 10px rgba(31, 88, 245, 0.5);
+        transform: translateY(20px) translateX(2px);
+        color: #00d9ff;
+    }
+    20% {
+        text-shadow: 
+            -3px -2px #ff00ff,
+            3px 2px #00ffff,
+            0 0 12px rgba(0, 217, 255, 0.6);
+        transform: translateY(19px) translateX(-3px);
+        color: #1f58f5;
+    }
+    30% {
+        text-shadow: 
+            2px -3px #00ffff,
+            -2px 3px #ff00ff,
+            0 0 10px rgba(31, 88, 245, 0.5);
+        transform: translateY(21px) translateX(1px);
+        color: #00d9ff;
+    }
+    40% {
+        text-shadow: 
+            -3px 0 #ff00ff,
+            3px 0 #00ffff,
+            0 0 8px rgba(31, 88, 245, 0.4);
+        transform: translateY(20px) translateX(-1px);
+        color: #1f58f5;
+    }
+    50% {
+        text-shadow: 
+            0 -3px #00ffff,
+            0 3px #ff00ff,
+            0 0 12px rgba(0, 217, 255, 0.6);
+        transform: translateY(18px) translateX(2px);
+        color: #00ffff;
+    }
+    60% {
+        text-shadow: 
+            3px -2px #ff00ff,
+            -3px 2px #00ffff,
+            0 0 10px rgba(31, 88, 245, 0.5);
+        transform: translateY(22px) translateX(-2px);
+        color: #1f58f5;
+    }
+    70% {
+        text-shadow: 
+            -2px -3px #00ffff,
+            2px 3px #ff00ff,
+            0 0 11px rgba(0, 217, 255, 0.55);
+        transform: translateY(19px) translateX(1px);
+        color: #00d9ff;
+    }
+    80% {
+        text-shadow: 
+            3px 0 #ff00ff,
+            -3px 0 #00ffff,
+            0 0 9px rgba(31, 88, 245, 0.45);
+        transform: translateY(20px) translateX(-1px);
+        color: #1f58f5;
+    }
+    90% {
+        text-shadow: 
+            -1px -3px #00ffff,
+            1px 3px #ff00ff,
+            0 0 11px rgba(0, 217, 255, 0.55);
+        transform: translateY(21px) translateX(2px);
+        color: #00ffff;
+    }
+    100% {
+        text-shadow: 
+            -3px 0 #ff00ff,
+            3px 0 #00ffff,
+            0 0 8px rgba(31, 88, 245, 0.4);
+        transform: translateY(20px) translateX(-2px);
+        color: #1f58f5;
+    }
+}
+
+.about-btn span {
+    display: none;
 }
 
 @keyframes cyber-glitch {
-    0% { transform: translateX(-50%) skew(0deg); }
-    10% { transform: translateX(-50%) skew(10deg); }
-    12% { transform: translateX(-50%) skew(-10deg); }
-    15% { transform: translateX(-50%) skew(0deg); }
+    0% { transform: skew(0deg); }
+    10% { transform: skew(10deg); }
+    12% { transform: skew(-10deg); }
+    15% { transform: skew(0deg); }
     55% { opacity: 1; }
     56% { opacity: 0.6; }
     57% { opacity: 1; }
-    100% { transform: translateX(-50%) skew(0deg); }
+    100% { transform: skew(0deg); }
 }
 
 /* Background text styling with VERY SUBTLE glowing effect */
@@ -141,8 +284,14 @@ body {
     padding: 20px;
     width: 100%;
     max-width: 620px;
-    margin-top: 40px; /* Shift everything down for better spacing */
-    overflow: visible; /* Allow magnifying glass to be visible */
+    margin: auto;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: center;
+    flex: 1;
+    padding-top: 0;
 }
 
 /* ATLAS title - REMOVED */
@@ -887,4 +1036,56 @@ body::before {
 
 .cta-button:active {
     transform: translateY(0);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    body {
+        padding-top: 100px;
+    }
+
+    .header-top {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px 20px;
+    }
+
+    .top-header {
+        font-size: 20px;
+        letter-spacing: 2px;
+    }
+
+    .about-btn {
+        font-size: 12px;
+        padding: 8px 15px;
+    }
+
+    .container {
+        padding: 10px;
+    }
+}
+
+@media (max-width: 480px) {
+    body {
+        padding-top: 110px;
+    }
+
+    .header-top {
+        padding: 10px 15px;
+    }
+
+    .top-header {
+        font-size: 16px;
+        letter-spacing: 1px;
+    }
+
+    .about-btn {
+        font-size: 11px;
+        padding: 6px 12px;
+        gap: 5px;
+    }
+
+    .about-btn span {
+        font-size: 14px;
+    }
 }

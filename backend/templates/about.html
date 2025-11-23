@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About Atlas - Misinformation Detector AI</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/about.css') }}?v={{ range(1, 10000) | random }}">
+
+    <style>
+        body {
+            font-family: 'Space Grotesk', sans-serif;
+            background: #000000;
+            color: #ffffff;
+            overflow-x: hidden;
+            min-height: 100vh;
+        }
+    </style>
+</head>
+<body>
+    <div id="vanta-fog"></div>
+
+    <!-- Navigation Header -->
+    <header class="about-header">
+        <div class="header-container">
+            <div class="logo-section-header">
+                <div class="logo-header">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.5 3-9s-1.343-9-3-9m-9 9a9 9 0 019 9m-9-9a9 9 0 009-9m-9 9h12" />
+                    </svg>
+                </div>
+                <span class="atlas-title">Atlas</span>
+            </div>
+            <button id="toggleBtn" class="toggle-about-btn" aria-label="Toggle between About and Home">
+                <span class="toggle-text">← Back to Home</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="about-container">
+        <!-- Hero Section -->
+        <section class="hero-section">
+            <h1 class="main-title">About Atlas</h1>
+            <p class="tagline">Truth Over Deception — AI-Powered Misinformation Defense</p>
+        </section>
+
+        <!-- Project Overview -->
+        <section class="content-section">
+            <div class="section-card">
+                <h2 class="section-title">⊕ Project Overview</h2>
+                <p class="section-content">
+                    Atlas is an advanced AI system designed to detect misinformation by analyzing claims, images, text, and sources with high precision.
+                    Our mission is to ensure users receive accurate, trustworthy information in a world filled with digital noise.
+                </p>
+                <p class="section-content">
+                    Powered by cutting‑edge NLP, fact-checking pipelines, and intelligent ranking algorithms, Atlas provides reliable explanations and 
+                    misinformation alerts for misleading or manipulated content.
+                </p>
+                
+                <h3 class="section-title" style="margin-top: 25px; font-size: 1.2rem;">◆ Our Mission</h3>
+                <p class="section-content">
+                    To protect people from manipulation, false information, and digital deception by delivering AI-driven truth analysis.
+                </p>
+                
+                <h3 class="section-title" style="margin-top: 25px; font-size: 1.2rem;">▲ Our Vision</h3>
+                <p class="section-content">
+                    A world where misinformation cannot spread unchecked — where truth is safeguarded by intelligent technology.
+                </p>
+            </div>
+        </section>
+
+        <!-- Key Features -->
+        <section class="content-section">
+            <div class="section-card">
+                <h2 class="section-title">◈ Key Features</h2>
+                <div class="features-grid">
+                    <div class="feature-item">
+                        <div class="feature-icon">◉</div>
+                        <h3>Detection Engine</h3>
+                        <p>AI scans content for misleading patterns and misinformation signatures</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">≡</div>
+                        <h3>Claim Verification</h3>
+                        <p>Cross-check statements with credible sources to assess truthfulness</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">◘</div>
+                        <h3>Image Fact-Check</h3>
+                        <p>AI-powered OCR and reverse analysis to detect fake or edited visuals</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">◐</div>
+                        <h3>Source Reliability Check</h3>
+                        <p>Analyze link credibility, origin, and bias indicators</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">⟨⟩</div>
+                        <h3>Evidence Ranking</h3>
+                        <p>Sorts and prioritizes sources based on factual strength and reliability</p>
+                    </div>
+                    <div class="feature-item">
+                        <div class="feature-icon">◊</div>
+                        <h3>Session History</h3>
+                        <p>Save and revisit your misinformation analysis sessions anytime</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Contact & Links -->
+        <section class="content-section">
+            <div class="section-card">
+                <h2 class="section-title">◆ Get in Touch</h2>
+                <div class="contact-info">
+                    <p>Atlas is developed as part of the MUM Hackathon initiative.</p>
+
+                    <h3 class="team-heading">▪ Team Profiles</h3>
+                    <div class="linkedin-profiles">
+                        <a href="https://www.linkedin.com/in/shubham-pawar-2aa399335/" target="_blank" class="profile-link">
+                            <span class="profile-icon">●</span>
+                            <span class="profile-name">Shubham Pawar</span>
+                        </a>
+                        <a href="https://www.linkedin.com/in/yash-dedhia-671929376/" target="_blank" class="profile-link">
+                            <span class="profile-icon">●</span>
+                            <span class="profile-name">Yash Dedhia</span>
+                        </a>
+                        <a href="https://www.linkedin.com/in/sahil-rane-6a539132b/" target="_blank" class="profile-link">
+                            <span class="profile-icon">●</span>
+                            <span class="profile-name">Sahil Rane</span>
+                        </a>
+                        <a href="https://www.linkedin.com/in/yash-sanil-8b0194352/" target="_blank" class="profile-link">
+                            <span class="profile-icon">●</span>
+                            <span class="profile-name">Yash Sanil</span>
+                        </a>
+                    </div>
+
+
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="about-footer">
+        <p>&copy; 2025 Atlas - Misinformation Detector AI. Built with ◉ AI and ◆ by the MUM Hackathon Team.</p>
+    </footer>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
+
+    <script>
+        document.getElementById('toggleBtn').addEventListener('click', () => {
+            window.location.href = '/';
+        });
+
+        let vantaFog = null;
+        if (window.innerWidth > 480 && typeof VANTA !== 'undefined') {
+            vantaFog = VANTA.FOG({
+                el: "#vanta-fog",
+                highlightColor: 0xcfe6ff,
+                midtoneColor: 0x6fa8ff,
+                lowlightColor: 0x2f3f6a,
+                baseColor: 0x000000,
+                speed: 1,
+                zoom: 0.2
+            });
+        }
+    </script>
+</body>
+</html>

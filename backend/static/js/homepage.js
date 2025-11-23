@@ -42,6 +42,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
 });
 
+// ===== ABOUT BUTTON HANDLER =====
+function setupAboutButton() {
+    const aboutLink = document.getElementById('aboutLink');
+    console.log('🔗 About button found:', !!aboutLink);
+    if (aboutLink) {
+        aboutLink.addEventListener('click', (event) => {
+            console.log('✅ About button clicked');
+            event.preventDefault();
+            window.location.href = '/about';
+        });
+        console.log('✅ About button event listener attached');
+    } else {
+        console.error('❌ About button NOT found with ID "aboutLink"');
+    }
+}
+
+// Setup about button when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAboutButton);
+} else {
+    setupAboutButton();
+}
+
 // ===== MODE SELECTION =====
 optionButtons.forEach(button => {
     button.addEventListener('click', (event) => {
