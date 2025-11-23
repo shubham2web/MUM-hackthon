@@ -88,14 +88,11 @@
 </head>
 <body>
     <div id="vanta-fog"></div>
-    <div class="header-top">
-        <button class="about-btn" id="aboutLink">About Us</button>
-    </div>
+    <h2 class="top-header">Misinformation Fighter</h2>
     
     <div class="background-text">ATLAS</div>
 
     <div class="container">
-        <h2 class="top-header">Misinformation Fighter</h2>
         <!-- Animated tagline - will be populated by inline script -->
         <div class="ai-tagline" id="animated-tagline"></div>
         
@@ -327,22 +324,7 @@
     <script src="{{ url_for('static', filename='js/role_reversal_ui.js') }}"></script>
 
     <script>
-        // About button handler - inline to ensure it works
-        document.addEventListener('DOMContentLoaded', function() {
-            const aboutBtn = document.getElementById('aboutLink');
-            console.log('🎯 About button setup - Button found:', !!aboutBtn);
-            if (aboutBtn) {
-                aboutBtn.addEventListener('click', function(e) {
-                    console.log('🚀 About button clicked!');
-                    e.preventDefault();
-                    e.stopPropagation();
-                    window.location.href = '/about';
-                });
-                console.log('✅ About button listener attached');
-            }
-        });
-
-        // Microphone functionality
+        // Add this after your existing inline script
         document.addEventListener('DOMContentLoaded', function() {
             const micBtn = document.getElementById('micBtn');
             const promptInput = document.getElementById('prompt');
