@@ -67,10 +67,7 @@ const Chat = {
         // Check for OCR results from homepage (new multiple files format)
         const ocrResults = sessionStorage.getItem('ocrResults');
         if (ocrResults) {
-            // Homepage-originated uploads should start a NEW chat for this mode
-            try {
-                this.handleMultipleOCRResults(JSON.parse(ocrResults), true);
-            } catch (e) { console.warn('handleMultipleOCRResults failed', e); }
+            this.handleMultipleOCRResults(JSON.parse(ocrResults));
             sessionStorage.removeItem('ocrResults'); // Clear after using
         }
 
@@ -83,21 +80,8 @@ const Chat = {
                     inputEl.value = initialPrompt;
                     // remove so it doesn't resend on reload
                     sessionStorage.removeItem('initialPrompt');
-
-                    // If this came from the homepage, create a NEW chat for this mode
-                    setTimeout(async () => {
-                        try {
-                            const titleCandidate = initialPrompt || 'New Chat';
-                            const title = (titleCandidate && titleCandidate.length > 40) ? titleCandidate.slice(0,40) + '...' : titleCandidate;
-                            const created = await ChatStore.createChat(title || 'New Chat');
-                            if (created && (created._id || created.id)) {
-                                ChatStore.currentChatId = created._id || created.id;
-                                // ensure list updated and mapping persisted by ChatStore.createChat
-                                await ChatStore.listChats();
-                            }
-                        } catch (e) { console.warn('Auto-create chat failed', e); }
-                        try { await this.handleSend(); } catch (e) { console.warn('Auto send failed', e); }
-                    }, 250);
+                    // Give the UI a moment to settle then send
+                    setTimeout(() => { try { this.handleSend(); } catch (e) { console.warn('Auto send failed', e); } }, 250);
                 }
             } catch (e) { console.warn('initialPrompt handling error', e); }
         }
