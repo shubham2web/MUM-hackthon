@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import logging
 from typing import Optional
-from quart import Blueprint, request, jsonify, render_template
+from quart import Blueprint, request, jsonify
 
 from memory.memory_manager import get_memory_manager
 
@@ -669,21 +669,3 @@ async def optimize_memory():
 
 # Import datetime for diagnostics endpoint
 from datetime import datetime
-
-
-@memory_bp.route('/dashboard', methods=['GET'])
-async def memory_dashboard():
-    """
-    Render the RAG Memory Visualization Dashboard.
-    
-    GET /memory/dashboard
-    
-    Returns:
-        HTML page with interactive memory visualization, 
-        retrieval heatmaps, and optimization controls.
-    """
-    try:
-        return await render_template('memory_dashboard.html')
-    except Exception as e:
-        logger.error(f"Error rendering dashboard: {e}")
-        return jsonify({"error": str(e)}), 500
