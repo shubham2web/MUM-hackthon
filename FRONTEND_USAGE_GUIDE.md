@@ -31,9 +31,9 @@ The panel contains 3 main sections:
 ┌─────────────────────────────────────────────────────────┐
 │  Previous Role:  [proponent                   ]         │
 │  Current Role:   [opponent                    ]         │
-│                                                          │
+│                                                         │
 │  System Prompt:  [You are now the opponent...  ]        │
-│                                                          │
+│                                                         │
 │  Current Task:   [Argue against renewable...   ]        │
 └─────────────────────────────────────────────────────────┘
 ```

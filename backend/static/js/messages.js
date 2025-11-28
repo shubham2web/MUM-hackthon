@@ -208,7 +208,9 @@ const Messages = {
         }
 
         // --- B. Trigger Memory Toast ---
-        if (meta.memory_active) {
+        // Only show toast for NEW knowledge being stored (LIVE_FETCH + memory active)
+        // Don't show for CACHE hits or pure MEMORY recalls
+        if (meta.memory_active && meta.rag_status === 'LIVE_FETCH') {
             this.triggerMemoryToast();
         }
     },
