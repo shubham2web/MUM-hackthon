@@ -376,8 +376,7 @@ body {
     animation: magnifyGlassRoam 6.313s ease-in-out 1.5s 1; /* Increased speed from 7.5s to 6.5s */
     left: 0; /* Start at the beginning of EVIDENCE */
     top: 50%;
-    /* nudge the magnifier slightly more left so it begins visually left of "EVIDENCE" */
-    transform: translate(-32px, -50%);
+    transform: translateY(-50%);
 }
 
 /* Realistic magnifying glass handle */
@@ -422,26 +421,26 @@ body {
 @keyframes magnifyGlassRoam {
     0% {
         opacity: 0;
-        left: 2%;
+        left: 14%;
     }
     5% {
         opacity: 1;
-        left: 2%;
-    }
-    15% {
-        left: 8%;
-    }
-    30% {
         left: 14%;
     }
-    45% {
+    15% {
+        left: 18%;
+    }
+    30% {
         left: 22%;
     }
+    45% {
+        left: 28%;
+    }
     60% {
-        left: 30%;
+        left: 34%;
     }
     75% {
-        left: 36%;
+        left: 38%;
         opacity: 1;
     }
     88% {
@@ -450,7 +449,7 @@ body {
     }
     100% {
         opacity: 0;
-        left: 40%;
+        left: 38%;
     }
 }
 
