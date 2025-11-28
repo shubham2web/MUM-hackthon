@@ -17,13 +17,13 @@ from server import app
 
 if __name__ == "__main__":
     print("=" * 70)
-    print("Starting ATLAS Server")
+    print("🚀 Starting ATLAS Server")
     print("=" * 70)
     print("Server will be available at:")
-    print("  - http://localhost:5000")
-    print("  - http://127.0.0.1:5000")
+    print("  • http://localhost:8000")
+    print("  • http://127.0.0.1:8000")
     print("\nPress CTRL+C to stop the server")
     print("=" * 70)
 
     # Run using Quart's simple runner (works better on Windows)
-    app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
+    app.run(host='0.0.0.0', port=8000, debug=False, use_reloader=False)

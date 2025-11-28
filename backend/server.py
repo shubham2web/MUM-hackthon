@@ -22,16 +22,13 @@ from services.pro_scraper import get_diversified_evidence
 from core.utils import compute_advanced_analytics, format_sse
 
 # Import OCR functionality (EasyOCR - no Tesseract needed!)
-# Temporarily disabled due to slow PyTorch loading
-OCR_AVAILABLE = False
-logging.warning("OCR functionality temporarily disabled to speed up server startup. PyTorch/EasyOCR will be loaded on-demand.")
-# try:
-#     from services.ocr_processor import get_ocr_processor
-#     OCR_AVAILABLE = True
-#     logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
-# except (ImportError, OSError, RuntimeError) as e:
-#     OCR_AVAILABLE = False
-#     logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
+try:
+    from services.ocr_processor import get_ocr_processor
+    OCR_AVAILABLE = True
+    logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
+except (ImportError, OSError, RuntimeError) as e:
+    OCR_AVAILABLE = False
+    logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
 
 # Import v2.0 routes
 # Temporarily disabled due to slow transformers loading
@@ -120,7 +117,7 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload'] or  # Added ocr_upload
+    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         not API_KEY or 
@@ -251,18 +248,31 @@ async def analyze_topic():
         
         # Create context
         if evidence_bundle:
-            context = "\n\n".join(
-                f"Source: {article.get('title', 'N/A')}\n{article.get('text', '')[:500]}"
-                for article in evidence_bundle[:3]
-            )
+            # Build richer evidence context: include title, url/domain and a longer excerpt
+            context_items = []
+            for article in evidence_bundle[:5]:
+                title = article.get('title', 'N/A')
+                url = article.get('url', '')
+                domain = article.get('domain') or (url.split('/')[2] if url else 'N/A')
+                excerpt = article.get('text', '')[:2000]
+                context_items.append(
+                    f"Source: {title}\nURL: {url}\nDomain: {domain}\nExcerpt:\n{excerpt}"
+                )
+            context = "\n\n".join(context_items)
             user_message = f"Question: {topic}\n\nEvidence:\n{context}"
         else:
             user_message = f"Question: {topic}"
         
-        system_prompt = """You are Atlas, an AI misinformation fighter. 
-Today's date is November 12, 2025. You have knowledge up to 2025 and can discuss current events, trends, and updates from 2025.
-Analyze the user's question and provide a clear, factual response.
-Keep your response concise (2-3 paragraphs)."""
+        system_prompt = """You are Atlas, an AI misinformation fighter.
+        Today's date is November 12, 2025. You have knowledge up to 2025 and can discuss current events, trends, and updates from 2025.
+
+        IMPORTANT: Use the provided Evidence block that follows the user's question. Do NOT rely solely on your internal knowledge cutoff. Instead:
+        - Primarily base your answer on the Evidence provided (do not hallucinate new facts).
+        - Explicitly cite the most relevant sources by title and domain and include URLs where available.
+        - If sources conflict, summarize the differences and indicate uncertainty.
+        - If the Evidence is insufficient to reach a conclusion, say so and point to reputable news outlets or official statements.
+        - Keep your answer concise (2-3 short paragraphs), and at the end include a short 'Sources' list with titles and URLs.
+        """
         
         # 🧠 MEMORY INTEGRATION: Retrieve relevant context from memory but don't use zone formatting for chat
         if memory:
@@ -312,7 +322,7 @@ Keep your response concise (2-3 paragraphs)."""
         try:
             full_response = await asyncio.wait_for(
                 loop.run_in_executor(executor, collect_stream),
-                timeout=60.0
+                timeout=120.0  # Increased to 2 minutes for complex analysis
             )
         except asyncio.TimeoutError:
             full_response = "Response generation timed out. Please try a simpler question."
@@ -340,14 +350,24 @@ Keep your response concise (2-3 paragraphs)."""
                 logging.warning(f"Failed to store in memory: {e}")
         
         logging.info(f"Response generated: {len(full_response)} characters")
-        
+
+        # Simplify sources list for the frontend (title + url + domain)
+        sources_list = []
+        for art in (evidence_bundle or [])[:5]:
+            sources_list.append({
+                'title': art.get('title', ''),
+                'url': art.get('url', ''),
+                'domain': art.get('domain') or (art.get('url','').split('/')[2] if art.get('url') else '')
+            })
+
         return jsonify({
             "success": True,
             "topic": topic,
             "analysis": full_response,
             "model": model,
             "sources_used": len(evidence_bundle),
-            "session_id": session_id if memory else None  # Return session ID for multi-turn conversations
+            "sources": sources_list,
+            "session_id": session_id if memory else None
         })
         
     except Exception as e:
@@ -435,6 +455,23 @@ async def ocr_upload():
         question = form_data.get('question', '')
         session_id = form_data.get('session_id')  # Optional: OCR conversation session
         
+        # 🚀 FAST PATH: If not analyzing, return OCR result immediately
+        if not analyze:
+            logging.info(f"✅ Returning OCR-only result (no analysis requested)")
+            return jsonify({
+                "success": True,
+                "ocr_result": {
+                    "text": extracted_text,
+                    "confidence": ocr_result["confidence"],
+                    "word_count": ocr_result["word_count"]
+                },
+                "ai_analysis": None,
+                "evidence_count": 0,
+                "evidence_sources": [],
+                "filename": image_file.filename,
+                "session_id": None
+            })
+        
         # 🧠 MEMORY INTEGRATION: Initialize memory for OCR analysis
         memory = None
         if MEMORY_AVAILABLE and analyze:
@@ -463,10 +500,9 @@ async def ocr_upload():
                     # Use first 200 chars or key phrases as search query
                     search_query = extracted_text[:200] if len(extracted_text) > 200 else extracted_text
                     
-                    # Get evidence from scraper
-                    evidence_articles = await loop.run_in_executor(
-                        executor,
-                        get_diversified_evidence,
+                     # Get evidence from scraper (async function)
+                    evidence_articles = await get_diversified_evidence(
+
                         search_query,
                         3  # Get 3 articles for evidence
                     )
@@ -474,7 +510,7 @@ async def ocr_upload():
                     logging.info(f"✅ Gathered {len(evidence_articles)} evidence articles")
                     
                 except Exception as scraper_error:
-                    logging.error(f"Scraper error: {scraper_error}")
+                    logging.error(f"Scraper error: {scraper_error}", exc_info=True)
                     # Continue without scraper evidence
             
             # Prepare AI analysis with evidence
@@ -574,7 +610,7 @@ If the text appears to contain claims or information, verify its accuracy."""
             try:
                 ai_analysis = await asyncio.wait_for(
                     loop.run_in_executor(executor, collect_ai_stream),
-                    timeout=60.0
+                    timeout=120.0  # Increased to 2 minutes for AI analysis
                 )
             except asyncio.TimeoutError:
                 ai_analysis = "Analysis timed out. Please try again."
