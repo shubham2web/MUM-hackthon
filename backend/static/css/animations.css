@@ -51,21 +51,23 @@
     height: 8px;
     background: rgba(255, 255, 255, 0.6);
     border-radius: 50%;
-    animation: typing 1.4s infinite ease-in-out;
+    /* animation is provided centrally (components.css or inline); avoid overriding here */
 }
 
 .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
 .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
 
+/* Replace with denser keyframes to approximate a sine wave */
 @keyframes typing {
-    0%, 60%, 100% {
-        opacity: 0.3;
-        transform: translateY(0);
-    }
-    30% {
-        opacity: 1;
-        transform: translateY(-10px);
-    }
+    0%    { transform: translateY(0);     opacity: 0.78; }
+    12.5% { transform: translateY(-4.83px); opacity: 0.92; }
+    25%   { transform: translateY(-7.07px); opacity: 1; }
+    37.5% { transform: translateY(-7.84px); opacity: 0.98; }
+    50%   { transform: translateY(-8px);   opacity: 0.95; }
+    62.5% { transform: translateY(-7.84px); opacity: 0.92; }
+    75%   { transform: translateY(-7.07px); opacity: 0.88; }
+    87.5% { transform: translateY(-4.83px); opacity: 0.82; }
+    100%  { transform: translateY(0);     opacity: 0.78; }
 }
 
 /* === GLOW EFFECTS === */
@@ -91,3 +93,7 @@
     0% { opacity: 1; }
     100% { opacity: 0; }
 }
+
+/* Hide global starry background in light mode */
+body.light-mode .starry-background { display: none !important; }
+

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Logo preview - Atlas (dark)</title>
+  <style>
+    body { background: #0b0b0b; display:flex; align-items:center; justify-content:flex-start; height:100vh; padding:40px; font-family: Arial, sans-serif; }
+    .sidebar { display:flex; align-items:center; gap:8px; }
+    .sidebar .logo { width:52px; height:52px; border-radius:12px; display:inline-flex; align-items:center; justify-content:center; background: radial-gradient(circle at 30% 30%, #5ee3ff 0%, #0ea5e9 25%, #0369a1 60%, #01212a 100%); box-shadow: 0 12px 40px rgba(2,55,95,0.55), 0 0 36px rgba(14,165,233,0.38); margin-right:10px; position:relative; overflow:visible; }
+    .sidebar .logo svg { width:28px; height:28px; display:block; fill:#ffffff; stroke:none; filter: drop-shadow(0 10px 24px rgba(6,182,212,0.45)); }
+    .sidebar .logo::after { content: ''; position:absolute; inset:-8px; border-radius:16px; background: radial-gradient(circle, rgba(6,182,212,0.14) 0%, rgba(6,182,212,0.06) 40%, transparent 65%); filter: blur(8px); z-index:-1; }
+    .sidebar .logo-text { font-family: 'Orbitron', 'Audiowide', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial; font-weight:700; font-size:18px; margin-left:6px; display:inline-block; vertical-align:middle; background: linear-gradient(90deg, #6ee7ff 0%, #38bdf8 35%, #0ea5e9 70%, #0369a1 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; text-shadow: 0 8px 22px rgba(6,182,212,0.24), 0 2px 6px rgba(3,37,52,0.55); }
+    /* small container style to match spacing */
+    .container { background: linear-gradient(180deg,#0b0b0b,#111); padding:20px 28px; border-radius:10px; box-shadow: 0 10px 40px rgba(0,0,0,0.6); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="sidebar">
+      <div class="logo" aria-hidden="true">
+        <!-- simple globe-like svg to mimic icon -->
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path d="M12 2a10 10 0 110 20 10 10 0 010-20zm0 2.2a7.8 7.8 0 100 15.6 7.8 7.8 0 000-15.6z" fill="#fff"/>
+          <path d="M4 12h16M12 4v16M6.5 6.5c2 2 3 6 3 9s-1 7-3 9" stroke="#fff" stroke-width="0" fill-opacity="0"></path>
+        </svg>
+      </div>
+      <div class="logo-text">Atlas</div>
+    </div>
+  </div>
+</body>
+</html>
