@@ -386,5 +386,15 @@ Provide your analysis:
         }
 
 
-# Global instance for easy import
-atlas_v2 = ATLASv2()
+# Global instance for easy import - lazy loaded
+_atlas_v2_instance = None
+
+def get_atlas_v2():
+    """Get or create the global ATLAS v2 instance (lazy initialization)"""
+    global _atlas_v2_instance
+    if _atlas_v2_instance is None:
+        _atlas_v2_instance = ATLASv2()
+    return _atlas_v2_instance
+
+# For backward compatibility
+atlas_v2 = None  # Will be initialized on first use

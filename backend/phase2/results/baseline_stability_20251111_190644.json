@@ -1,0 +1,23 @@
+{
+  "metadata": {
+    "test_date": "2025-11-11",
+    "test_time": "19:06:44",
+    "num_runs_attempted": 5,
+    "num_runs_completed": 5,
+    "expected_baseline": 74.78,
+    "variance_threshold": 0.1
+  },
+  "statistics": {
+    "mean_relevance": 71.3991,
+    "std_dev": 1.965,
+    "min_relevance": 70.2462,
+    "max_relevance": 74.7832,
+    "range": 4.537,
+    "mean_deviation": -3.3809,
+    "max_deviation": 4.5338
+  },
+  "checks": {
+    "variance_check": "FAIL",
+    "accuracy_check": "FAIL",
+    "consistency_check": "FAIL",
+    "overall_stable": 

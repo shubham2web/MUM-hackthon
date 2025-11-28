@@ -1,0 +1,146 @@
+[
+  {
+    "name": "Baseline (No Re-ranking)",
+    "config": {
+      "vector_weight": 1.0,
+      "cross_encoder_weight": 0.0,
+      "score_threshold": 0.0,
+      "normalization": "minmax"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:21:00.074700"
+  },
+  {
+    "name": "Pure Cross-Encoder",
+    "config": {
+      "vector_weight": 0.0,
+      "cross_encoder_weight": 1.0,
+      "score_threshold": 0.0,
+      "normalization": "minmax"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:21:08.589269"
+  },
+  {
+    "name": "Hybrid: CE Dominant (80/20)",
+    "config": {
+      "vector_weight": 0.2,
+      "cross_encoder_weight": 0.8,
+      "score_threshold": 0.0,
+      "normalization": "minmax"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:21:16.124357"
+  },
+  {
+    "name": "Hybrid: Balanced (50/50)",
+    "config": {
+      "vector_weight": 0.5,
+      "cross_encoder_weight": 0.5,
+      "score_threshold": 0.0,
+      "normalization": "minmax"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:21:24.182785"
+  },
+  {
+    "name": "Hybrid: Vector Dominant (60/40)",
+    "config": {
+      "vector_weight": 0.6,
+      "cross_encoder_weight": 0.4,
+      "score_threshold": 0.0,
+      "normalization": "minmax"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:21:33.292382"
+  },
+  {
+    "name": "Hybrid (80/20) + Threshold 0.5",
+    "config": {
+      "vector_weight": 0.2,
+      "cross_encoder_weight": 0.8,
+      "score_threshold": 0.5,
+      "normalization": "minmax"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:21:43.594721"
+  },
+  {
+    "name": "Hybrid (80/20) + Threshold 0.7",
+    "config": {
+      "vector_weight": 0.2,
+      "cross_encoder_weight": 0.8,
+      "score_threshold": 0.7,
+      "normalization": "minmax"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:21:56.615866"
+  },
+  {
+    "name": "Hybrid (80/20) + Sigmoid Norm",
+    "config": {
+      "vector_weight": 0.2,
+      "cross_encoder_weight": 0.8,
+      "score_threshold": 0.0,
+      "normalization": "sigmoid"
+    },
+    "metrics": {
+      "relevance": 0.0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "tests_passed": 0,
+      "pass_rate": 0.0
+    },
+    "timestamp": "2025-11-11T02:22:07.406132"
+  }
+]

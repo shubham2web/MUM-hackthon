@@ -1,0 +1,42 @@
+[
+  {
+    "alpha": 0.7,
+    "vector_weight": 0.7,
+    "lexical_weight": 0.30000000000000004,
+    "relevance": 71.19,
+    "precision": 32.95,
+    "recall": 92.31,
+    "f1": 47.51,
+    "tests_passed": 5
+  },
+  {
+    "alpha": 0.75,
+    "vector_weight": 0.75,
+    "lexical_weight": 0.25,
+    "relevance": 71.78,
+    "precision": 32.95,
+    "recall": 92.31,
+    "f1": 47.51,
+    "tests_passed": 5
+  },
+  {
+    "alpha": 0.8,
+    "vector_weight": 0.8,
+    "lexical_weight": 0.19999999999999996,
+    "relevance": 72.37,
+    "precision": 32.95,
+    "recall": 92.31,
+    "f1": 47.51,
+    "tests_passed": 5
+  },
+  {
+    "alpha": 0.85,
+    "vector_weight": 0.85,
+    "lexical_weight": 0.15000000000000002,
+    "relevance": 72.95,
+    "precision": 32.95,
+    "recall": 92.31,
+    "f1": 47.51,
+    "tests_passed": 5
+  }
+]

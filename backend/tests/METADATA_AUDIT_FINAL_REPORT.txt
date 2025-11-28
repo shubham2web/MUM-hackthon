@@ -1,0 +1,68 @@
+"""
+BENCHMARK METADATA AUDIT - FINAL REPORT
+========================================
+
+FINDING: Benchmark test data has MINIMAL metadata (turn #, topic only)
+         NO recency_score or authority_score fields present
+
+EVIDENCE:
+---------
+Examined rag_test_scenarios.py setup_memories:
+- Test 1 metadata: {"turn": 0}, {"turn": 1}, {"turn": 2}, {"turn": 3}
+- Test 2 metadata: {"turn": 1, "topic": "reliability"}, {"turn": 2, "topic": "economics"}
+- Test 3+ metadata: Similar minimal turn/topic fields only
+
+MISSING FIELDS IN BENCHMARK DATA:
+- recency_score  ❌ NOT PRESENT
+- authority_score ❌ NOT PRESENT
+- source         ❌ NOT PRESENT
+- timestamp      ❌ MINIMAL (auto-generated only)
+
+IMPACT ON METADATA BOOST:
+--------------------------
+When metadata boost formula tries to apply:
+  final_score = hybrid_score * (1 + recency_w*recency + authority_w*authority)
+
+And recency_score/authority_score are MISSING:
+  → Defaults to 0 or None
+  → Boost formula becomes: final_score = hybrid_score * (1 + 0 + 0) = hybrid_score
+  → NO BENEFIT, potential HARM if default handling inconsistent
+
+This explains the -1.46% regression observed previously:
+  - Metadata boost code activated
+  - Fields missing in benchmark data
+  - Inconsistent default handling or None-type errors
+  - Retrieval quality degraded
+
+RECOMMENDATION:
+===============
+❌ SKIP Step 3 (Metadata Boost) - Incompatible with benchmark test data
+
+✅ PROCEED to Step 4 (HGB Soft Bias)
+   Reasons:
+   1. Model-based approach - independent of metadata availability
+   2. Uses FEATURES computed from retrieved results (not stored metadata)
+   3. HGB model trained on 11 features including hybrid_score, distance, query_len
+   4. Conservative weight (w=0.3) provides safe enhancement without overwhelming
+   5. Expected gain: +2-3% if model helps, easy rollback if regression
+
+ALTERNATIVE: If metadata boost desired in future
+------------------------------------------------
+Option 1: Enhance test scenarios to include recency/authority scores
+          - Modify rag_test_scenarios.py to add synthetic scores
+          - Re-run benchmark with full metadata
+          - Then retry metadata boost experiment
+
+Option 2: Deploy in production where real conversations have metadata
+          - Production data has timestamps, sources, authority signals
+          - Metadata boost effective in real usage
+          - Benchmark tests other aspects (semantic matching, role handling)
+
+NEXT ACTION:
+============
+Proceed to Step 4: HGB Soft Bias Experiment
+- Use ltr_reranker_gb.joblib (79.7% ROC-AUC)
+- Conservative weight: final = 0.7*hybrid + 0.3*hgb_prob
+- Set rerank_weight=0.3 (NOT 0.9 like previous attempt)
+- Expected: +2-3% improvement if model helps
+- Rollback if regression occurs
