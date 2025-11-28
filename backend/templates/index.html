@@ -19,6 +19,151 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas_v2.css') }}?v={{ range(1, 10000) | random }}">
     
     <style>
+        /* Attachment area styling */
+        .attachment-area {
+            padding-bottom: 10px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .preview-item {
+            width: 90px;
+            height: 90px;
+            background-color: #2A2B32;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .preview-item .preview-thumbnail {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #2A2B32;
+        }
+
+        .preview-item:hover::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+
+        .preview-item .preview-thumbnail img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .preview-item .preview-thumbnail svg {
+            width: 32px;
+            height: 32px;
+            color: #ECECF1;
+        }
+
+        .file-type-indicator {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            background-color: rgba(52,53,65,0.9);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 9px;
+            color: #ECECF1;
+            border: 1px solid rgba(255,255,255,0.1);
+            z-index: 1;
+        }
+
+        .preview-close-btn {
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            background: rgba(52,53,65,0.9);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: #ECECF1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 2;
+            padding: 0;
+        }
+
+        .preview-close-btn:hover {
+            background-color: rgba(32,33,35,0.9);
+        }
+
+        .preview-close-btn svg {
+            width: 14px;
+            height: 14px;
+        }
+
+        /* ChatGPT-style Compact Message Preview */
+        .compact-preview-message {
+            display: flex !important;
+            align-items: center !important;
+            gap: 10px !important;
+            background: rgba(0,0,0,0.1) !important;
+            padding: 8px !important;
+            border-radius: 5px !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+            width: fit-content !important;
+            max-width: 300px !important;
+            margin: 4px 0 !important;
+        }
+
+        .compact-preview-img {
+            width: 70px !important;
+            height: 70px !important;
+            border-radius: 5px !important;
+            object-fit: cover !important;
+            flex-shrink: 0 !important;
+            border: 1px solid rgba(255,255,255,0.1) !important;
+        }
+
+        .compact-preview-info {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 4px !important;
+            min-width: 0 !important;
+            padding: 2px 0 !important;
+        }
+
+        .compact-preview-name {
+            font-size: 13px !important;
+            color: rgba(255,255,255,0.9) !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            font-weight: 500 !important;
+        }
+
+        .compact-preview-type {
+            font-size: 12px !important;
+            color: rgba(255,255,255,0.5) !important;
+            display: flex !important;
+            align-items: center !important;
+            gap: 4px !important;
+        }
+
+        .compact-preview-type::before {
+            content: "📄" !important;
+            font-size: 12px !important;
+        }
+
+        .message-text .compact-preview-message {
+            margin: 4px 0 !important;
+        }
+
         /* CRITICAL: Force message layout - OVERRIDE EVERYTHING */
         .chat-messages {
             display: flex !important;
@@ -465,11 +610,18 @@
                 this.addWelcomeMessage();
             }
 
-            // Check for OCR result from sessionStorage
+            // Check for OCR result from sessionStorage (old single file format)
             const ocrResult = sessionStorage.getItem('ocrResult');
             if (ocrResult) {
                 this.handleOCRResult(JSON.parse(ocrResult));
                 sessionStorage.removeItem('ocrResult'); // Clear after using
+            }
+
+            // Check for OCR results from homepage (new multiple files format)
+            const ocrResults = sessionStorage.getItem('ocrResults');
+            if (ocrResults) {
+                this.handleMultipleOCRResults(JSON.parse(ocrResults));
+                sessionStorage.removeItem('ocrResults'); // Clear after using
             }
 
             // Update navigation active state
@@ -495,15 +647,75 @@
             // Add user message showing the image was uploaded
             Messages.addUserMessage(`📷 Uploaded image: ${ocrData.filename}`);
 
-            // Add OCR extraction result
-            const ocrMessage = `**Text Extracted (${ocrData.confidence.toFixed(1)}% confidence):**\n\n${ocrData.extractedText}\n\n---\n\n**Words found:** ${ocrData.wordCount}`;
-            Messages.addAIMessage(ocrMessage);
-
             // Add AI analysis if available
             if (ocrData.aiAnalysis) {
                 setTimeout(() => {
                     Messages.addAIMessage(ocrData.aiAnalysis);
                 }, 500);
+            }
+        },
+
+        handleMultipleOCRResults(ocrResults) {
+            // Clear welcome message
+            const messages = document.getElementById('chatMessages');
+            if (messages) {
+                messages.innerHTML = '';
+            }
+
+            // Add user message showing files were uploaded
+            const fileNames = ocrResults.map(r => r.filename).join(', ');
+            Messages.addUserMessage(`📷 Uploaded ${ocrResults.length} image(s): ${fileNames}`);
+
+            // Optionally, you could ask the AI to analyze all the extracted text together
+            const allText = ocrResults.map(r => `From ${r.filename}: ${r.extractedText}`).join('\n\n');
+            const initialPrompt = sessionStorage.getItem('initialPrompt');
+            
+            if (initialPrompt) {
+                setTimeout(async () => {
+                    Messages.showLoading('Analyzing uploaded images with evidence gathering...');
+                    try {
+                        // Process each image with scraper-enhanced analysis
+                        for (let i = 0; i < ocrResults.length; i++) {
+                            const ocrData = ocrResults[i];
+                            
+                            // Create FormData for re-processing with scraper
+                            // We'll use the extracted text to trigger scraper analysis
+                            const analysisPrompt = `${initialPrompt}\n\nAnalyze this text extracted from ${ocrData.filename}:\n\n${ocrData.extractedText}`;
+                            
+                            const response = await fetch('/chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-Key': API_KEY
+                                },
+                                body: JSON.stringify({
+                                    message: analysisPrompt,
+                                    mode: this.currentMode,
+                                    use_scraper: true  // Enable scraper for fact-checking
+                                })
+                            });
+
+                            const data = await response.json();
+                            
+                            if (i === 0) {
+                                Messages.hideLoading();
+                            }
+                            
+                            if (data.analysis || data.result || data.answer) {
+                                const aiMessage = data.analysis || data.result || data.answer;
+                                Messages.addAIMessage(`**Analysis of "${ocrData.filename}" (${i + 1}/${ocrResults.length}):**\n\n${aiMessage}`);
+                            }
+                            
+                            // Small delay between processing multiple files
+                            if (i < ocrResults.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
+                        }
+                    } catch (error) {
+                        Messages.hideLoading();
+                        Messages.addAIMessage('❌ Error analyzing images: ' + error.message);
+                    }
+                }, ocrResults.length * 300 + 500);
             }
         },
 
@@ -555,6 +767,45 @@
             input.value = '';
             
             Messages.addUserMessage(message);
+            
+            // Process all attached files before sending message
+            if (Attachments.attachedFiles && Attachments.attachedFiles.length > 0) {
+                Messages.addAIMessage(`🔄 Processing ${Attachments.attachedFiles.length} attached file(s)...`);
+                
+                for (let i = 0; i < Attachments.attachedFiles.length; i++) {
+                    const file = Attachments.attachedFiles[i];
+                    const fileName = file.name.toLowerCase();
+                    
+                    // Add separator for multiple files
+                    if (Attachments.attachedFiles.length > 1) {
+                        Messages.addAIMessage(`\n--- Processing file ${i + 1} of ${Attachments.attachedFiles.length}: ${file.name} ---\n`);
+                    }
+                    
+                    // Check if it's an image or text file
+                    const isImage = fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png');
+                    const isTextFile = fileName.endsWith('.md') || fileName.endsWith('.txt');
+                    
+                    if (isImage) {
+                        await Attachments.processImageWithOCR(file);
+                    } else if (isTextFile) {
+                        await Attachments.processTextFile(file);
+                    }
+                    
+                    // Small delay between files
+                    if (i < Attachments.attachedFiles.length - 1) {
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                    }
+                }
+                
+                // Clear attached files after processing
+                Attachments.attachedFiles = [];
+                Messages.addAIMessage(`✅ All files processed successfully!\n\n`);
+                
+                // Don't send additional message to chat endpoint - OCR already provided analysis
+                this.isProcessing = false;
+                return;
+            }
+            
             Messages.showLoading();
 
             // Add timeout for the request (90 seconds)
@@ -630,6 +881,8 @@
 
     // Attachments Module for Chat Page - MUST BE DEFINED BEFORE DOMContentLoaded
     const Attachments = {
+        attachedFiles: [], // Store uploaded files here
+        
         init() {
             console.log('📎 Initializing Attachments module...');
             
@@ -704,7 +957,7 @@
                     
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = '.pdf,.md,.txt,.jpg,.jpeg,.png';
+                    input.accept = '.jpg,.jpeg,.png,.md,.txt';
                     input.multiple = true; // Allow multiple files
 
                     const self = this; // Capture context
@@ -715,50 +968,43 @@
 
                         console.log(`📁 ${files.length} file(s) selected`);
 
-                        // Check file limit
-                        if (files.length > 10) {
-                            Messages.addAIMessage('❌ Maximum 10 files allowed at a time.');
+                        // Check file limit (maximum 5 files combined)
+                        if (self.attachedFiles.length + files.length > 5) {
+                            Messages.addAIMessage(`❌ Maximum 5 files allowed. You have ${self.attachedFiles.length} files attached and trying to add ${files.length} more.`);
                             return;
                         }
 
-                        // Validate and process each file
+                        // Validate each file
                         for (const file of files) {
-                            console.log('📁 Processing file:', file.name, file.type, file.size);
+                            console.log('📁 Validating file:', file.name, file.type, file.size);
 
-                            // File size check
-                            if (file.size > 10 * 1024 * 1024) {
-                                Messages.addAIMessage(`❌ File "${file.name}" is too large. Maximum size is 10MB.`);
+                            // File size check (5MB limit)
+                            if (file.size > 5 * 1024 * 1024) {
+                                const fileSize = (file.size / (1024 * 1024)).toFixed(2);
+                                Messages.addAIMessage(`❌ File "${file.name}" exceeds maximum size.\n\nFile size: ${fileSize} MB\nMaximum allowed: 5 MB`);
                                 continue;
                             }
 
-                            // Format validation
-                            const allowedExtensions = ['.pdf', '.md', '.txt', '.jpg', '.jpeg', '.png'];
+                            // Format validation - only jpg, jpeg, png, md, txt
+                            const allowedExtensions = ['.jpg', '.jpeg', '.png', '.md', '.txt'];
                             const fileName = file.name.toLowerCase();
                             const isValidFormat = allowedExtensions.some(ext => fileName.endsWith(ext));
 
                             if (!isValidFormat) {
-                                Messages.addAIMessage(`❌ Format not supported: "${file.name}". Allowed formats: PDF, MD, TXT, JPG, JPEG, PNG`);
+                                Messages.addAIMessage(`❌ Format not supported: "${file.name}"\n\nSupported formats: JPG, JPEG, PNG, MD, TXT`);
                                 continue;
                             }
 
-                            // Check if it's an image
-                            if (file.type.startsWith('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
-                                console.log(`🖼️ Processing image ${files.indexOf(file) + 1}/${files.length}: ${file.name}`);
-                                
-                                // Add separator for multiple files
-                                if (files.length > 1) {
-                                    Messages.addAIMessage(`\n--- Processing file ${files.indexOf(file) + 1} of ${files.length} ---\n`);
-                                }
-                                
-                                await self.processImageWithOCR(file);
-                                
-                                // Small delay between files to ensure proper sequencing
-                                if (files.indexOf(file) < files.length - 1) {
-                                    await new Promise(resolve => setTimeout(resolve, 500));
-                                }
-                            } else {
-                                Messages.addAIMessage(`📄 File "${file.name}" - text extraction coming soon.`);
-                            }
+                            // Add file to attachedFiles array
+                            self.attachedFiles.push(file);
+                            console.log(`✅ File "${file.name}" attached. Total files: ${self.attachedFiles.length}`);
+                            
+                            // Show preview for the file
+                            self.showFilePreview(file);
+                        }
+                        
+                        if (self.attachedFiles.length > 0) {
+                            Messages.addAIMessage(`✅ ${self.attachedFiles.length} file(s) ready. Type your message and click send to process.`);
                         }
                     };
 
@@ -804,6 +1050,71 @@
             console.log('✅ Attachments module initialized');
         },
 
+        showFilePreview(file) {
+            const attachmentArea = document.getElementById('attachmentArea');
+            if (!attachmentArea) return;
+
+            const previewId = `preview-${Date.now()}-${Math.random()}`;
+            const previewItem = document.createElement('div');
+            previewItem.className = 'preview-item';
+            previewItem.id = previewId;
+            previewItem.style.cssText = 'display: inline-flex; align-items: center; margin: 5px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px; position: relative;';
+
+            const isImage = file.type && file.type.startsWith('image/');
+            const isText = file.name.toLowerCase().endsWith('.md') || file.name.toLowerCase().endsWith('.txt');
+
+            // Create thumbnail
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.style.cssText = 'width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 6px; overflow: hidden; margin-right: 10px;';
+
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                    thumbnailDiv.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            } else if (isText) {
+                thumbnailDiv.innerHTML = '<span style="font-size: 24px;">📄</span>';
+            } else {
+                thumbnailDiv.innerHTML = '<span style="font-size: 24px;">📎</span>';
+            }
+
+            // File info
+            const infoDiv = document.createElement('div');
+            infoDiv.style.cssText = 'flex: 1; min-width: 0;';
+            const fileName = document.createElement('div');
+            fileName.textContent = file.name;
+            fileName.style.cssText = 'font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+            const fileSize = document.createElement('div');
+            fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            fileSize.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.6);';
+            infoDiv.appendChild(fileName);
+            infoDiv.appendChild(fileSize);
+
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '×';
+            removeBtn.style.cssText = 'width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: #fff; cursor: pointer; font-size: 18px; margin-left: 10px;';
+            removeBtn.onclick = () => {
+                previewItem.remove();
+                const index = this.attachedFiles.indexOf(file);
+                if (index > -1) {
+                    this.attachedFiles.splice(index, 1);
+                }
+                console.log(`📎 Removed "${file.name}". Total files: ${this.attachedFiles.length}`);
+            };
+
+            previewItem.appendChild(thumbnailDiv);
+            previewItem.appendChild(infoDiv);
+            previewItem.appendChild(removeBtn);
+            attachmentArea.appendChild(previewItem);
+
+            console.log(`📸 Preview added for "${file.name}"`);
+        },
+
         isValidUrl(string) {
             try {
                 new URL(string);
@@ -822,10 +1133,16 @@
                     const reader = new FileReader();
                     reader.onload = (e) => {
                         const imageUrl = e.target.result;
+                        const fileSize = (file.size / 1024).toFixed(1) + ' KB';
                         const previewHtml = `
-                            <strong>📷 ${file.name}</strong>
-                            <div class="image-preview" style="max-width: 300px; margin: 10px 0; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-                                <img src="${imageUrl}" alt="${file.name}" style="width: 100%; height: auto; display: block;">
+                            <div class="compact-preview-message">
+                                <img src="${imageUrl}" alt="${file.name}" class="compact-preview-img">
+                                <div class="compact-preview-info">
+                                    <span class="compact-preview-name">${file.name}</span>
+                                    <span class="compact-preview-type">
+                                        Image • ${fileSize}
+                                    </span>
+                                </div>
                             </div>
                         `;
                         Messages.addUserMessageWithHTML(previewHtml);
@@ -834,12 +1151,14 @@
                     reader.readAsDataURL(file);
                 });
 
-                Messages.showLoading(`Processing "${file.name}" with OCR...`);
+                Messages.showLoading(`Processing "${file.name}" with OCR and gathering evidence...`);
 
                 const formData = new FormData();
                 formData.append('image', file);
+                formData.append('analyze', 'true');  // Enable AI analysis
+                formData.append('use_scraper', 'true');  // Enable scraper for evidence gathering
 
-                console.log(`📤 Sending "${file.name}" to OCR endpoint...`);
+                console.log(`📤 Sending "${file.name}" to OCR endpoint with scraper enabled...`);
                 
                 const response = await fetch('http://127.0.0.1:5000/ocr_upload', {
                     method: 'POST',
@@ -858,16 +1177,31 @@
                 Messages.hideLoading();
 
                 if (result.success) {
-                    const { ocr_result, ai_analysis } = result;
+                    const { ocr_result, ai_analysis, evidence_count, evidence_sources } = result;
                     
                     // Log the extracted text to console but don't show to user
                     console.log(`📝 "${file.name}" - Text Extracted (${ocr_result.confidence.toFixed(1)}% confidence)`);
                     console.log(`Text: ${ocr_result.text}`);
                     console.log(`Words found: ${ocr_result.word_count}`);
+                    console.log(`Evidence sources: ${evidence_count}`);
 
-                    // Only show AI analysis to user with file context
+                    // Show evidence sources if available
+                    if (evidence_sources && evidence_sources.length > 0) {
+                        let evidenceMessage = `**📚 Evidence gathered from ${evidence_count} source(s):**\n\n`;
+                        evidence_sources.forEach((source, idx) => {
+                            evidenceMessage += `${idx + 1}. **${source.title}**\n`;
+                            evidenceMessage += `   🔗 [${source.domain}](${source.url})\n`;
+                            if (source.summary) {
+                                evidenceMessage += `   📄 ${source.summary.substring(0, 150)}...\n`;
+                            }
+                            evidenceMessage += `\n`;
+                        });
+                        Messages.addAIMessage(evidenceMessage);
+                    }
+
+                    // Show AI analysis to user with file context
                     if (ai_analysis) {
-                        Messages.addAIMessage(`**Analysis of "${file.name}":**\n\n${ai_analysis}`);
+                        Messages.addAIMessage(`**🔍 Fact-Checked Analysis of "${file.name}":**\n\n${ai_analysis}`);
                     } else {
                         Messages.addAIMessage(`✅ "${file.name}" processed successfully, but no analysis was generated.`);
                     }
@@ -879,6 +1213,36 @@
                 console.error('❌ OCR Error:', error);
                 Messages.hideLoading();
                 Messages.addAIMessage(`❌ Failed to process image: ${error.message}`);
+            }
+        },
+
+        async processTextFile(file) {
+            console.log('📄 Starting text file processing for:', file.name);
+            
+            try {
+                Messages.showLoading(`Reading "${file.name}"...`);
+                
+                // Read file content
+                const textContent = await new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => resolve(e.target.result);
+                    reader.onerror = () => reject(new Error('Failed to read file'));
+                    reader.readAsText(file);
+                });
+                
+                Messages.hideLoading();
+                
+                const wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length;
+                
+                // Display file info
+                Messages.addUserMessage(`📄 ${file.name} (${wordCount} words)`);
+                
+                console.log(`✅ Text extracted from ${file.name}: ${wordCount} words`);
+                
+            } catch (error) {
+                console.error('❌ Text file error:', error);
+                Messages.hideLoading();
+                Messages.addAIMessage(`❌ Failed to process text file: ${error.message}`);
             }
         }
     };

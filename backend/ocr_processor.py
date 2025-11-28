@@ -2,117 +2,69 @@
 OCR Processor Module
 Handles Optical Character Recognition for uploaded images.
 Extracts text from images and prepares it for AI analysis.
+Uses EasyOCR - no Tesseract installation required!
 """
 import logging
 import os
 import tempfile
 from typing import Dict, Optional, Tuple
 from pathlib import Path
+import io
 
 try:
-    import pytesseract
+    import easyocr
     from PIL import Image
-    import cv2
     import numpy as np
-    PYTESSERACT_AVAILABLE = True
+    EASYOCR_AVAILABLE = True
 except ImportError:
-    PYTESSERACT_AVAILABLE = False
-    logging.warning("OCR dependencies not installed. Install with: pip install pytesseract pillow opencv-python")
+    EASYOCR_AVAILABLE = False
+    logging.warning("OCR dependencies not installed. Install with: pip install easyocr pillow")
 
 
 class OCRProcessor:
     """
-    Handles OCR processing for images.
-    Extracts text from images and provides preprocessing capabilities.
+    Handles OCR processing for images using EasyOCR.
+    No Tesseract installation required - works out of the box!
     """
     
-    def __init__(self, tesseract_cmd: Optional[str] = None):
+    def __init__(self, languages: list = ['en']):
         """
-        Initialize OCR processor.
+        Initialize OCR processor with EasyOCR.
         
         Args:
-            tesseract_cmd: Path to tesseract executable (optional)
-                          On Windows: r'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
-                          On Linux/Mac: Usually auto-detected
+            languages: List of language codes (default: ['en'] for English)
+                      Supports: 'en', 'hi', 'es', 'fr', 'de', 'ar', 'zh', etc.
         """
         self.logger = logging.getLogger(self.__class__.__name__)
         
-        if not PYTESSERACT_AVAILABLE:
+        if not EASYOCR_AVAILABLE:
             raise ImportError(
                 "OCR dependencies not available. "
-                "Install with: pip install pytesseract pillow opencv-python"
+                "Install with: pip install easyocr pillow"
             )
         
-        # Set Tesseract path - try multiple sources
-        if tesseract_cmd:
-            self.logger.info(f"Using provided Tesseract path: {tesseract_cmd}")
-            pytesseract.pytesseract.tesseract_cmd = tesseract_cmd
-        elif os.path.exists(r"C:\Program Files\Tesseract-OCR\tesseract.exe"):
-            self.logger.info("Found Tesseract at default Windows location")
-            pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
-        
-        # Verify Tesseract is available
         try:
-            version = pytesseract.get_tesseract_version()
-            self.logger.info(f"Tesseract OCR initialized successfully (version: {version})")
+            self.logger.info(f"Initializing EasyOCR with languages: {languages}")
+            # Initialize EasyOCR Reader (downloads models on first run)
+            self.reader = easyocr.Reader(languages, gpu=False)  # Set gpu=True if you have CUDA
+            self.logger.info("✅ EasyOCR initialized successfully (no Tesseract needed!)")
         except Exception as e:
-            self.logger.error(f"Tesseract not found: {e}")
-            self.logger.error(f"Current tesseract_cmd: {pytesseract.pytesseract.tesseract_cmd}")
-            raise RuntimeError(
-                f"Tesseract OCR is not installed or not found. "
-                f"Tried path: {pytesseract.pytesseract.tesseract_cmd}. "
-                f"Download from: https://github.com/UB-Mannheim/tesseract/wiki"
-            )
-    
-    def preprocess_image(self, image: Image.Image) -> Image.Image:
-        """
-        Preprocess image to improve OCR accuracy.
-        
-        Args:
-            image: PIL Image object
-            
-        Returns:
-            Preprocessed PIL Image
-        """
-        try:
-            # Convert PIL Image to numpy array for OpenCV
-            img_array = np.array(image)
-            
-            # Convert to grayscale if not already
-            if len(img_array.shape) == 3:
-                gray = cv2.cvtColor(img_array, cv2.COLOR_RGB2GRAY)
-            else:
-                gray = img_array
-            
-            # Apply denoising
-            denoised = cv2.fastNlMeansDenoising(gray)
-            
-            # Apply adaptive thresholding to handle varying lighting
-            binary = cv2.adaptiveThreshold(
-                denoised, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
-                cv2.THRESH_BINARY, 11, 2
-            )
-            
-            # Convert back to PIL Image
-            return Image.fromarray(binary)
-            
-        except Exception as e:
-            self.logger.warning(f"Preprocessing failed, using original image: {e}")
-            return image
+            self.logger.error(f"EasyOCR initialization failed: {e}")
+            raise RuntimeError(f"Failed to initialize EasyOCR: {e}")
     
     def extract_text(
         self, 
         image_path: str, 
-        preprocess: bool = True,
-        language: str = 'eng'
+        detail: int = 1,
+        paragraph: bool = False
     ) -> Dict[str, any]:
         """
         Extract text from an image file.
         
         Args:
             image_path: Path to the image file
-            preprocess: Whether to preprocess the image (default: True)
-            language: Tesseract language code (default: 'eng')
+            detail: Level of detail (0=fast, 1=balanced, 2=accurate)
+            paragraph: If True, combine text into paragraphs
             
         Returns:
             Dictionary containing:
@@ -131,46 +83,46 @@ class OCRProcessor:
         }
         
         try:
-            # Load image
-            image = Image.open(image_path)
+            # Read and process image with EasyOCR
+            ocr_results = self.reader.readtext(image_path, detail=detail, paragraph=paragraph)
             
-            # Preprocess if requested
-            if preprocess:
-                image = self.preprocess_image(image)
+            if not ocr_results:
+                result.update({
+                    "text": "",
+                    "confidence": 0.0,
+                    "word_count": 0,
+                    "success": True,
+                    "error": "No text detected in image"
+                })
+                return result
             
-            # Extract text with confidence data
-            ocr_data = pytesseract.image_to_data(
-                image, 
-                lang=language, 
-                output_type=pytesseract.Output.DICT
-            )
-            
-            # Filter out low-confidence results
-            filtered_text = []
+            # Extract text and confidence scores
+            extracted_text = []
             confidences = []
             
-            for i, conf in enumerate(ocr_data['conf']):
-                if conf > 0:  # -1 means no confidence data
-                    text = ocr_data['text'][i].strip()
-                    if text:
-                        filtered_text.append(text)
-                        confidences.append(conf)
+            for detection in ocr_results:
+                # Each detection: (bbox, text, confidence)
+                bbox, text, confidence = detection
+                if text.strip():
+                    extracted_text.append(text.strip())
+                    confidences.append(confidence * 100)  # Convert to percentage
             
             # Calculate average confidence
             avg_confidence = sum(confidences) / len(confidences) if confidences else 0
             
             # Join text
-            extracted_text = ' '.join(filtered_text)
+            final_text = ' '.join(extracted_text)
+            word_count = len(final_text.split())
             
             result.update({
-                "text": extracted_text,
+                "text": final_text,
                 "confidence": round(avg_confidence, 2),
-                "word_count": len(filtered_text),
+                "word_count": word_count,
                 "success": True
             })
             
             self.logger.info(
-                f"OCR extracted {len(filtered_text)} words "
+                f"✅ OCR extracted {word_count} words "
                 f"with {avg_confidence:.2f}% confidence"
             )
             
@@ -189,33 +141,79 @@ class OCRProcessor:
     def extract_text_from_bytes(
         self, 
         image_bytes: bytes, 
-        preprocess: bool = True,
-        language: str = 'eng'
+        detail: int = 1,
+        paragraph: bool = False
     ) -> Dict[str, any]:
         """
         Extract text from image bytes (e.g., from upload).
         
         Args:
             image_bytes: Image data as bytes
-            preprocess: Whether to preprocess the image
-            language: Tesseract language code
+            detail: Level of detail (0=fast, 1=balanced, 2=accurate)
+            paragraph: If True, combine text into paragraphs
             
         Returns:
             Same as extract_text()
         """
-        # Create temporary file
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.png') as tmp_file:
-            tmp_file.write(image_bytes)
-            tmp_path = tmp_file.name
+        result = {
+            "text": "",
+            "confidence": 0.0,
+            "word_count": 0,
+            "success": False,
+            "error": None
+        }
         
         try:
-            result = self.extract_text(tmp_path, preprocess, language)
-        finally:
-            # Clean up temporary file
-            try:
-                os.unlink(tmp_path)
-            except Exception as e:
-                self.logger.warning(f"Failed to delete temp file {tmp_path}: {e}")
+            # Convert bytes to numpy array for EasyOCR
+            image = Image.open(io.BytesIO(image_bytes))
+            img_array = np.array(image)
+            
+            # Read and process image with EasyOCR
+            ocr_results = self.reader.readtext(img_array, detail=detail, paragraph=paragraph)
+            
+            if not ocr_results:
+                result.update({
+                    "text": "",
+                    "confidence": 0.0,
+                    "word_count": 0,
+                    "success": True,
+                    "error": "No text detected in image"
+                })
+                return result
+            
+            # Extract text and confidence scores
+            extracted_text = []
+            confidences = []
+            
+            for detection in ocr_results:
+                bbox, text, confidence = detection
+                if text.strip():
+                    extracted_text.append(text.strip())
+                    confidences.append(confidence * 100)
+            
+            # Calculate average confidence
+            avg_confidence = sum(confidences) / len(confidences) if confidences else 0
+            
+            # Join text
+            final_text = ' '.join(extracted_text)
+            word_count = len(final_text.split())
+            
+            result.update({
+                "text": final_text,
+                "confidence": round(avg_confidence, 2),
+                "word_count": word_count,
+                "success": True
+            })
+            
+            self.logger.info(
+                f"✅ OCR extracted {word_count} words "
+                f"with {avg_confidence:.2f}% confidence"
+            )
+            
+        except Exception as e:
+            error_msg = f"OCR extraction failed: {str(e)}"
+            self.logger.error(error_msg, exc_info=True)
+            result["error"] = error_msg
         
         return result
     
@@ -237,8 +235,8 @@ class OCRProcessor:
     
     @staticmethod
     def get_supported_formats() -> list:
-        """Get list of supported image formats."""
-        return ['.png', '.jpg', '.jpeg', '.tiff', '.bmp', '.gif', '.webp']
+        """Get list of supported image formats for OCR."""
+        return ['.png', '.jpg', '.jpeg']
     
     @staticmethod
     def is_supported_format(filename: str) -> bool:
@@ -254,7 +252,6 @@ def get_ocr_processor() -> OCRProcessor:
     """Get singleton OCR processor instance."""
     global _ocr_processor_instance
     if _ocr_processor_instance is None:
-        # Try to get Tesseract path from environment
-        tesseract_path = os.getenv("TESSERACT_CMD")
-        _ocr_processor_instance = OCRProcessor(tesseract_cmd=tesseract_path)
+        # Initialize EasyOCR with English (add more languages if needed)
+        _ocr_processor_instance = OCRProcessor(languages=['en'])
     return _ocr_processor_instance

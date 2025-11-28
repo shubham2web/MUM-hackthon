@@ -8,9 +8,6 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 import sys
 
-# Set Tesseract path BEFORE importing ocr_processor
-os.environ["TESSERACT_CMD"] = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
-
 from quart import Quart, render_template, request, jsonify, send_from_directory, Response
 from quart_cors import cors
 from limits import parse
@@ -24,7 +21,7 @@ from db_manager import AsyncDbManager, DATABASE_FILE
 from pro_scraper import get_diversified_evidence
 from utils import compute_advanced_analytics, format_sse
 
-# Import OCR functionality
+# Import OCR functionality (EasyOCR - no Tesseract needed!)
 try:
     from ocr_processor import get_ocr_processor
     OCR_AVAILABLE = True
@@ -272,11 +269,12 @@ async def ocr_upload():
     """
     Handle image upload and OCR processing.
     Extracts text from image and optionally analyzes it with AI.
+    Uses EasyOCR - no Tesseract installation required!
     """
     if not OCR_AVAILABLE:
         return jsonify({
             "success": False,
-            "error": "OCR functionality not available. Please install dependencies: pip install pytesseract pillow opencv-python"
+            "error": "OCR functionality not available. Please install dependencies: pip install easyocr pillow"
         }), 503
     
     try:
@@ -328,18 +326,82 @@ async def ocr_upload():
         # Get analysis request from form data
         form_data = await request.form
         analyze = form_data.get('analyze', 'true').lower() == 'true'
+        use_scraper = form_data.get('use_scraper', 'true').lower() == 'true'
         question = form_data.get('question', '')
         
         ai_analysis = None
+        evidence_articles = []
         
         if analyze and extracted_text:
-            # Prepare AI analysis
-            if question:
-                user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nUser's question: {question}"
-            else:
-                user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nPlease analyze this text and provide insights."
+            # If scraper is enabled, gather evidence first
+            if use_scraper and len(extracted_text.split()) > 10:
+                try:
+                    logging.info(f"🔍 Using scraper to gather evidence for OCR text...")
+                    
+                    # Use first 200 chars or key phrases as search query
+                    search_query = extracted_text[:200] if len(extracted_text) > 200 else extracted_text
+                    
+                    # Get evidence from scraper
+                    evidence_articles = await loop.run_in_executor(
+                        executor,
+                        get_diversified_evidence,
+                        search_query,
+                        3  # Get 3 articles for evidence
+                    )
+                    
+                    logging.info(f"✅ Gathered {len(evidence_articles)} evidence articles")
+                    
+                except Exception as scraper_error:
+                    logging.error(f"Scraper error: {scraper_error}")
+                    # Continue without scraper evidence
             
-            system_prompt = """You are Atlas, an AI assistant helping analyze text from images.
+            # Prepare AI analysis with evidence
+            if evidence_articles:
+                # Build context from evidence
+                evidence_context = "\n\n---EVIDENCE FROM WEB SOURCES---\n\n"
+                for idx, article in enumerate(evidence_articles, 1):
+                    evidence_context += f"Source {idx}: {article.get('title', 'Unknown')}\n"
+                    evidence_context += f"URL: {article.get('url', 'N/A')}\n"
+                    summary = article.get('summary') or article.get('text', '')[:300]
+                    evidence_context += f"Content: {summary}...\n\n"
+                
+                if question:
+                    user_message = f"""Here is text extracted from an image:
+
+{extracted_text}
+
+{evidence_context}
+
+User's question: {question}
+
+Please analyze the extracted text using the evidence provided from web sources. Verify claims, identify any misinformation, and provide a fact-checked analysis."""
+                else:
+                    user_message = f"""Here is text extracted from an image:
+
+{extracted_text}
+
+{evidence_context}
+
+Please analyze this text using the evidence provided from web sources. Verify the accuracy of any claims, identify potential misinformation, and provide a comprehensive fact-checked analysis."""
+                
+                system_prompt = """You are Atlas, an advanced misinformation fighter and fact-checker.
+You have been provided with text extracted from an image along with evidence from credible web sources.
+Your task is to:
+1. Identify key claims or information in the extracted text
+2. Cross-reference with the provided evidence
+3. Verify accuracy and flag any misinformation
+4. Provide a clear, evidence-based analysis
+5. Cite sources when referencing evidence
+
+Be thorough, objective, and help users understand the truth."""
+            else:
+                # No evidence available, proceed with basic analysis
+                if question:
+                    user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nUser's question: {question}"
+                else:
+                    user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nPlease analyze this text and provide insights."
+                
+                system_prompt = """You are Atlas, an AI assistant helping analyze text from images.
 Provide clear, helpful analysis of the text content.
 If the text appears to contain claims or information, verify its accuracy."""
             
@@ -376,6 +438,16 @@ If the text appears to contain claims or information, verify its accuracy."""
                 "word_count": ocr_result["word_count"]
             },
             "ai_analysis": ai_analysis,
+            "evidence_count": len(evidence_articles),
+            "evidence_sources": [
+                {
+                    "title": article.get('title', 'Unknown'),
+                    "url": article.get('url', ''),
+                    "domain": article.get('domain', ''),
+                    "summary": article.get('summary', '')
+                }
+                for article in evidence_articles
+            ] if evidence_articles else [],
             "filename": image_file.filename
         })
         
