@@ -944,7 +944,13 @@
             // Update page title based on mode
             const chatTitle = document.getElementById('chatTitle');
             if (chatTitle) {
-                chatTitle.textContent = this.currentMode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
+                if (this.currentMode === 'debate') {
+                    chatTitle.textContent = '🎭 Atlas Debate Mode';
+                    chatTitle.style.color = '#ef4444'; // Red accent for debate
+                } else {
+                    chatTitle.textContent = '💬 Chat with Atlas';
+                    chatTitle.style.color = '#60a5fa'; // Blue accent for chat
+                }
             }
 
             // Clear messages container and add single welcome message
@@ -1070,7 +1076,13 @@
             this.currentMode = mode;
             const chatTitle = document.getElementById('chatTitle');
             if (chatTitle) {
-                chatTitle.textContent = mode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
+                if (mode === 'debate') {
+                    chatTitle.textContent = '🎭 Atlas Debate Mode';
+                    chatTitle.style.color = '#ef4444'; // Red accent for debate
+                } else {
+                    chatTitle.textContent = '💬 Chat with Atlas';
+                    chatTitle.style.color = '#60a5fa'; // Blue accent for chat
+                }
             }
             
             // Update URL without reloading
@@ -1088,6 +1100,8 @@
                 messages.innerHTML = '';
                 this.addWelcomeMessage();
             }
+            
+            console.log(`✅ Switched to ${mode} mode`);
         },
 
         setupEventListeners() {
@@ -1161,45 +1175,63 @@
             );
 
             try {
-                console.log('Sending message:', message, 'V2 enabled:', v2Enabled);
+                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
                 
                 let response;
-                if (v2Enabled && typeof ATLASv2 !== 'undefined') {
-                    // Use v2.0 enhanced analysis
+                
+                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+                if (this.currentMode === 'debate') {
+                    console.log('🎭 Running debate mode...');
                     response = await Promise.race([
-                        ATLASv2.analyzeWithV2(message, {
-                            num_agents: 6,
-                            enable_reversal: true,
-                            reversal_rounds: 2
-                        }),
+                        API.sendMessage(message, 'debate'),
                         timeoutPromise
                     ]);
                     
-                    console.log('Received v2.0 response:', response);
                     Messages.hideLoading();
                     
-                    if (response.success && response.data) {
-                        // Use V2UI to render enhanced response
-                        const v2Card = V2UI.createV2ResponseCard(response.data);
-                        Messages.addAIMessageHTML(v2Card);
-                    } else {
-                        Messages.addAIMessage(response.error || 'v2.0 analysis failed');
-                    }
-                } else {
-                    // Use standard v1.0 analysis
-                    response = await Promise.race([
-                        API.sendMessage(message, this.currentMode),
-                        timeoutPromise
-                    ]);
-                    
-                    console.log('Received response:', response);
-                    Messages.hideLoading();
-                    
-                    // Check if it's an SSE stream (debate mode)
+                    // Should be SSE stream
                     if (response && response.isStream) {
                         await this.handleDebateStream(response.response, message);
                     } else {
-                        // Regular response
+                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                    }
+                }
+                // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
+                else {
+                    if (v2Enabled && typeof ATLASv2 !== 'undefined') {
+                        console.log('💎 Using v2.0 enhanced analysis...');
+                        // Use v2.0 enhanced analysis
+                        response = await Promise.race([
+                            ATLASv2.analyzeWithV2(message, {
+                                num_agents: 6,
+                                enable_reversal: true,
+                                reversal_rounds: 2
+                            }),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received v2.0 response:', response);
+                        Messages.hideLoading();
+                        
+                        if (response.success && response.data) {
+                            // Use V2UI to render enhanced response
+                            const v2Card = V2UI.createV2ResponseCard(response.data);
+                            Messages.addAIMessageHTML(v2Card);
+                        } else {
+                            Messages.addAIMessage(response.error || 'v2.0 analysis failed');
+                        }
+                    } else {
+                        console.log('💬 Using standard chat analysis...');
+                        // Use standard v1.0 analysis
+                        response = await Promise.race([
+                            API.sendMessage(message, 'analytical'),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received response:', response);
+                        Messages.hideLoading();
+                        
+                        // Regular chat response
                         const aiMessage = response.analysis || 
                                         response.result || 
                                         response.answer ||
@@ -1326,9 +1358,12 @@
         },
 
         addWelcomeMessage() {
-            const message = this.currentMode === 'debate' 
-                ? "Welcome to **Debate Mode**! I'll analyze topics from multiple perspectives and provide evidence-based insights."
-                : "Hello! I'm **Atlas**, your misinformation fighter. Ask me anything!";
+            let message;
+            if (this.currentMode === 'debate') {
+                message = "🎭 **Welcome to Debate Mode!**\n\nI'll analyze your topic by presenting arguments from both sides:\n• 🔵 **Proponent** - Arguments in favor\n• 🔴 **Opponent** - Counter-arguments\n• 🎙️ **Moderator** - Synthesis and balance\n\nAsk me to debate any topic!";
+            } else {
+                message = "👋 Hello! I'm **Atlas**, your misinformation fighter.\n\n💬 **Chat Mode**: I'll provide clear, factual analysis of your questions.\n\n💡 **Tip**: Toggle v2.0 for enhanced multi-perspective analysis, or switch to Debate mode for structured debates!";
+            }
             Messages.addAIMessage(message);
         }
     };
