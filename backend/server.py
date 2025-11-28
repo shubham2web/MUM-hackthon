@@ -480,6 +480,26 @@ If the text appears to contain claims or information, verify its accuracy."""
         }), 500
 
 # -----------------------------
+# Helper: Truncate transcript to prevent payload bloat
+# -----------------------------
+def get_recent_transcript(transcript: str, max_chars: int = 3000) -> str:
+    """Keep only the most recent portion of the transcript to avoid payload size issues"""
+    if len(transcript) <= max_chars:
+        return transcript
+    
+    # Keep the last max_chars characters
+    truncated = transcript[-max_chars:]
+    
+    # Find the first complete section marker to avoid cutting mid-sentence
+    markers = ["---", "Debate ID:", "Topic:"]
+    for marker in markers:
+        pos = truncated.find(marker)
+        if pos > 0 and pos < 500:  # If we find a marker near the start
+            return "...[earlier debate content truncated]...\n\n" + truncated[pos:]
+    
+    return "...[earlier debate content truncated]...\n\n" + truncated
+
+# -----------------------------
 # Debate Generator
 # -----------------------------
 async def generate_debate(topic: str):
@@ -496,9 +516,10 @@ async def generate_debate(topic: str):
 
         evidence_bundle = await loop.run_in_executor(executor, get_diversified_evidence, topic)
         
+        # Truncate articles to prevent payload bloat (limit each article to 300 chars)
         article_text = "\n\n".join(
-            f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')}"
-            for article in evidence_bundle
+            f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')[:300]}..."
+            for article in evidence_bundle[:3]  # Limit to 3 articles max
         )
         transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\nSources:\n{article_text}\n\n"
 
