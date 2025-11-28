@@ -44,8 +44,6 @@
     display: flex;
     gap: 4px;
     padding: 8px 0;
-}
-
 .typing-indicator span {
     width: 8px;
     height: 8px;
@@ -91,3 +89,7 @@
     0% { opacity: 1; }
     100% { opacity: 0; }
 }
+
+/* Hide global starry background in light mode */
+body.light-mode .starry-background { display: none !important; }
+
