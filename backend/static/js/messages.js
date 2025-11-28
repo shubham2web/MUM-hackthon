@@ -1,6 +1,7 @@
 // Messages Module
 const Messages = {
     container: null,
+    thinkingInterval: null,  // Track dynamic thinking animation
 
     init(containerSelector) {
         this.container = document.querySelector(containerSelector);
@@ -71,6 +72,17 @@ const Messages = {
     },
 
     showLoading() {
+        // Dynamic Thinking states that cycle every 2.5 seconds
+        const thinkingStates = [
+            "🧠 Searching Internal Memory...",
+            "🌐 Accessing Web Tools...",
+            "⚡ Fetching External Sources...",
+            "📑 Reading & Summarizing Content...",
+            "🤖 Generating Analysis..."
+        ];
+        
+        let currentStateIndex = 0;
+        
         const loadingDiv = document.createElement('div');
         loadingDiv.className = 'message ai-message loading-message';
         loadingDiv.id = 'loading-indicator';
@@ -87,14 +99,38 @@ const Messages = {
                     <div class="typing-indicator">
                         <span></span><span></span><span></span>
                     </div>
+                    <div class="thinking-status" style="margin-top: 8px; font-size: 0.9em; color: rgba(255, 255, 255, 0.7); transition: opacity 0.3s ease;">
+                        ${thinkingStates[0]}
+                    </div>
                 </div>
             </div>
         `;
         this.container.appendChild(loadingDiv);
         this.scrollToBottom();
+        
+        // Start cycling through thinking states
+        const statusElement = loadingDiv.querySelector('.thinking-status');
+        this.thinkingInterval = setInterval(() => {
+            // Fade out
+            statusElement.style.opacity = '0';
+            
+            setTimeout(() => {
+                // Change text and fade in
+                currentStateIndex = (currentStateIndex + 1) % thinkingStates.length;
+                statusElement.textContent = thinkingStates[currentStateIndex];
+                statusElement.style.opacity = '1';
+            }, 300); // Wait for fade out to complete
+            
+        }, 2500); // Change every 2.5 seconds
     },
 
     hideLoading() {
+        // Clear the thinking animation interval
+        if (this.thinkingInterval) {
+            clearInterval(this.thinkingInterval);
+            this.thinkingInterval = null;
+        }
+        
         const loading = document.getElementById('loading-indicator');
         if (loading) {
             loading.remove();
@@ -123,5 +159,83 @@ const Messages = {
 
     getTimeString() {
         return new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+    },
+
+    // === GOD MODE: RENDER ARTIFACTS ===
+    renderGodModeArtifacts(messageDiv, meta) {
+        if (!meta) return;
+
+        // Get the message-text container to append God Mode elements
+        const messageText = messageDiv.querySelector('.message-text');
+        if (!messageText) return;
+
+        // --- A. Render Citation Card ---
+        if (meta.primary_source || meta.rag_status) {
+            const card = document.createElement('div');
+            card.className = 'god-mode-card';
+            
+            // Logic to determine badge style
+            let badgeClass = 'badge-live';
+            let badgeText = 'LIVE FETCH';
+            let icon = '🌐';
+
+            if (meta.rag_status === 'CACHE_HIT') {
+                badgeClass = 'badge-cache';
+                badgeText = `⚡ CACHE (${meta.latency}s)`;
+                icon = '⚡';
+            } else if (meta.rag_status === 'VECTOR_RECALL' || meta.memory_active) {
+                badgeClass = 'badge-brain';
+                badgeText = '🧠 MEMORY';
+                icon = '🧠';
+            } else if (meta.rag_status === 'INTERNAL_KNOWLEDGE') {
+                badgeClass = 'badge-brain';
+                badgeText = '🧠 INTERNAL';
+                icon = '🧠';
+            }
+
+            let sourceHtml = '';
+            if (meta.primary_source) {
+                sourceHtml = `<span style="opacity:0.7">via</span>
+                <a href="#" class="god-mode-source">${meta.primary_source}</a>`;
+            }
+
+            card.innerHTML = `
+                <span class="god-mode-badge ${badgeClass}">${icon} ${badgeText}</span>
+                ${sourceHtml}
+            `;
+            
+            messageText.appendChild(card);
+        }
+
+        // --- B. Trigger Memory Toast ---
+        if (meta.memory_active) {
+            this.triggerMemoryToast();
+        }
+    },
+
+    // === GOD MODE: MEMORY TOAST ANIMATION ===
+    triggerMemoryToast() {
+        // Check if container exists
+        let container = document.getElementById('memory-toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'memory-toast-container';
+            document.body.appendChild(container);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = 'memory-toast';
+        toast.innerHTML = `<span>🧠</span> KNOWLEDGE PERMANENTLY STORED`;
+        
+        container.appendChild(toast);
+
+        // Animate In
+        requestAnimationFrame(() => toast.classList.add('active'));
+
+        // Remove after 3s
+        setTimeout(() => {
+            toast.classList.remove('active');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 };

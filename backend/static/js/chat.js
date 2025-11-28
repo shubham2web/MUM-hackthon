@@ -330,100 +330,100 @@ const Chat = {
             setTimeout(() => reject(new Error('Request timed out')), 180000)
         );
 
-        try {
-            // Check v2 toggle state
-            const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
-            console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
-
-            // Collect conversation history from chat messages
-            const conversationHistory = this.getConversationHistory();
-
-            let response;
-
-            // DEBATE MODE: Always use streaming debate, ignore v2 toggle
-            if (this.currentMode === 'debate') {
-                console.log('🎭 Running debate mode...');
-                response = await Promise.race([
-                    API.sendMessage(message, 'debate', conversationHistory),
-                    timeoutPromise
-                ]);
-
-                // DON'T hide loading yet - let it continue until first debate message arrives
-
-                // Should be SSE stream
-                if (response && response.isStream) {
-                    await this.handleDebateStream(response.response, message);
-                } else {
-                    Messages.hideLoading();
-                    Messages.addAIMessage('Error: Expected debate stream but got regular response.');
-                }
-            }
-            // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
-            else {
-                if (v2Enabled && typeof ATLASv2 !== 'undefined') {
-                    console.log('💎 Using v2.0 enhanced analysis...');
-                    // Use v2.0 enhanced analysis
+            try {
+                // Check v2 toggle state
+                const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
+                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
+                
+                // Collect conversation history from chat messages
+                const conversationHistory = this.getConversationHistory();
+                
+                let response;
+                
+                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+                if (this.currentMode === 'debate') {
+                    console.log('🎭 Running debate mode...');
                     response = await Promise.race([
-                        ATLASv2.analyzeWithV2(message, {
-                            num_agents: 4,
-                            enable_reversal: true,
-                            reversal_rounds: 1
-                        }),
+                        API.sendMessage(message, 'debate', conversationHistory),
                         timeoutPromise
                     ]);
-
-                    console.log('Received v2.0 response:', response);
-                    Messages.hideLoading();
-
-                    if (response.success && response.data) {
-                        // Use V2UI to render enhanced response
-                        const v2Card = V2UI.createV2ResponseCard(response.data);
-                        this.addV2Card(v2Card);
-                        // Persist a short synthesis from v2 response if available
-                        try {
-                            const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
-                            if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
-                        } catch (e) { console.warn('append v2 response failed', e); }
+                    
+                    // DON'T hide loading yet - let it continue until first debate message arrives
+                    
+                    // Should be SSE stream
+                    if (response && response.isStream) {
+                        await this.handleDebateStream(response.response, message);
                     } else {
-                        Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
+                        Messages.hideLoading();
+                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
                     }
-                } else {
-                    console.log('💬 Using standard chat analysis...');
-                    // Use standard v1.0 analysis
-                    response = await Promise.race([
-                        API.sendMessage(message, 'analytical', conversationHistory),
-                        timeoutPromise
-                    ]);
-
-                    console.log('Received response:', response);
-                    Messages.hideLoading();
-
-                    // Regular chat response
-                    const aiMessage = response.analysis ||
-                        response.result ||
-                        response.answer ||
-                        'No response received.';
-
-                    Messages.addAIMessage(aiMessage);
-                    // Persist assistant reply (best-effort)
-                    try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
                 }
+                // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
+                else {
+                    if (v2Enabled && typeof ATLASv2 !== 'undefined') {
+                        console.log('💎 Using v2.0 enhanced analysis...');
+                        // Use v2.0 enhanced analysis
+                        response = await Promise.race([
+                            ATLASv2.analyzeWithV2(message, {
+                                num_agents: 4,
+                                enable_reversal: true,
+                                reversal_rounds: 1
+                            }),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received v2.0 response:', response);
+                        Messages.hideLoading();
+                        
+                        if (response.success && response.data) {
+                            // Use V2UI to render enhanced response
+                            const v2Card = V2UI.createV2ResponseCard(response.data);
+                            this.addV2Card(v2Card);
+                            // Persist a short synthesis from v2 response if available
+                            try {
+                                const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
+                                if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
+                            } catch (e) { console.warn('append v2 response failed', e); }
+                        } else {
+                            Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
+                        }
+                    } else {
+                        console.log('💬 Using standard chat analysis...');
+                        // Use standard v1.0 analysis
+                        response = await Promise.race([
+                            API.sendMessage(message, 'analytical', conversationHistory),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received response:', response);
+                        Messages.hideLoading();
+                        
+                        // Regular chat response
+                        const aiMessage = response.analysis || 
+                                        response.result || 
+                                        response.answer ||
+                                        'No response received.';
+                                        
+                        Messages.addAIMessage(aiMessage);
+                        // Persist assistant reply (best-effort)
+                        try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
+                    }
+                }
+                
+            } catch (error) {
+                Messages.hideLoading();
+                
+                if (error.message === 'Request timed out') {
+                    Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
+                } else {
+                    Messages.addAIMessage('❌ Error: ' + error.message);
+                }
+                
+                console.error('Chat error:', error);
+            } finally {
+                this.isProcessing = false;
             }
-
-        } catch (error) {
-            Messages.hideLoading();
-
-            if (error.message === 'Request timed out') {
-                Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
-            } else {
-                Messages.addAIMessage('❌ Error: ' + error.message);
-            }
-
-            console.error('Chat error:', error);
-        } finally {
-            this.isProcessing = false;
-        }
-    },
+        },
 
     async handleDebateStream(response, originalTopic) {
         console.log('📡 Handling debate stream...');

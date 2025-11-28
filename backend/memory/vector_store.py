@@ -802,7 +802,7 @@ class VectorStore:
         if enable_chunking and len(text) > chunk_threshold:
             try:
                 from memory.chunker import SemanticChunker
-                chunker = SemanticChunker(embedding_service=self.embedding_service)
+                chunker = SemanticChunker()
                 chunks = chunker.split_text(text)
                 
                 if len(chunks) > 1:
