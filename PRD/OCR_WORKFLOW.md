@@ -126,26 +126,26 @@
 ┌─────────────────────────────────────────────────────────────────┐
 │                                                                 │
 │   Frontend                                                      │
-│   ├─ HTML5 (ocr.html)                                          │
-│   ├─ CSS3 (Responsive design)                                  │
-│   └─ JavaScript (Fetch API, FormData)                          │
+│   ├─ HTML5 (ocr.html)                                           │
+│   ├─ CSS3 (Responsive design)                                   │
+│   └─ JavaScript (Fetch API, FormData)                           │
 │                                                                 │
 │   Backend                                                       │
-│   ├─ Python 3.x                                                │
-│   ├─ Quart (Async web framework)                               │
-│   ├─ ocr_processor.py (OCR logic)                              │
-│   └─ ai_agent.py (AI integration)                              │
+│   ├─ Python 3.x                                                 │
+│   ├─ Quart (Async web framework)                                │
+│   ├─ ocr_processor.py (OCR logic)                               │
+│   └─ ai_agent.py (AI integration)                               │
 │                                                                 │
 │   OCR Engine                                                    │
-│   ├─ Tesseract OCR (v5.x)                                      │
-│   ├─ pytesseract (Python wrapper)                              │
-│   ├─ Pillow (Image I/O)                                        │
-│   └─ OpenCV (Preprocessing)                                    │
+│   ├─ Tesseract OCR (v5.x)                                       │
+│   ├─ pytesseract (Python wrapper)                               │
+│   ├─ Pillow (Image I/O)                                         │
+│   └─ OpenCV (Preprocessing)                                     │
 │                                                                 │
 │   AI Layer                                                      │
-│   ├─ Groq API (Primary)                                        │
-│   ├─ HuggingFace (Fallback)                                    │
-│   └─ LLaMA 3 models                                            │
+│   ├─ Groq API (Primary)                                         │
+│   ├─ HuggingFace (Fallback)                                     │
+│   └─ LLaMA 3 models                                             │
 │                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 
