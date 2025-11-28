@@ -323,56 +323,6 @@
     <script src="{{ url_for('static', filename='js/homepage.js') }}"></script>
     <script src="{{ url_for('static', filename='js/role_reversal_ui.js') }}"></script>
 
-    <script>
-        // Add this after your existing inline script
-        document.addEventListener('DOMContentLoaded', function() {
-            const micBtn = document.getElementById('micBtn');
-            const promptInput = document.getElementById('prompt');
-
-            if ('webkitSpeechRecognition' in window) {
-                const recognition = new webkitSpeechRecognition();
-                recognition.continuous = false;
-                recognition.interimResults = false;
-                recognition.lang = 'en-US';
-
-                let isListening = false;
-
-                micBtn.addEventListener('click', () => {
-                    if (!isListening) {
-                        recognition.start();
-                        micBtn.style.color = '#00d9ff'; // Cyan color when active
-                        micBtn.style.boxShadow = '0 0 10px #00d9ff';
-                    } else {
-                        recognition.stop();
-                        micBtn.style.color = '';
-                        micBtn.style.boxShadow = '';
-                    }
-                    isListening = !isListening;
-                });
-
-                recognition.onresult = (event) => {
-                    const transcript = event.results[0][0].transcript;
-                    promptInput.value = transcript;
-                    micBtn.style.color = '';
-                    micBtn.style.boxShadow = '';
-                    isListening = false;
-                };
-
-                recognition.onerror = () => {
-                    micBtn.style.color = '';
-                    micBtn.style.boxShadow = '';
-                    isListening = false;
-                };
-
-                recognition.onend = () => {
-                    micBtn.style.color = '';
-                    micBtn.style.boxShadow = '';
-                    isListening = false;
-                };
-            } else {
-                micBtn.style.display = 'none'; // Hide mic button if not supported
-            }
-        });
-    </script>
+    <script src="{{ url_for('static', filename='js/mic.js') }}?v={{ range(1,10000)|random }}"></script>
 </body>
 </html>
