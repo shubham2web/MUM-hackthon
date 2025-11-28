@@ -35,15 +35,13 @@ logging.warning("OCR functionality temporarily disabled to speed up server start
 
 # Import v2.0 routes
 # Temporarily disabled due to slow transformers loading
-V2_AVAILABLE = False
-logging.warning("⚠️ ATLAS v2.0 routes temporarily disabled to speed up server startup.")
-# try:
-#     from api.api_v2_routes import v2_bp
-#     V2_AVAILABLE = True
-#     logging.info("✅ ATLAS v2.0 routes loaded successfully")
-# except ImportError as e:
-#     V2_AVAILABLE = False
-#     logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
+try:
+    from api.api_v2_routes import v2_bp
+    V2_AVAILABLE = True
+    logging.info("✅ ATLAS v2.0 routes loaded successfully")
+except ImportError as e:
+    V2_AVAILABLE = False
+    logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
 
 # Import Hybrid Memory System routes
 try:
