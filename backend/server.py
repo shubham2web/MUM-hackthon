@@ -8,6 +8,9 @@ import uuid
 from concurrent.futures import ThreadPoolExecutor
 import sys
 
+# Set Tesseract path BEFORE importing ocr_processor
+os.environ["TESSERACT_CMD"] = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+
 from quart import Quart, render_template, request, jsonify, send_from_directory, Response
 from quart_cors import cors
 from limits import parse
@@ -20,6 +23,13 @@ from config import API_KEY, DEBUG_MODE, DEFAULT_MAX_TOKENS, DEFAULT_MODEL, ROLE_
 from db_manager import AsyncDbManager, DATABASE_FILE
 from pro_scraper import get_diversified_evidence
 from utils import compute_advanced_analytics, format_sse
+
+try:
+    from ocr_processor import get_ocr_processor
+    OCR_AVAILABLE = True
+except ImportError:
+    OCR_AVAILABLE = False
+    logging.warning("OCR functionality not available. Install dependencies: pip install pytesseract pillow opencv-python")
 
 # --------------------------
 # Setup Quart App & Executor
@@ -75,7 +85,7 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic'] or  # ← CHANGE 'chat_page' to 'chat'
+    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload'] or  # Added ocr_upload
         request.path.startswith('/static/') or
         not API_KEY or 
         request.method == 'OPTIONS'):
@@ -111,11 +121,16 @@ async def home():
     """Landing/Hero page"""
     return await render_template("homepage.html")
 
-@app.route('/chat')
+@app.route("/chat")
 async def chat():
     """Render the chat interface with optional mode parameter"""
     mode = request.args.get('mode', 'analytical')
     return await render_template('index.html', mode=mode)
+
+@app.route("/ocr")
+async def ocr_page():
+    """Render the OCR interface"""
+    return await render_template('ocr.html')
 
 @app.route("/healthz")
 async def healthz():
@@ -231,6 +246,125 @@ Keep your response concise (2-3 paragraphs)."""
             "success": False,
             "error": str(e),
             "analysis": "Sorry, I encountered an error processing your request."
+        }), 500
+
+@app.route("/ocr_upload", methods=["POST"])
+async def ocr_upload():
+    """
+    Handle image upload and OCR processing.
+    Extracts text from image and optionally analyzes it with AI.
+    """
+    if not OCR_AVAILABLE:
+        return jsonify({
+            "success": False,
+            "error": "OCR functionality not available. Please install dependencies: pip install pytesseract pillow opencv-python"
+        }), 503
+    
+    try:
+        files = await request.files
+        
+        if 'image' not in files:
+            return jsonify({"error": "No image file provided"}), 400
+        
+        image_file = files['image']
+        
+        if not image_file.filename:
+            return jsonify({"error": "Empty filename"}), 400
+        
+        # Check file format
+        from ocr_processor import OCRProcessor
+        if not OCRProcessor.is_supported_format(image_file.filename):
+            return jsonify({
+                "error": f"Unsupported file format. Supported formats: {', '.join(OCRProcessor.get_supported_formats())}"
+            }), 400
+        
+        # Read image bytes - FileStorage.read() is synchronous, not async
+        image_bytes = image_file.read()
+        
+        if len(image_bytes) == 0:
+            return jsonify({"error": "Empty file"}), 400
+        
+        # Log file info
+        logging.info(f"Processing OCR for image: {image_file.filename} ({len(image_bytes)} bytes)")
+        
+        # Process OCR
+        loop = asyncio.get_running_loop()
+        ocr_processor = get_ocr_processor()
+        
+        # Run OCR in executor to avoid blocking
+        ocr_result = await loop.run_in_executor(
+            executor,
+            ocr_processor.extract_text_from_bytes,
+            image_bytes
+        )
+        
+        if not ocr_result["success"]:
+            return jsonify({
+                "success": False,
+                "error": ocr_result.get("error", "OCR processing failed")
+            }), 500
+        
+        extracted_text = ocr_result["text"]
+        
+        # Get analysis request from form data
+        form_data = await request.form
+        analyze = form_data.get('analyze', 'true').lower() == 'true'
+        question = form_data.get('question', '')
+        
+        ai_analysis = None
+        
+        if analyze and extracted_text:
+            # Prepare AI analysis
+            if question:
+                user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nUser's question: {question}"
+            else:
+                user_message = f"Here is text extracted from an image:\n\n{extracted_text}\n\nPlease analyze this text and provide insights."
+            
+            system_prompt = """You are Atlas, an AI assistant helping analyze text from images.
+Provide clear, helpful analysis of the text content.
+If the text appears to contain claims or information, verify its accuracy."""
+            
+            # Generate AI response
+            ai_agent = AiAgent()
+            
+            def collect_ai_stream():
+                result = ""
+                try:
+                    stream_gen = ai_agent.stream(
+                        user_message=user_message,
+                        system_prompt=system_prompt,
+                        max_tokens=800
+                    )
+                    for chunk in stream_gen:
+                        result += chunk
+                except Exception as e:
+                    logging.error(f"AI analysis error: {e}")
+                return result
+            
+            try:
+                ai_analysis = await asyncio.wait_for(
+                    loop.run_in_executor(executor, collect_ai_stream),
+                    timeout=60.0
+                )
+            except asyncio.TimeoutError:
+                ai_analysis = "Analysis timed out. Please try again."
+        
+        return jsonify({
+            "success": True,
+            "ocr_result": {
+                "text": extracted_text,
+                "confidence": ocr_result["confidence"],
+                "word_count": ocr_result["word_count"]
+            },
+            "ai_analysis": ai_analysis,
+            "filename": image_file.filename
+        })
+        
+    except Exception as e:
+        logging.error(f"Error in OCR upload: {str(e)}", exc_info=True)
+        return jsonify({
+            "success": False,
+            "error": str(e)
         }), 500
 
 # -----------------------------
