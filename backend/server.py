@@ -3,6 +3,7 @@ import json
 import logging
 import mimetypes
 import os
+import re
 import time
 import traceback
 import uuid
@@ -87,17 +88,6 @@ except Exception as e:
 
 executor = ThreadPoolExecutor(max_workers=10)
 
-# --- Windows asyncio StopIteration fix ---
-def safe_next(iterator, default=None):
-    """
-    Safely get next item from iterator without raising StopIteration.
-    This is required for Windows asyncio compatibility (Python 3.7+).
-    """
-    try:
-        return next(iterator)
-    except StopIteration:
-        return default
-
 # --- JSON logging (production-ready) ---
 class JsonFormatter(logging.Formatter):
     def format(self, record):
@@ -139,7 +129,7 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-    if (request.endpoint in ['home', 'about', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
+    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
@@ -176,11 +166,6 @@ async def add_header(response):
 async def home():
     """Landing/Hero page"""
     return await render_template("homepage.html")
-
-@app.route("/about")
-async def about():
-    """About page"""
-    return await render_template("about.html")
 
 @app.route("/chat")
 async def chat():
@@ -730,6 +715,164 @@ If the text appears to contain claims or information, verify its accuracy."""
         }), 500
 
 # -----------------------------
+# Helper: Determine Debate Stances
+# -----------------------------
+def determine_debate_stances(topic: str, evidence_bundle: list) -> dict:
+    """
+    Analyzes the topic and evidence to provide specific stance instructions
+    for Proponent and Opponent to avoid generic arguments.
+    
+    Returns a dict with 'proponent_stance' and 'opponent_stance' keys.
+    """
+    try:
+        # Create a concise evidence summary
+        evidence_summary = "\n".join([
+            f"- {art.get('title', 'Unknown')}: {art.get('description', '')[:150]}"
+            for art in evidence_bundle[:5]
+        ]) if evidence_bundle else "No specific evidence available."
+        
+        stance_prompt = f"""Given this debate topic: "{topic}"
+
+And this evidence:
+{evidence_summary}
+
+Provide specific, concrete stances for both sides of the debate. Avoid generic arguments.
+
+For the PROPONENT side, identify:
+- The strongest factual claims they should make
+- Specific evidence types they should prioritize
+- 2-3 concrete talking points
+
+For the OPPONENT side, identify:
+- The strongest counter-arguments based on the evidence
+- Specific weaknesses to exploit in the proponent's likely arguments
+- 2-3 concrete rebuttal points
+
+Keep each stance to 2-3 sentences. Be specific and tactical."""
+
+        ai_agent = AiAgent()
+        response = ai_agent.call_blocking(
+            user_message=stance_prompt,
+            system_prompt="You are a debate strategy analyst. Provide clear, specific strategic guidance.",
+            max_tokens=500
+        )
+        
+        # Parse the response to extract stances
+        response_text = response.text
+        
+        # Simple heuristic parsing - look for proponent and opponent sections
+        proponent_stance = "Focus on evidence-based arguments that support the resolution."
+        opponent_stance = "Challenge the resolution with counter-evidence and logical rebuttals."
+        
+        if "proponent" in response_text.lower():
+            # Extract text after "proponent" keyword
+            parts = response_text.lower().split("opponent")
+            if len(parts) > 1:
+                proponent_part = parts[0].split("proponent")[-1].strip()
+                opponent_part = parts[1].strip()
+                proponent_stance = proponent_part[:400] if len(proponent_part) > 0 else proponent_stance
+                opponent_stance = opponent_part[:400] if len(opponent_part) > 0 else opponent_stance
+        
+        logging.info(f"✅ Generated debate stances for topic: {topic}")
+        return {
+            "proponent_stance": proponent_stance,
+            "opponent_stance": opponent_stance
+        }
+        
+    except Exception as e:
+        logging.error(f"Failed to determine debate stances: {e}")
+        # Return default stances if analysis fails
+        return {
+            "proponent_stance": "Build a strong, evidence-based argument in favor of the resolution.",
+            "opponent_stance": "Challenge the resolution with counter-evidence and logical analysis."
+        }
+
+
+# -----------------------------
+# Helper: Generate Final Verdict
+# -----------------------------
+def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list) -> dict:
+    """
+    Generates a final verdict by sending the debate transcript to the 'judge' role.
+    Uses call_blocking (not streaming) to ensure complete JSON response.
+    
+    Returns a dict with verdict, confidence_score, winning_argument, critical_analysis, key_evidence.
+    """
+    try:
+        # Truncate transcript to last 6000 characters to avoid token limits
+        truncated_transcript = transcript[-6000:] if len(transcript) > 6000 else transcript
+        
+        # Add marker if truncated
+        if len(transcript) > 6000:
+            truncated_transcript = "[Earlier content truncated for analysis]\n\n" + truncated_transcript
+        
+        # Create evidence context
+        evidence_context = "\n\nEvidence Sources:\n"
+        for i, art in enumerate(evidence_bundle[:10], 1):
+            evidence_context += f"{i}. {art.get('title', 'Unknown')} - {art.get('url', 'N/A')}\n"
+        
+        judge_input = f"""DEBATE TOPIC: {topic}
+
+{truncated_transcript}
+{evidence_context}
+
+Render your final verdict now."""
+        
+        # Use call_blocking to get complete response
+        ai_agent = AiAgent()
+        judge_prompt = ROLE_PROMPTS.get("judge", "You are a fact-checking judge. Provide a verdict in JSON format.")
+        
+        logging.info("🔍 Generating final verdict from judge...")
+        response = ai_agent.call_blocking(
+            user_message=judge_input,
+            system_prompt=judge_prompt,
+            max_tokens=800
+        )
+        
+        response_text = response.text.strip()
+        logging.info(f"Judge raw response: {response_text[:200]}...")
+        
+        # Extract JSON using regex (handles cases where model adds extra text)
+        import re
+        json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        
+        if json_match:
+            json_str = json_match.group(0)
+            verdict_data = json.loads(json_str)
+            
+            # Validate required fields
+            required_fields = ["verdict", "confidence_score", "winning_argument", "critical_analysis", "key_evidence"]
+            if all(field in verdict_data for field in required_fields):
+                logging.info(f"✅ Final verdict generated: {verdict_data.get('verdict')} (confidence: {verdict_data.get('confidence_score')}%)")
+                return verdict_data
+            else:
+                logging.error(f"Missing required fields in verdict JSON: {verdict_data.keys()}")
+                raise ValueError("Incomplete verdict data")
+        else:
+            logging.error(f"No JSON found in judge response: {response_text}")
+            raise ValueError("Could not extract JSON from judge response")
+            
+    except json.JSONDecodeError as e:
+        logging.error(f"Failed to parse judge verdict JSON: {e}")
+        return {
+            "verdict": "COMPLEX",
+            "confidence_score": 0,
+            "winning_argument": "Unable to determine due to parsing error",
+            "critical_analysis": "The verdict system encountered a technical error processing the debate.",
+            "key_evidence": []
+        }
+    except Exception as e:
+        logging.error(f"Error generating final verdict: {e}", exc_info=True)
+        return {
+            "verdict": "COMPLEX",
+            "confidence_score": 0,
+            "winning_argument": "Unable to determine due to system error",
+            "critical_analysis": f"An error occurred during verdict generation: {str(e)}",
+            "key_evidence": []
+        }
+
+
+# -----------------------------
 # Helper: Truncate transcript to prevent payload bloat
 # -----------------------------
 def get_recent_transcript(transcript: str, max_chars: int = 3000) -> str:
@@ -796,7 +939,15 @@ async def generate_debate(topic: str):
         else:
             transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\n"
 
-        debaters = {"proponent": ROLE_PROMPTS["proponent"], "opponent": ROLE_PROMPTS["opponent"]}
+        # 🎯 STEP 1: DETERMINE DEBATE STANCES
+        logging.info("🎯 Determining specific debate stances...")
+        stances = await loop.run_in_executor(executor, determine_debate_stances, topic, evidence_bundle)
+        
+        # Inject stances into role prompts
+        debaters = {
+            "proponent": ROLE_PROMPTS["proponent"] + f"\n\nSPECIFIC STRATEGY FOR THIS DEBATE:\n{stances['proponent_stance']}",
+            "opponent": ROLE_PROMPTS["opponent"] + f"\n\nSPECIFIC STRATEGY FOR THIS DEBATE:\n{stances['opponent_stance']}"
+        }
 
         # --- Moderator Introduction ---
         intro_prompt = ROLE_PROMPTS.get("moderator", "Introduce the debate topic based on the sources.")
@@ -844,6 +995,14 @@ async def generate_debate(topic: str):
                 synthesis_text += data.get("text", "")
             if event != "token" or data.get("text"):
                 yield format_sse(data, event)
+        
+        # 🎯 STEP 2: GENERATE FINAL VERDICT
+        logging.info("⚖️ Generating final verdict from Chief Fact-Checker...")
+        verdict_data = await loop.run_in_executor(executor, generate_final_verdict, topic, transcript, evidence_bundle)
+        
+        # Yield the verdict as a new SSE event
+        yield format_sse(verdict_data, "final_verdict")
+        logging.info(f"✅ Final verdict delivered: {verdict_data.get('verdict')}")
         
         # --- Final Analytics ---
         metrics = await loop.run_in_executor(executor, compute_advanced_analytics, evidence_bundle, transcript, turn_metrics)
@@ -919,13 +1078,13 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
             max_tokens=DEFAULT_MAX_TOKENS
         )
         
-        # Use safe_next to avoid StopIteration issues on Windows
         while True:
-            chunk = await loop.run_in_executor(executor, safe_next, stream_generator)
-            if chunk is None:  # Stream finished
+            try:
+                chunk = await loop.run_in_executor(executor, next, stream_generator)
+                full_response += chunk
+                yield "token", {"role": role, "text": chunk}
+            except StopIteration:
                 break
-            full_response += chunk
-            yield "token", {"role": role, "text": chunk}
         
         turn_metrics["turn_count"] += 1
         if is_rebuttal:
