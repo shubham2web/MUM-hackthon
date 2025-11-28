@@ -282,6 +282,11 @@
             border-left-color: #ef4444;
         }
         
+        .debate-message.moderator {
+            background: rgba(168, 85, 247, 0.1);
+            border-left-color: #a855f7;
+        }
+        
         .debate-header {
             display: flex;
             align-items: center;
@@ -297,6 +302,10 @@
         
         .debate-message.opponent .debate-header {
             color: #ef4444;
+        }
+        
+        .debate-message.moderator .debate-header {
+            color: #a855f7;
         }
         
         .debate-icon {
@@ -1298,9 +1307,9 @@
                                     messageDiv = this.createDebateMessage(currentRole);
                                 }
                                 
-                                // Append content
-                                if (json.content) {
-                                    currentContent += json.content;
+                                // Append content (backend sends "text" not "content")
+                                if (json.text || json.content) {
+                                    currentContent += (json.text || json.content);
                                     if (messageDiv) {
                                         messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
                                     }
@@ -1327,9 +1336,25 @@
         },
 
         formatDebateContent(content, role) {
-            const icon = role === 'proponent' ? '🔵' : '🔴';
-            const label = role === 'proponent' ? 'PROPONENT' : 'OPPONENT';
-            const colorClass = role === 'proponent' ? 'proponent' : 'opponent';
+            let icon, label, colorClass;
+            
+            if (role === 'proponent') {
+                icon = '🔵';
+                label = 'PROPONENT';
+                colorClass = 'proponent';
+            } else if (role === 'opponent') {
+                icon = '🔴';
+                label = 'OPPONENT';
+                colorClass = 'opponent';
+            } else if (role === 'moderator') {
+                icon = '🎙️';
+                label = 'MODERATOR';
+                colorClass = 'moderator';
+            } else {
+                icon = '💬';
+                label = role.toUpperCase();
+                colorClass = 'default';
+            }
             
             return `
                 <div class="debate-message ${colorClass}">
