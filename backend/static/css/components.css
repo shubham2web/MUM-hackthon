@@ -167,14 +167,16 @@
     display: flex;
     gap: 4px;
     padding: 8px 0;
+    min-height: 25px; /* Ensure space is reserved */
 }
 
 .typing-indicator span {
-    width: 8px;
-    height: 8px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.6);
+    background: rgba(255, 255, 255, 0.7);
     animation: typing 1.4s infinite;
+    will-change: transform, opacity; /* Optimize animation performance */
 }
 
 .typing-indicator span:nth-child(2) {
@@ -210,12 +212,6 @@
 body.light-mode .typing-indicator span {
     background: #0e7490; /* dark cyan */
     box-shadow: 0 0 6px rgba(14,116,144,0.18);
-}
-
-/* Slightly larger and softer dots for better visibility */
-.typing-indicator span {
-    width: 9px;
-    height: 9px;
 }
 
 
