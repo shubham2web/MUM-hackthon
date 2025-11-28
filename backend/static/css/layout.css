@@ -171,6 +171,29 @@ body.light-mode .logo-text {
     overflow: hidden;
 }
 
+/* New Chat button styles */
+#newChatBtn {
+    transition: all 0.3s ease;
+}
+
+#newChatBtn .new-chat-text {
+    opacity: 1;
+    transition: opacity 0.3s ease, width 0.3s ease;
+    white-space: nowrap;
+}
+
+.sidebar.collapsed #newChatBtn .new-chat-text {
+    opacity: 0;
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar.collapsed #newChatBtn {
+    padding: 10px !important;
+    justify-content: center !important;
+    gap: 0 !important;
+}
+
 .toggle-btn {
     position: absolute;
     top: 80px;

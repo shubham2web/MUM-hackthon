@@ -39,10 +39,20 @@
     flex-shrink: 0;
 }
 
+.sidebar.collapsed .nav-item svg {
+    margin-right: 0;
+}
+
 .nav-text {
     opacity: 1;
-    transition: opacity 0.3s ease;
+    transition: opacity 0.3s ease, width 0.3s ease;
     overflow: hidden;
+    white-space: nowrap;
+}
+
+.sidebar.collapsed .nav-text {
+    opacity: 0;
+    width: 0;
 }
 /* === MESSAGES === */
 .message {
