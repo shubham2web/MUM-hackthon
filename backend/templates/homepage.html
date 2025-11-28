@@ -7,7 +7,6 @@
     
     <!-- External CSS with cache busting -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/homepage.css') }}?v={{ range(1, 10000) | random }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/role_reversal.css') }}?v={{ range(1, 10000) | random }}">
     
     <!-- Inline critical CSS to ensure glow effect loads -->
     <style>
