@@ -99,10 +99,20 @@ const ChatStore = {
             if (messages) messages.innerHTML = '';
             if (data.chat.messages && data.chat.messages.length > 0) {
                 data.chat.messages.forEach(msg => {
+                    const isHtml = msg.metadata && msg.metadata.is_html;
+                    const messageText = msg.content || msg.text || '';
                     if (msg.role === 'user' && typeof Messages !== 'undefined') {
-                        Messages.addUserMessage(msg.content || '');
+                        if (isHtml) {
+                            Messages.addUserMessageWithHTML(messageText);
+                        } else {
+                            Messages.addUserMessage(messageText);
+                        }
                     } else if (msg.role === 'assistant' && typeof Messages !== 'undefined') {
-                        Messages.addAIMessage(msg.content || '');
+                        if (isHtml) {
+                            Messages.addAIMessageHTML(messageText);
+                        } else {
+                            Messages.addAIMessage(messageText);
+                        }
                     }
                 });
             } else {
@@ -113,12 +123,12 @@ const ChatStore = {
         } catch (e) { console.warn('openChat error', e); }
     },
 
-    async appendMessage(chatId, role, text) {
+    async appendMessage(chatId, role, text, metadata = {}) {
         try {
             const res = await fetch(`${this.baseURL}/api/chats/${chatId}/messages`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ role, content: text })
+                body: JSON.stringify({ role, text, metadata })
             });
             if (!res.ok) throw new Error(`appendMessage error: ${res.status}`);
             const data = await res.json();
@@ -139,7 +149,7 @@ const ChatStore = {
 
     async clearAllChats() {
         try {
-            const res = await fetch(`${this.baseURL}/api/chats`, { method: 'DELETE' });
+            const res = await fetch(`${this.baseURL}/api/chats/clear`, { method: 'POST' });
             if (!res.ok) throw new Error(`clearAllChats error: ${res.status}`);
             console.log('🗑️ All chats deleted');
             this.currentChatId = null;
