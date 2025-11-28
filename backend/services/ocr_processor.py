@@ -16,9 +16,9 @@ try:
     from PIL import Image
     import numpy as np
     EASYOCR_AVAILABLE = True
-except ImportError:
+except (ImportError, OSError) as e:
     EASYOCR_AVAILABLE = False
-    logging.warning("OCR dependencies not installed. Install with: pip install easyocr pillow")
+    logging.warning(f"OCR dependencies not available: {e}. Install with: pip install easyocr pillow torch torchvision")
 
 
 class OCRProcessor:

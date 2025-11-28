@@ -15,23 +15,24 @@ from limits.storage import MemoryStorage
 from limits.strategies import MovingWindowRateLimiter
 
 # Note: These local imports need to exist in your project structure
-from ai_agent import AiAgent
-from config import API_KEY, DEBUG_MODE, DEFAULT_MAX_TOKENS, DEFAULT_MODEL, ROLE_PROMPTS
-from db_manager import AsyncDbManager, DATABASE_FILE
-from pro_scraper import get_diversified_evidence
-from utils import compute_advanced_analytics, format_sse
+from core.ai_agent import AiAgent
+from core.config import API_KEY, DEBUG_MODE, DEFAULT_MAX_TOKENS, DEFAULT_MODEL, ROLE_PROMPTS
+from services.db_manager import AsyncDbManager, DATABASE_FILE
+from services.pro_scraper import get_diversified_evidence
+from core.utils import compute_advanced_analytics, format_sse
 
 # Import OCR functionality (EasyOCR - no Tesseract needed!)
 try:
-    from ocr_processor import get_ocr_processor
+    from services.ocr_processor import get_ocr_processor
     OCR_AVAILABLE = True
-except ImportError:
+    logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
+except (ImportError, OSError, RuntimeError) as e:
     OCR_AVAILABLE = False
-    logging.warning("OCR functionality not available. Install dependencies: pip install pytesseract pillow opencv-python")
+    logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
 
 # Import v2.0 routes
 try:
-    from api_v2_routes import v2_bp
+    from api.api_v2_routes import v2_bp
     V2_AVAILABLE = True
     logging.info("✅ ATLAS v2.0 routes loaded successfully")
 except ImportError as e:
@@ -289,7 +290,7 @@ async def ocr_upload():
             return jsonify({"error": "Empty filename"}), 400
         
         # Check file format
-        from ocr_processor import OCRProcessor
+        from services.ocr_processor import OCRProcessor
         if not OCRProcessor.is_supported_format(image_file.filename):
             return jsonify({
                 "error": f"Unsupported file format. Supported formats: {', '.join(OCRProcessor.get_supported_formats())}"
