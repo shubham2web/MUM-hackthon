@@ -17,14 +17,14 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime
 
 # Import v2.0 modules
-from credibility_engine import CredibilityEngine, Source, CredibilityScore
-from role_library import RoleLibrary, AgentRole
-from role_reversal_engine import RoleReversalEngine, ReversalRound, ConvergenceMetrics
-from bias_auditor import BiasAuditor, BiasFlag, BiasProfile
+from v2_features.credibility_engine import CredibilityEngine, Source, CredibilityScore
+from v2_features.role_library import RoleLibrary, AgentRole
+from v2_features.role_reversal_engine import RoleReversalEngine, ReversalRound, ConvergenceMetrics
+from v2_features.bias_auditor import BiasAuditor, BiasFlag, BiasProfile
 
 # Import existing modules
-from ai_agent import AiAgent
-from pro_scraper import get_diversified_evidence
+from core.ai_agent import AiAgent
+from services.pro_scraper import get_diversified_evidence
 
 
 class ATLASv2:
