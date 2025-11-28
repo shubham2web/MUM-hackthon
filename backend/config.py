@@ -98,6 +98,11 @@ def setup_logging():
 setup_logging()
 logger = logging.getLogger(__name__)
 
+# --- OCR CONFIGURATION ---
+# Tesseract OCR path for Windows
+TESSERACT_CMD = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+os.environ["TESSERACT_CMD"] = TESSERACT_CMD  # Set it globally for ocr_processor to use
+
 # --- STARTUP VALIDATION ---
 def validate_configuration():
     global CONFIG_HEALTH
