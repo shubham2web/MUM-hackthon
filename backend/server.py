@@ -21,6 +21,15 @@ from db_manager import AsyncDbManager, DATABASE_FILE
 from pro_scraper import get_diversified_evidence
 from utils import compute_advanced_analytics, format_sse
 
+# Import v2.0 routes
+try:
+    from api_v2_routes import v2_bp
+    V2_AVAILABLE = True
+    logging.info("✅ ATLAS v2.0 routes loaded successfully")
+except ImportError as e:
+    V2_AVAILABLE = False
+    logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
+
 # --------------------------
 # Setup Quart App & Executor
 # --------------------------
@@ -30,7 +39,15 @@ app = Quart(__name__,
 
 # --- CORS setup with environment variable ---
 ALLOWED_ORIGIN = os.getenv("ALLOWED_ORIGIN", "*")
-app = cors(app, allow_origin=ALLOWED_ORIGIN)
+app = cors(app, 
+           allow_origin=ALLOWED_ORIGIN,
+           allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+           allow_headers=["Content-Type", "Authorization"])
+
+# --- Register v2.0 Blueprint ---
+if V2_AVAILABLE:
+    app.register_blueprint(v2_bp)
+    logging.info("✅ ATLAS v2.0 endpoints registered at /v2/*")
 
 executor = ThreadPoolExecutor(max_workers=10)
 
@@ -77,6 +94,7 @@ async def check_api_key():
     # Allow access without API key for these endpoints
     if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic'] or  # ← CHANGE 'chat_page' to 'chat'
         request.path.startswith('/static/') or
+        request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         not API_KEY or 
         request.method == 'OPTIONS'):
         return

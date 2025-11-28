@@ -13,6 +13,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout.css') }}?v={{ range(1, 10000) | random }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v={{ range(1, 10000) | random }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}?v={{ range(1, 10000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas_v2.css') }}?v={{ range(1, 10000) | random }}">
     
     <style>
         /* CRITICAL: Force message layout - OVERRIDE EVERYTHING */
@@ -192,6 +193,15 @@
 
             <header class="chat-header">
                 <h1 class="chat-title" id="chatTitle">Chat with Atlas</h1>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;">v2.0 Enhanced Analysis</span>
+                    <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
+                        <input type="checkbox" id="v2Toggle" style="opacity: 0; width: 0; height: 0;">
+                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: 0.3s; border-radius: 24px;">
+                            <span id="v2ToggleSlider" style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
+                        </span>
+                    </label>
+                </div>
             </header>
 
             <div class="chat-messages" id="chatMessages">
@@ -344,6 +354,24 @@
             this.scrollToBottom();
         },
 
+        addAIMessageHTML(htmlContent) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.5 3-9s-1.343-9-3-9m-9 9a9 9 0 019 9m-9-9a9 9 0 009-9m-9 9h12"/>
+                        </svg>
+                    </div>
+                    <div class="message-text">${htmlContent}</div>
+                </div>
+                <div class="message-time">${this.getTimeString()}</div>
+            `;
+            this.container.appendChild(messageDiv);
+            this.scrollToBottom();
+        },
+
         showLoading() {
             const loadingDiv = document.createElement('div');
             loadingDiv.className = 'message ai-message loading-message';
@@ -473,6 +501,7 @@
         async handleSend() {
             const input = document.getElementById('messageInput');
             const message = input.value.trim();
+            const v2Enabled = document.getElementById('v2Toggle').checked;
 
             if (!message || this.isProcessing) return;
 
@@ -488,24 +517,47 @@
             );
 
             try {
-                console.log('Sending message:', message);
+                console.log('Sending message:', message, 'V2 enabled:', v2Enabled);
                 
-                // Race between actual request and timeout
-                const response = await Promise.race([
-                    API.sendMessage(message, this.currentMode),
-                    timeoutPromise
-                ]);
-                
-                console.log('Received response:', response);
-                
-                Messages.hideLoading();
-                
-                const aiMessage = response.analysis || 
-                                response.result || 
-                                response.answer ||
-                                'No response received.';
-                                
-                Messages.addAIMessage(aiMessage);
+                let response;
+                if (v2Enabled && typeof ATLASv2 !== 'undefined') {
+                    // Use v2.0 enhanced analysis
+                    response = await Promise.race([
+                        ATLASv2.analyzeWithV2(message, {
+                            num_agents: 6,
+                            enable_reversal: true,
+                            reversal_rounds: 2
+                        }),
+                        timeoutPromise
+                    ]);
+                    
+                    console.log('Received v2.0 response:', response);
+                    Messages.hideLoading();
+                    
+                    if (response.success && response.data) {
+                        // Use V2UI to render enhanced response
+                        const v2Card = V2UI.createV2ResponseCard(response.data);
+                        Messages.addAIMessageHTML(v2Card);
+                    } else {
+                        Messages.addAIMessage(response.error || 'v2.0 analysis failed');
+                    }
+                } else {
+                    // Use standard v1.0 analysis
+                    response = await Promise.race([
+                        API.sendMessage(message, this.currentMode),
+                        timeoutPromise
+                    ]);
+                    
+                    console.log('Received response:', response);
+                    Messages.hideLoading();
+                    
+                    const aiMessage = response.analysis || 
+                                    response.result || 
+                                    response.answer ||
+                                    'No response received.';
+                                    
+                    Messages.addAIMessage(aiMessage);
+                }
                 
             } catch (error) {
                 Messages.hideLoading();
@@ -547,6 +599,24 @@
         console.log('Initializing Atlas Chat...');
         Chat.init();
         Sidebar.init();
+        
+        // Initialize v2.0 toggle
+        const v2Toggle = document.getElementById('v2Toggle');
+        const v2Slider = document.getElementById('v2ToggleSlider');
+        
+        if (v2Toggle && v2Slider) {
+            v2Toggle.addEventListener('change', function() {
+                if (this.checked) {
+                    v2Slider.style.transform = 'translateX(26px)';
+                    v2Slider.parentElement.style.backgroundColor = '#3b82f6';
+                    console.log('v2.0 Enhanced Analysis: ENABLED');
+                } else {
+                    v2Slider.style.transform = 'translateX(0)';
+                    v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                    console.log('v2.0 Enhanced Analysis: DISABLED');
+                }
+            });
+        }
     });
     </script>
 
@@ -595,5 +665,8 @@
             }
         });
     </script>
+    
+    <!-- ATLAS v2.0 Integration -->
+    <script src="{{ url_for('static', filename='js/atlas_v2.js') }}?v={{ range(1, 10000) | random }}"></script>
 </body>
 </html>

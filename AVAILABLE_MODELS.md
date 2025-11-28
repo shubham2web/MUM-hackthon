@@ -1,4 +1,4 @@
-# 🤖 ATLAS - Available AI Models
+# ATLAS - Available AI Models
 
 ## ✅ Your Current Configuration
 
