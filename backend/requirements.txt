@@ -29,9 +29,14 @@ playwright==1.55.0
 
 # AI & ML Models
 groq==0.33.0
+<<<<<<< HEAD
+huggingface-hub>=0.20.0,<1.0
+sentence-transformers==3.3.1
+=======
 # Shared constraint: fastembed (<1.0) and transformers (>=0.34)
 huggingface-hub==0.36.0
 fastembed==0.7.3
+>>>>>>> 34dcc872f54c88648bb2dfbe69e12b80ea29f59d
 
 # Async & File Operations
 aiofiles==25.1.0

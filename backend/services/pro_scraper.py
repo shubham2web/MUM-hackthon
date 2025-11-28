@@ -76,10 +76,12 @@ try:
     from sumy.summarizers.lsa import LsaSummarizer
 except ImportError:
     PlaintextParser = None
-try:
-    from transformers import pipeline as transformers_pipeline
-except Exception:
-    transformers_pipeline = None
+# Temporarily disabled - transformers is very slow to import
+# try:
+#     from transformers import pipeline as transformers_pipeline
+# except Exception:
+#     transformers_pipeline = None
+transformers_pipeline = None
 try:
     from tabulate import tabulate
 except ImportError:
