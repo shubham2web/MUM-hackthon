@@ -353,7 +353,6 @@
             padding-right: 52px !important;
             text-align: right !important;
         }
-<<<<<<< HEAD
 
         /* v2.0 Toggle Light Mode Styles */
         body.light-mode .v2-toggle-label {
@@ -379,7 +378,7 @@
         
         body.light-mode #v2Toggle:checked + .v2-toggle-track .v2-toggle-slider {
             background-color: #ffffff !important;
-=======
+        }
         
         /* Debate mode styling */
         .debate-message {
@@ -672,7 +671,6 @@
         body.light-mode .sidebar .toggle-btn .arrow {
             color: #0b1220 !important;
             opacity: 1 !important;
->>>>>>> 34dcc872f54c88648bb2dfbe69e12b80ea29f59d
         }
     </style>
 </head>
@@ -721,11 +719,7 @@
                     </svg>
                     <span class="nav-text">History</span>
                 </div>
-<<<<<<< HEAD
-                <div class="nav-item" id="settingsNavBtn">
-=======
                 <div class="nav-item" id="settingsBtn" role="button" tabindex="0">
->>>>>>> 34dcc872f54c88648bb2dfbe69e12b80ea29f59d
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -830,7 +824,6 @@
         </div>
     </div>
 
-<<<<<<< HEAD
     <!-- Settings Modal -->
     <div id="settingsModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 500px; width: 90%;">
@@ -876,36 +869,6 @@
 
             <div class="modal-buttons" style="margin-top: 30px;">
                 <button id="closeSettingsBtn" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Close</button>
-=======
-    <!-- Settings Panel -->
-    <div id="settingsPanel" class="modal-overlay" style="display:none;">
-        <div class="modal-content" style="max-width:420px;">
-            <h2>Settings</h2>
-            <div style="display:flex;flex-direction:column;gap:12px;">
-                <div id="appearanceSection" style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <strong style="text-align: left;">Appearance</strong>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">Toggle between dark and light mode</div>
-                    </div>
-                    <div>
-                        <button id="appearanceToggle" class="input-btn" style="padding:8px 12px;border-radius:6px;">Change</button>
-                    </div>
-                </div>
-
-                <div id="historySection" style="display:flex;align-items:center;justify-content:space-between;">
-                    <div>
-                        <strong style="text-align: left;">Delete History</strong>
-                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">Clear local chat messages and session data</div>
-                    </div>
-                    <div>
-                        <button id="deleteHistoryBtn" class="input-btn" style="background:#ef4444;color:#fff;padding:8px 12px;border-radius:6px;">Delete</button>
-                    </div>
-                </div>
-
-                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
-                    <button id="closeSettingsBtn" class="input-btn">Close</button>
-                </div>
->>>>>>> 34dcc872f54c88648bb2dfbe69e12b80ea29f59d
             </div>
         </div>
     </div>
@@ -1463,6 +1426,29 @@
                             
                             try {
                                 const json = JSON.parse(data);
+                                
+                                // Handle "end" event - debate complete
+                                if (json.message === "Debate complete.") {
+                                    // Flush any remaining content
+                                    if (currentContent && messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                    
+                                    // Add completion message
+                                    const completionDiv = document.createElement('div');
+                                    completionDiv.className = 'message ai-message';
+                                    completionDiv.innerHTML = `
+                                        <div style="text-align: center; padding: 20px; border: 2px solid #10b981; border-radius: 8px; background: rgba(16, 185, 129, 0.1);">
+                                            <div style="font-size: 24px; margin-bottom: 10px;">✅</div>
+                                            <div style="font-weight: 600; color: #10b981; margin-bottom: 5px;">Debate Complete</div>
+                                            <div style="color: #6b7280; font-size: 14px;">The moderator has provided the final synthesis above.</div>
+                                        </div>
+                                    `;
+                                    Messages.container.appendChild(completionDiv);
+                                    Messages.container.scrollTop = Messages.container.scrollHeight;
+                                    console.log('✅ Debate completed successfully');
+                                    return;
+                                }
                                 
                                 // Check for role change
                                 if (json.role && json.role !== currentRole) {
