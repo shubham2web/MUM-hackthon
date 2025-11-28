@@ -130,6 +130,96 @@
             border: 1px solid rgba(255,255,255,0.1) !important;
         }
 
+        /* Settings Modal Styles */
+        .setting-item {
+            margin-bottom: 25px;
+            padding: 20px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+
+        .setting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .setting-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 5px;
+        }
+
+        .setting-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .theme-options {
+            display: flex;
+            gap: 10px;
+        }
+
+        .theme-btn {
+            flex: 1;
+            padding: 12px 16px;
+            background: var(--bg-input);
+            border: 2px solid var(--border-color);
+            border-radius: 10px;
+            color: var(--text-primary);
+            font-family: 'Space Grotesk', sans-serif;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .theme-btn:hover {
+            border-color: var(--accent-color);
+            background: var(--bg-secondary);
+        }
+
+        .theme-btn.active {
+            background: linear-gradient(135deg, var(--accent-color), var(--accent-hover));
+            border-color: var(--accent-color);
+            color: white;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Light mode theme button overrides */
+        body.light-mode .theme-btn {
+            background: #ffffff;
+            border: 2px solid #cbd5e1;
+            color: #0c4a6e;
+        }
+
+        body.light-mode .theme-btn:hover {
+            background: #f0f9ff;
+            border-color: #0891b2;
+        }
+
+        body.light-mode .theme-btn.active {
+            background: linear-gradient(135deg, #0891b2, #0e7490);
+            border-color: #0891b2;
+            color: white;
+            box-shadow: 0 4px 12px rgba(8, 145, 178, 0.4);
+        }
+
+        .theme-btn svg {
+            transition: transform 0.3s ease;
+        }
+
+        .theme-btn:hover svg {
+            transform: scale(1.1);
+        }
+
         .compact-preview-info {
             display: flex !important;
             flex-direction: column !important;
@@ -263,6 +353,32 @@
             padding-right: 52px !important;
             text-align: right !important;
         }
+
+        /* v2.0 Toggle Light Mode Styles */
+        body.light-mode .v2-toggle-label {
+            color: #0f3a4b !important;
+            font-weight: 700 !important;
+        }
+        
+        body.light-mode .v2-toggle-track {
+            background-color: rgba(14, 116, 144, 0.3) !important;
+            border: 2px solid #0e7490 !important;
+        }
+        
+        body.light-mode #v2Toggle:checked + .v2-toggle-track {
+            background-color: #0891b2 !important;
+            border-color: #0e7490 !important;
+            box-shadow: 0 0 8px rgba(8, 145, 178, 0.4) !important;
+        }
+        
+        body.light-mode .v2-toggle-slider {
+            background-color: #ffffff !important;
+            box-shadow: 0 2px 6px rgba(14, 116, 144, 0.5) !important;
+        }
+        
+        body.light-mode #v2Toggle:checked + .v2-toggle-track .v2-toggle-slider {
+            background-color: #ffffff !important;
+        }
     </style>
 </head>
 <body>
@@ -305,18 +421,12 @@
                 </a>
                 <div class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="nav-text">Tasks</span>
-                </div>
-                <div class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
                         <polyline points="12 7 12 12 16 14"></polyline>
                     </svg>
                     <span class="nav-text">History</span>
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" id="settingsNavBtn">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -342,11 +452,11 @@
             <header class="chat-header">
                 <h1 class="chat-title" id="chatTitle">Chat with Atlas</h1>
                 <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;">v2.0 Enhanced Analysis</span>
+                    <span class="v2-toggle-label" style="color: rgba(255,255,255,0.7); font-size: 13px; font-weight: 600;">v2.0 Enhanced Analysis</span>
                     <label style="position: relative; display: inline-block; width: 50px; height: 24px;">
                         <input type="checkbox" id="v2Toggle" style="opacity: 0; width: 0; height: 0;">
-                        <span style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: 0.3s; border-radius: 24px;">
-                            <span id="v2ToggleSlider" style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
+                        <span class="v2-toggle-track" style="position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.2); transition: 0.3s; border-radius: 24px; border: 2px solid transparent;">
+                            <span class="v2-toggle-slider" id="v2ToggleSlider" style="position: absolute; content: ''; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: 0.3s; border-radius: 50%;"></span>
                         </span>
                     </label>
                 </div>
@@ -389,8 +499,7 @@
                         <span class="model-name send-text">SEND</span>
                         <button class="input-btn send-btn" id="sendBtn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <line x1="22" y1="2" x2="11" y2="13"/>
-                                <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                                <path d="M5 12h14M12 5l7 7-7 7"/>
                             </svg>
                         </button>
                     </div>
@@ -418,6 +527,55 @@
             <div class="modal-buttons">
                 <button id="closeModalBtn">Cancel</button>
                 <button id="submitLinkBtn">Add Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 500px; width: 90%;">
+            <h2 style="margin-bottom: 25px; display: flex; align-items: center; gap: 10px;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px;">
+                    <circle cx="12" cy="12" r="3"/>
+                    <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
+                Settings
+            </h2>
+            
+            <!-- Theme Setting -->
+            <div class="setting-item">
+                <div class="setting-header">
+                    <div class="setting-info">
+                        <h3 class="setting-title">Appearance</h3>
+                        <p class="setting-description">Choose your preferred theme</p>
+                    </div>
+                </div>
+                <div class="theme-options">
+                    <button class="theme-btn active" id="darkModeBtn" data-theme="dark">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                        </svg>
+                        <span>Dark</span>
+                    </button>
+                    <button class="theme-btn" id="lightModeBtn" data-theme="light">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 20px; height: 20px;">
+                            <circle cx="12" cy="12" r="5"></circle>
+                            <line x1="12" y1="1" x2="12" y2="3"></line>
+                            <line x1="12" y1="21" x2="12" y2="23"></line>
+                            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                            <line x1="1" y1="12" x2="3" y2="12"></line>
+                            <line x1="21" y1="12" x2="23" y2="12"></line>
+                            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                        </svg>
+                        <span>Light</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-buttons" style="margin-top: 30px;">
+                <button id="closeSettingsBtn" style="background: var(--bg-tertiary); color: var(--text-primary); border: 1px solid var(--border-color);">Close</button>
             </div>
         </div>
     </div>
@@ -740,6 +898,7 @@
 
         switchMode(mode) {
             this.currentMode = mode;
+            
             const chatTitle = document.getElementById('chatTitle');
             if (chatTitle) {
                 chatTitle.textContent = mode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
@@ -1278,6 +1437,37 @@
         }
     };
 
+    // Global function to update toggle colors based on theme
+    window.updateToggleColors = () => {
+        const v2Toggle = document.getElementById('v2Toggle');
+        const v2Slider = document.getElementById('v2ToggleSlider');
+        const isLightMode = document.body.classList.contains('light-mode');
+        
+        if (v2Slider && v2Slider.parentElement) {
+            if (v2Toggle && v2Toggle.checked) {
+                if (isLightMode) {
+                    v2Slider.parentElement.style.backgroundColor = '#0891b2';
+                    v2Slider.parentElement.style.borderColor = '#0e7490';
+                    v2Slider.parentElement.style.boxShadow = '0 0 8px rgba(8, 145, 178, 0.4)';
+                } else {
+                    v2Slider.parentElement.style.backgroundColor = '#3b82f6';
+                    v2Slider.parentElement.style.borderColor = '';
+                    v2Slider.parentElement.style.boxShadow = '';
+                }
+            } else {
+                if (isLightMode) {
+                    v2Slider.parentElement.style.backgroundColor = 'rgba(14, 116, 144, 0.3)';
+                    v2Slider.parentElement.style.borderColor = '#0e7490';
+                    v2Slider.parentElement.style.boxShadow = '';
+                } else {
+                    v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
+                    v2Slider.parentElement.style.borderColor = '';
+                    v2Slider.parentElement.style.boxShadow = '';
+                }
+            }
+        }
+    };
+
     // Initialize on DOM ready
     document.addEventListener('DOMContentLoaded', () => {
         console.log('Initializing Atlas Chat...');
@@ -1293,15 +1483,97 @@
             v2Toggle.addEventListener('change', function() {
                 if (this.checked) {
                     v2Slider.style.transform = 'translateX(26px)';
-                    v2Slider.parentElement.style.backgroundColor = '#3b82f6';
                     console.log('v2.0 Enhanced Analysis: ENABLED');
                 } else {
                     v2Slider.style.transform = 'translateX(0)';
-                    v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
                     console.log('v2.0 Enhanced Analysis: DISABLED');
                 }
+                window.updateToggleColors();
             });
+            
+            // Call on page load
+            window.updateToggleColors();
         }
+
+        // Theme Switcher - Load saved theme first
+        const savedTheme = localStorage.getItem('atlas-theme') || 'dark';
+        if (savedTheme === 'light') {
+            document.body.classList.add('light-mode');
+        }
+        
+        // Now update toggle colors after theme is set
+        window.updateToggleColors();
+
+        // Settings modal - with debugging
+        const settingsBtn = document.getElementById('settingsNavBtn');
+        const settingsModal = document.getElementById('settingsModal');
+        const settingsClose = document.getElementById('closeSettingsBtn');
+        const themeButtons = document.querySelectorAll('.theme-btn');
+
+        console.log('Settings button found:', settingsBtn);
+        console.log('Settings modal found:', settingsModal);
+        console.log('Close button found:', settingsClose);
+
+        // Open settings modal
+        if (settingsBtn) {
+            settingsBtn.style.cursor = 'pointer';
+            settingsBtn.onclick = (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                console.log('Settings button clicked!');
+                if (settingsModal) {
+                    settingsModal.classList.add('active');
+                    console.log('Active class added to modal');
+                    console.log('Modal display:', window.getComputedStyle(settingsModal).display);
+                }
+            };
+        } else {
+            console.error('Settings button NOT found!');
+        }
+
+        // Close settings modal
+        if (settingsClose) {
+            settingsClose.onclick = () => {
+                settingsModal?.classList.remove('active');
+                console.log('Settings modal closed');
+            };
+        }
+
+        // Close on overlay click
+        settingsModal?.addEventListener('click', (e) => {
+            if (e.target === settingsModal) {
+                settingsModal.classList.remove('active');
+            }
+        });
+
+        // Theme switching
+        themeButtons.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const theme = btn.dataset.theme;
+                
+                // Update active button
+                themeButtons.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Apply theme
+                if (theme === 'light') {
+                    document.body.classList.add('light-mode');
+                    localStorage.setItem('atlas-theme', 'light');
+                } else {
+                    document.body.classList.remove('light-mode');
+                    localStorage.setItem('atlas-theme', 'dark');
+                }
+                
+                // Update v2 toggle colors for new theme
+                window.updateToggleColors();
+                
+                console.log(`Theme switched to: ${theme}`);
+            });
+        });
+
+        // Set active theme button on load
+        const currentTheme = document.body.classList.contains('light-mode') ? 'light' : 'dark';
+        document.querySelector(`.theme-btn[data-theme="${currentTheme}"]`)?.classList.add('active');
     });
     </script>
 
