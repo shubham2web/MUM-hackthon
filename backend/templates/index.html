@@ -312,6 +312,242 @@
             margin: 8px 0;
         }
     </style>
+    <style>
+        /* Message box outline and visibility for dark & light modes */
+        .input-container {
+            /* keep existing layout but ensure top border separation */
+            border-top: 1px solid rgba(255,255,255,0.04);
+            background: linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.18));
+        }
+
+        /* Wrapper keeps padding so the input stands out */
+        .input-wrapper {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            padding: 14px 18px;
+            max-width: 100%;
+        }
+
+        /* The text input itself: visible border, rounded, consistent padding */
+        .message-input {
+            flex: 1 1 auto;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: rgba(255,255,255,0.95);
+            padding: 12px 14px;
+            border-radius: 12px;
+            font-size: 14px;
+            outline: none;
+            transition: box-shadow 0.12s ease, border-color 0.12s ease, background-color 0.12s ease;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.55) inset;
+        }
+
+        .message-input:focus {
+            border-color: #60a5fa; /* subtle blue focus */
+            box-shadow: 0 6px 24px rgba(0,0,0,0.6) inset, 0 0 0 4px rgba(59,130,246,0.08);
+        }
+
+        /* Buttons beside input keep a consistent visual weight */
+        .input-btn {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid rgba(255,255,255,0.06);
+            color: inherit;
+        }
+
+        /* Light mode overrides: ensure dark border/text on light bg */
+        body.light-mode .input-container {
+            border-top: 1px solid rgba(0,0,0,0.06);
+            background: linear-gradient(180deg, #ffffff, #ffffff);
+        }
+
+        body.light-mode .message-input {
+            background: #ffffff;
+            border: 1px solid rgba(15,23,42,0.08);
+            color: #0b1220;
+            box-shadow: 0 6px 18px rgba(9,10,12,0.04) inset;
+        }
+
+        body.light-mode .message-input:focus {
+            border-color: #2563eb;
+            box-shadow: 0 6px 18px rgba(9,10,12,0.04) inset, 0 0 0 4px rgba(37,99,235,0.08);
+        }
+    </style>
+    <style>
+        /* Light mode adjustments */
+        body.light-mode {
+            background: #f8fafc;
+            color: #0f172a;
+        }
+        body.light-mode .app-container,
+        body.light-mode .chat-container,
+        body.light-mode .sidebar {
+            background: #ffffff;
+            color: #0f172a;
+        }
+        body.light-mode .message-text {
+            background: #f3f4f6 !important;
+            color: #0f172a !important;
+            border-color: rgba(0,0,0,0.06) !important;
+        }
+        body.light-mode .nav-item .nav-text { color: #0b1220 !important; }
+    </style>
+    <style>
+        /* Light mode tweaks for header controls (v2 toggle) */
+        body.light-mode .chat-header > div > span {
+            color: rgba(15,23,42,0.8) !important; /* dark text for label */
+        }
+
+        /* Adjust toggle background and slider visibility in light mode */
+        body.light-mode .chat-header label {
+            background-color: rgba(15,23,42,0.06) !important;
+        }
+
+        body.light-mode #v2ToggleSlider {
+            background-color: #ffffff !important; /* keep slider thumb visible */
+        }
+
+        /* When enabled, use accent color for slider track in light mode */
+        body.light-mode #v2Toggle:checked + span {
+            background-color: #3b82f6 !important;
+        }
+    </style>
+    <style>
+        /* Settings panel specific styles to ensure high contrast */
+        #settingsPanel.modal-overlay {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(0,0,0,0.55);
+            z-index: 9999;
+        }
+
+        #settingsPanel .modal-content {
+            background: rgba(18,18,20,0.96);
+            color: #f8fafc;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.6);
+            width: 100%;
+            max-width: 520px;
+        }
+
+        #settingsPanel h2 {
+            margin: 0 0 10px 0;
+            color: #f8fafc;
+            font-size: 20px;
+            text-align: center;
+        }
+
+        #settingsPanel .modal-content strong {
+            color: #ffffff;
+        }
+
+        #settingsPanel .modal-content div {
+            color: rgba(248,250,252,0.9);
+        }
+
+        #settingsPanel .input-btn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+            cursor: pointer;
+        }
+
+        #settingsPanel .input-btn:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        #settingsPanel #deleteHistoryBtn {
+            background: #ef4444;
+            border: none;
+            color: #fff;
+        }
+
+        /* Ensure Close button is visible */
+        #settingsPanel #closeSettingsBtn {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            color: #fff;
+        }
+    </style>
+    <style>
+        /* Sidebar icon visibility fixes: ensure SVG icons and logo are visible in dark and light modes */
+        .sidebar .logo svg,
+        .sidebar .nav-section svg,
+        .sidebar .nav-item svg,
+        .sidebar .toggle-btn svg {
+            width: 28px;
+            height: 28px;
+            display: block;
+            /* Force a visible stroke color regardless of inherited color */
+            stroke: currentColor;
+            color: #00d9ff; /* bright cyan accent for dark mode */
+            fill: none;
+            vertical-align: middle;
+            opacity: 1;
+        }
+
+        .sidebar .logo-text {
+            color: #00d9ff;
+            font-weight: 700;
+            margin-left: 8px;
+        }
+
+        /* Make nav-text readable and icons consistent */
+        .sidebar .nav-text {
+            color: rgba(255,255,255,0.95);
+        }
+
+        /* Light mode overrides: use dark colors so icons remain visible on light background */
+        body.light-mode .sidebar .logo svg,
+        body.light-mode .sidebar .nav-section svg,
+        body.light-mode .sidebar .nav-item svg,
+        body.light-mode .sidebar .toggle-btn svg {
+            color: #0b1220; /* near-black for light background */
+            stroke: currentColor;
+        }
+
+        body.light-mode .sidebar .logo-text,
+        body.light-mode .sidebar .nav-text {
+            color: #0b1220 !important;
+        }
+
+        /* Ensure sidebar icons render above background layers */
+        .sidebar .logo,
+        .sidebar .nav-item {
+            z-index: 5;
+        }
+
+        /* Additional light-mode fixes for the sidebar toggle button (arrow visibility) */
+        body.light-mode .sidebar .toggle-btn {
+            background: rgba(255,255,255,0.95); /* keep button visible on light bg */
+            border: 1px solid rgba(9,10,12,0.06);
+            color: #0b1220 !important; /* ensure inherited currentColor is dark */
+            box-shadow: 0 2px 6px rgba(9,10,12,0.04);
+        }
+
+        /* Make sure any SVG paths inside the toggle are dark and thicker for contrast */
+        body.light-mode .sidebar .toggle-btn svg,
+        body.light-mode .sidebar .toggle-btn svg path,
+        body.light-mode .sidebar .toggle-btn svg line,
+        body.light-mode .sidebar .toggle-btn svg polygon {
+            color: #0b1220 !important;
+            stroke: #0b1220 !important;
+            stroke-width: 1.6 !important;
+            fill: none !important;
+            opacity: 1 !important;
+        }
+
+        /* Fallback: if toggle uses text/character arrow, ensure it's visible */
+        body.light-mode .sidebar .toggle-btn::before,
+        body.light-mode .sidebar .toggle-btn .arrow {
+            color: #0b1220 !important;
+            opacity: 1 !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Starry Background -->
@@ -364,7 +600,7 @@
                     </svg>
                     <span class="nav-text">History</span>
                 </div>
-                <div class="nav-item">
+                <div class="nav-item" id="settingsBtn" role="button" tabindex="0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -466,6 +702,38 @@
             <div class="modal-buttons">
                 <button id="closeModalBtn">Cancel</button>
                 <button id="submitLinkBtn">Add Link</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel -->
+    <div id="settingsPanel" class="modal-overlay" style="display:none;">
+        <div class="modal-content" style="max-width:420px;">
+            <h2>Settings</h2>
+            <div style="display:flex;flex-direction:column;gap:12px;">
+                <div id="appearanceSection" style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <strong style="text-align: left;">Appearance</strong>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">Toggle between dark and light mode</div>
+                    </div>
+                    <div>
+                        <button id="appearanceToggle" class="input-btn" style="padding:8px 12px;border-radius:6px;">Change</button>
+                    </div>
+                </div>
+
+                <div id="historySection" style="display:flex;align-items:center;justify-content:space-between;">
+                    <div>
+                        <strong style="text-align: left;">Delete History</strong>
+                        <div style="font-size:12px;color:rgba(255,255,255,0.7);">Clear local chat messages and session data</div>
+                    </div>
+                    <div>
+                        <button id="deleteHistoryBtn" class="input-btn" style="background:#ef4444;color:#fff;padding:8px 12px;border-radius:6px;">Delete</button>
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px;">
+                    <button id="closeSettingsBtn" class="input-btn">Close</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1516,6 +1784,70 @@
                 micBtn.style.display = 'none'; // Hide mic button if not supported
             }
         });
+    </script>
+    
+    <!-- Settings JS -->
+    <script>
+        (function() {
+            // Elements
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+            const appearanceToggle = document.getElementById('appearanceToggle');
+            const deleteHistoryBtn = document.getElementById('deleteHistoryBtn');
+
+            function openSettings() {
+                if (settingsPanel) settingsPanel.style.display = 'flex';
+            }
+
+            function closeSettings() {
+                if (settingsPanel) settingsPanel.style.display = 'none';
+            }
+
+            function applyAppearance(theme) {
+                if (theme === 'light') {
+                    document.body.classList.add('light-mode');
+                } else {
+                    document.body.classList.remove('light-mode');
+                }
+                localStorage.setItem('appearance', theme);
+            }
+
+            function toggleAppearance() {
+                const current = localStorage.getItem('appearance') || (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+                const next = current === 'light' ? 'dark' : 'light';
+                applyAppearance(next);
+            }
+
+            function deleteHistory() {
+                if (!confirm('Delete all local chat history? This will clear messages from this browser session.')) return;
+                // Clear chat messages DOM
+                const messages = document.getElementById('chatMessages');
+                if (messages) messages.innerHTML = '';
+                // Clear sessionStorage keys used by the app
+                const keysToRemove = ['initialPrompt', 'ocrResult', 'ocrResults', 'chatMode'];
+                keysToRemove.forEach(k => sessionStorage.removeItem(k));
+                // Optionally clear a chat history item in localStorage
+                try { localStorage.removeItem('chatHistory'); } catch (e) {}
+                // Show a small confirmation message
+                alert('Local chat history cleared.');
+            }
+
+            // Attach listeners
+            if (settingsBtn) {
+                settingsBtn.addEventListener('click', (e) => { e.preventDefault(); openSettings(); });
+                settingsBtn.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openSettings(); } });
+            }
+            if (closeSettingsBtn) closeSettingsBtn.addEventListener('click', closeSettings);
+            if (appearanceToggle) appearanceToggle.addEventListener('click', toggleAppearance);
+            if (deleteHistoryBtn) deleteHistoryBtn.addEventListener('click', deleteHistory);
+
+            // Apply initial appearance on load
+            document.addEventListener('DOMContentLoaded', () => {
+                const saved = localStorage.getItem('appearance');
+                if (saved) applyAppearance(saved);
+            });
+        })();
     </script>
     
     <!-- ATLAS v2.0 Integration -->
