@@ -99,6 +99,141 @@ class HybridMemoryManager:
         self.turn_counter = 0
         self.logger.info(f"Debate context set: {debate_id}")
     
+    def get_role_history(self, role: str, debate_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """
+        Retrieve all memories from a specific role in the debate.
+        
+        This is used for role reversal to recall the agent's original stance.
+        
+        Args:
+            role: Role to retrieve memories for (e.g., "proponent", "opponent")
+            debate_id: Optional debate ID to filter by (uses current if None)
+            
+        Returns:
+            List of memory entries from that role
+        """
+        if not self.enable_rag or not self.long_term:
+            return []
+        
+        debate_id = debate_id or self.current_debate_id
+        filter_metadata = {"role": role}
+        if debate_id:
+            filter_metadata["debate_id"] = debate_id
+        
+        try:
+            results = self.search_memories(
+                query=f"all arguments and statements by {role}",
+                top_k=20,  # Get more results for role history
+                filter_metadata=filter_metadata,
+                similarity_threshold=0.0  # Get all results, regardless of similarity
+            )
+            self.logger.info(f"📜 Retrieved {len(results)} historical memories for role '{role}'")
+            return results
+        except Exception as e:
+            self.logger.error(f"Failed to retrieve role history: {e}")
+            return []
+    
+    def build_role_reversal_context(
+        self,
+        current_role: str,
+        previous_role: str,
+        system_prompt: str,
+        current_task: str,
+        debate_id: Optional[str] = None
+    ) -> str:
+        """
+        Build specialized context for role reversal scenarios.
+        
+        When agents switch roles mid-debate, this ensures they can recall their
+        previous arguments and maintain coherent reasoning.
+        
+        Args:
+            current_role: The role the agent is NOW playing
+            previous_role: The role the agent PREVIOUSLY played
+            system_prompt: System prompt for the current role
+            current_task: Current task instruction
+            debate_id: Optional debate ID (uses current if None)
+            
+        Returns:
+            Enhanced context payload with role history
+        """
+        # Get the agent's previous arguments when they were in the other role
+        previous_arguments = self.get_role_history(previous_role, debate_id)
+        
+        # Build special RAG query to retrieve relevant context about role switch
+        rag_query = (
+            f"Previous arguments made by {previous_role} that are relevant to "
+            f"the current {current_role} position"
+        )
+        
+        zones = []
+        
+        # ZONE 1: SYSTEM PROMPT (with role reversal awareness)
+        zones.append("=" * 80)
+        zones.append("[ZONE 1: SYSTEM PROMPT - ROLE REVERSAL MODE]")
+        zones.append("=" * 80)
+        zones.append(system_prompt)
+        zones.append("")
+        zones.append(f"⚠️  ROLE REVERSAL CONTEXT:")
+        zones.append(f"   - You previously argued as: {previous_role}")
+        zones.append(f"   - You are now arguing as: {current_role}")
+        zones.append(f"   - Maintain awareness of your previous stance to avoid contradictions")
+        zones.append("")
+        
+        # ZONE 2A: PREVIOUS ROLE HISTORY (what I said before)
+        if previous_arguments:
+            zones.append("=" * 80)
+            zones.append(f"[ZONE 2A: YOUR PREVIOUS ARGUMENTS AS {previous_role.upper()}]")
+            zones.append("=" * 80)
+            zones.append(f"Review of your previous stance (first {min(5, len(previous_arguments))} key points):\n")
+            
+            for i, arg in enumerate(previous_arguments[:5], 1):
+                content = arg.get('content', '')
+                turn = arg.get('metadata', {}).get('turn', 'unknown')
+                zones.append(f"{i}. [Turn {turn}] {content[:200]}...")
+                zones.append("")
+        
+        # ZONE 2B: LONG-TERM MEMORY (RAG - broader context)
+        if self.enable_rag and self.long_term:
+            rag_context = self.long_term.get_relevant_context(
+                query=rag_query,
+                top_k=3,
+                format_style="structured"
+            )
+            
+            if rag_context:
+                zones.append("=" * 80)
+                zones.append("[ZONE 2B: RELEVANT DEBATE CONTEXT]")
+                zones.append("=" * 80)
+                zones.append(rag_context)
+                zones.append("")
+        
+        # ZONE 3: SHORT-TERM MEMORY (recent conversation)
+        if len(self.short_term) > 0:
+            short_term_context = self.short_term.get_context_string(format_style="structured")
+            
+            if short_term_context:
+                zones.append("=" * 80)
+                zones.append("[ZONE 3: RECENT CONVERSATION]")
+                zones.append("=" * 80)
+                zones.append(short_term_context)
+                zones.append("")
+        
+        # ZONE 4: NEW TASK (current instruction)
+        zones.append("=" * 80)
+        zones.append("[ZONE 4: CURRENT TASK]")
+        zones.append("=" * 80)
+        zones.append(current_task)
+        zones.append("=" * 80)
+        
+        context = "\n".join(zones)
+        self.logger.info(
+            f"🔄 Role reversal context built: {previous_role} → {current_role} "
+            f"({len(previous_arguments)} historical args recalled)"
+        )
+        
+        return context
+    
     def add_interaction(
         self,
         role: str,
@@ -270,6 +405,118 @@ class HybridMemoryManager:
         """
         self.clear_all_memory()
     
+    def detect_memory_inconsistencies(
+        self,
+        role: str,
+        new_statement: str,
+        debate_id: Optional[str] = None,
+        threshold: float = 0.3
+    ) -> Dict[str, Any]:
+        """
+        Detect potential contradictions or inconsistencies in a role's statements.
+        
+        This is critical for role reversal to maintain coherence - agents should
+        be aware when they're contradicting their previous stance.
+        
+        Args:
+            role: Role to check for inconsistencies
+            new_statement: New statement to check against history
+            debate_id: Optional debate ID (uses current if None)
+            threshold: Similarity threshold for detecting related statements
+            
+        Returns:
+            Dictionary with inconsistency analysis:
+            {
+                'has_inconsistencies': bool,
+                'related_statements': List[Dict],
+                'consistency_score': float,
+                'warnings': List[str]
+            }
+        """
+        if not self.enable_rag or not self.long_term:
+            return {
+                'has_inconsistencies': False,
+                'related_statements': [],
+                'consistency_score': 1.0,
+                'warnings': ['RAG disabled - cannot check consistency']
+            }
+        
+        # Get role history
+        role_history = self.get_role_history(role, debate_id)
+        
+        if not role_history:
+            return {
+                'has_inconsistencies': False,
+                'related_statements': [],
+                'consistency_score': 1.0,
+                'warnings': ['No historical statements found']
+            }
+        
+        # Search for semantically similar statements from the same role
+        debate_id = debate_id or self.current_debate_id
+        filter_metadata = {"role": role}
+        if debate_id:
+            filter_metadata["debate_id"] = debate_id
+        
+        try:
+            similar_statements = self.search_memories(
+                query=new_statement,
+                top_k=5,
+                filter_metadata=filter_metadata,
+                similarity_threshold=threshold
+            )
+            
+            warnings = []
+            consistency_score = 1.0
+            
+            # Analyze for potential contradictions
+            # (In a production system, you'd use NLI models here)
+            if similar_statements:
+                # Simple heuristic: check for negation keywords
+                negation_keywords = ['not', 'never', 'no', 'false', 'wrong', 'incorrect', 
+                                    'disagree', 'opposite', 'contrary', 'reject']
+                
+                new_lower = new_statement.lower()
+                has_negation_new = any(word in new_lower for word in negation_keywords)
+                
+                for stmt in similar_statements:
+                    old_content = stmt.get('content', '').lower()
+                    has_negation_old = any(word in old_content for word in negation_keywords)
+                    
+                    # If one has negation and the other doesn't, potential contradiction
+                    if has_negation_new != has_negation_old:
+                        similarity = stmt.get('similarity_score', 0)
+                        warnings.append(
+                            f"Potential contradiction with Turn {stmt.get('metadata', {}).get('turn', '?')}: "
+                            f"'{stmt.get('content', '')[:100]}...'"
+                        )
+                        consistency_score -= (similarity * 0.2)
+                
+                consistency_score = max(0.0, consistency_score)
+            
+            result = {
+                'has_inconsistencies': len(warnings) > 0,
+                'related_statements': similar_statements,
+                'consistency_score': consistency_score,
+                'warnings': warnings
+            }
+            
+            if warnings:
+                self.logger.warning(
+                    f"⚠️  Detected {len(warnings)} potential inconsistencies for role '{role}'"
+                )
+            
+            return result
+            
+        except Exception as e:
+            self.logger.error(f"Failed to detect inconsistencies: {e}")
+            return {
+                'has_inconsistencies': False,
+                'related_statements': [],
+                'consistency_score': 1.0,
+                'warnings': [f'Error during consistency check: {str(e)}']
+            }
+    
     def get_memory_summary(self) -> Dict[str, Any]:
         """Get comprehensive memory system statistics"""
         summary = {
@@ -343,6 +590,345 @@ class HybridMemoryManager:
             f"short_term={len(self.short_term)}, "
             f"rag={'enabled' if self.enable_rag else 'disabled'})"
         )
+    
+    # =========================================================================
+    # PHASE 4: TOKEN OPTIMIZATION
+    # =========================================================================
+    
+    def calculate_memory_value_score(
+        self,
+        memory_id: str,
+        current_context: str = ""
+    ) -> float:
+        """
+        Calculate value score for a memory to determine if it should be kept.
+        
+        Scoring factors:
+        - Recency: More recent memories score higher
+        - Relevance: Semantic similarity to current context
+        - Interaction count: How often this memory is retrieved
+        - Role importance: Moderator/critical turns score higher
+        
+        Returns:
+            Score from 0.0 (low value) to 1.0 (high value)
+        """
+        if not self.enable_rag or not self.long_term:
+            return 0.0
+        
+        try:
+            # Get memory data
+            results = self.long_term.search(memory_id, top_k=1)
+            if not results:
+                return 0.0
+            
+            memory = results[0]
+            score = 0.0
+            
+            # Factor 1: Recency (40% weight)
+            # Newer memories are more valuable
+            turn = memory.metadata.get('turn', 0)
+            max_turn = self.turn_counter or 1
+            recency_score = turn / max_turn
+            score += recency_score * 0.4
+            
+            # Factor 2: Relevance (40% weight)
+            # If current_context provided, calculate semantic similarity
+            if current_context and self.embedding_service:
+                relevance_score = memory.score if hasattr(memory, 'score') else 0.5
+                score += relevance_score * 0.4
+            else:
+                score += 0.2  # Default mid-range
+            
+            # Factor 3: Role importance (20% weight)
+            # Moderator and critical roles are more valuable
+            role = memory.metadata.get('role', '')
+            if role == 'moderator':
+                score += 0.2
+            elif role in ['proponent', 'opponent']:
+                score += 0.15
+            else:
+                score += 0.1
+            
+            return min(score, 1.0)
+            
+        except Exception as e:
+            logging.error(f"Error calculating memory value score: {e}")
+            return 0.5  # Default mid-range on error
+    
+    def truncate_low_value_memories(
+        self,
+        threshold: float = 0.3,
+        current_context: str = ""
+    ) -> Dict[str, Any]:
+        """
+        Remove memories with value scores below threshold to save tokens.
+        
+        Args:
+            threshold: Minimum value score to keep (0.0-1.0)
+            current_context: Current debate context for relevance scoring
+            
+        Returns:
+            {
+                "removed_count": int,
+                "removed_ids": List[str],
+                "tokens_saved_estimate": int
+            }
+        """
+        if not self.enable_rag or not self.long_term:
+            return {
+                "removed_count": 0,
+                "removed_ids": [],
+                "tokens_saved_estimate": 0
+            }
+        
+        try:
+            # Get all memories
+            all_memories = self.long_term.search("", top_k=1000)
+            
+            removed_ids = []
+            total_text_length = 0
+            
+            for memory in all_memories:
+                # Calculate value score
+                score = self.calculate_memory_value_score(
+                    memory.id, 
+                    current_context
+                )
+                
+                # Remove if below threshold
+                if score < threshold:
+                    removed_ids.append(memory.id)
+                    total_text_length += len(memory.text)
+                    # Delete from vector store
+                    self.long_term.delete(memory.id)
+            
+            # Estimate tokens saved (~4 chars per token)
+            tokens_saved = total_text_length // 4
+            
+            logging.info(f"🗑️ Truncated {len(removed_ids)} low-value memories (threshold: {threshold})")
+            
+            return {
+                "removed_count": len(removed_ids),
+                "removed_ids": removed_ids,
+                "tokens_saved_estimate": tokens_saved
+            }
+            
+        except Exception as e:
+            logging.error(f"Error truncating low-value memories: {e}")
+            return {
+                "removed_count": 0,
+                "removed_ids": [],
+                "tokens_saved_estimate": 0,
+                "error": str(e)
+            }
+    
+    def deduplicate_memories(
+        self,
+        similarity_threshold: float = 0.95
+    ) -> Dict[str, Any]:
+        """
+        Remove duplicate or near-duplicate memories to save tokens.
+        
+        Args:
+            similarity_threshold: Cosine similarity above which memories are considered duplicates
+            
+        Returns:
+            {
+                "removed_count": int,
+                "duplicate_pairs": List[tuple],
+                "tokens_saved_estimate": int
+            }
+        """
+        if not self.enable_rag or not self.long_term:
+            return {
+                "removed_count": 0,
+                "duplicate_pairs": [],
+                "tokens_saved_estimate": 0
+            }
+        
+        try:
+            # Get all memories
+            all_memories = self.long_term.search("", top_k=1000)
+            
+            removed_ids = set()
+            duplicate_pairs = []
+            total_text_length = 0
+            
+            # Compare each memory with others
+            for i, mem1 in enumerate(all_memories):
+                if mem1.id in removed_ids:
+                    continue
+                
+                for mem2 in all_memories[i+1:]:
+                    if mem2.id in removed_ids:
+                        continue
+                    
+                    # Check if embeddings are very similar
+                    if hasattr(mem1, 'score') and hasattr(mem2, 'score'):
+                        # Use cosine similarity between texts
+                        similarity = self._calculate_similarity(mem1.text, mem2.text)
+                        
+                        if similarity >= similarity_threshold:
+                            # Keep the more recent one (higher turn number)
+                            turn1 = mem1.metadata.get('turn', 0)
+                            turn2 = mem2.metadata.get('turn', 0)
+                            
+                            to_remove = mem1 if turn1 < turn2 else mem2
+                            to_keep = mem2 if turn1 < turn2 else mem1
+                            
+                            removed_ids.add(to_remove.id)
+                            duplicate_pairs.append((to_keep.id, to_remove.id))
+                            total_text_length += len(to_remove.text)
+                            
+                            # Delete from vector store
+                            self.long_term.delete(to_remove.id)
+            
+            # Estimate tokens saved
+            tokens_saved = total_text_length // 4
+            
+            logging.info(f"🔗 Deduplicated {len(removed_ids)} near-duplicate memories")
+            
+            return {
+                "removed_count": len(removed_ids),
+                "duplicate_pairs": duplicate_pairs,
+                "tokens_saved_estimate": tokens_saved
+            }
+            
+        except Exception as e:
+            logging.error(f"Error deduplicating memories: {e}")
+            return {
+                "removed_count": 0,
+                "duplicate_pairs": [],
+                "tokens_saved_estimate": 0,
+                "error": str(e)
+            }
+    
+    def _calculate_similarity(self, text1: str, text2: str) -> float:
+        """Calculate semantic similarity between two texts"""
+        if not self.embedding_service:
+            # Fallback: Simple overlap ratio
+            words1 = set(text1.lower().split())
+            words2 = set(text2.lower().split())
+            if not words1 or not words2:
+                return 0.0
+            overlap = len(words1 & words2)
+            return overlap / max(len(words1), len(words2))
+        
+        try:
+            # Use embeddings for semantic similarity
+            emb1 = self.embedding_service.embed_text(text1)
+            emb2 = self.embedding_service.embed_text(text2)
+            
+            # Cosine similarity
+            import numpy as np
+            similarity = np.dot(emb1, emb2) / (np.linalg.norm(emb1) * np.linalg.norm(emb2))
+            return float(similarity)
+            
+        except Exception as e:
+            logging.warning(f"Similarity calculation failed: {e}")
+            return 0.0
+    
+    def compress_old_memories(
+        self,
+        age_threshold: int = 20,
+        compression_ratio: float = 0.5
+    ) -> Dict[str, Any]:
+        """
+        Summarize old memories to reduce token usage while preserving key information.
+        
+        Args:
+            age_threshold: Turns older than this are candidates for compression
+            compression_ratio: Target length as fraction of original (0.0-1.0)
+            
+        Returns:
+            {
+                "compressed_count": int,
+                "original_tokens": int,
+                "compressed_tokens": int,
+                "tokens_saved": int
+            }
+        """
+        if not self.enable_rag or not self.long_term:
+            return {
+                "compressed_count": 0,
+                "original_tokens": 0,
+                "compressed_tokens": 0,
+                "tokens_saved": 0
+            }
+        
+        try:
+            # Get all memories
+            all_memories = self.long_term.search("", top_k=1000)
+            current_turn = self.turn_counter or 1
+            
+            compressed_count = 0
+            original_length = 0
+            compressed_length = 0
+            
+            for memory in all_memories:
+                turn = memory.metadata.get('turn', 0)
+                age = current_turn - turn
+                
+                # Only compress old memories
+                if age < age_threshold:
+                    continue
+                
+                original_text = memory.text
+                original_length += len(original_text)
+                
+                # Simple compression: keep first and last sentences + key phrases
+                sentences = original_text.split('. ')
+                target_sentences = max(1, int(len(sentences) * compression_ratio))
+                
+                if len(sentences) <= target_sentences:
+                    continue  # Already short enough
+                
+                # Keep first sentence, last sentence, and sample middle
+                if target_sentences == 1:
+                    compressed_text = sentences[0] + '.'
+                else:
+                    first = sentences[0]
+                    last = sentences[-1]
+                    middle_count = target_sentences - 2
+                    step = max(1, len(sentences[1:-1]) // middle_count) if middle_count > 0 else 1
+                    middle = [sentences[i] for i in range(1, len(sentences)-1, step)][:middle_count]
+                    
+                    compressed_text = '. '.join([first] + middle + [last]) + '.'
+                
+                compressed_length += len(compressed_text)
+                compressed_count += 1
+                
+                # Update memory in vector store with compressed version
+                memory.metadata['compressed'] = True
+                memory.metadata['original_length'] = len(original_text)
+                self.long_term.delete(memory.id)
+                self.long_term.add_text(
+                    compressed_text,
+                    metadata=memory.metadata
+                )
+            
+            original_tokens = original_length // 4
+            compressed_tokens = compressed_length // 4
+            tokens_saved = original_tokens - compressed_tokens
+            
+            logging.info(f"📦 Compressed {compressed_count} old memories, saved ~{tokens_saved} tokens")
+            
+            return {
+                "compressed_count": compressed_count,
+                "original_tokens": original_tokens,
+                "compressed_tokens": compressed_tokens,
+                "tokens_saved": tokens_saved
+            }
+            
+        except Exception as e:
+            logging.error(f"Error compressing memories: {e}")
+            return {
+                "compressed_count": 0,
+                "original_tokens": 0,
+                "compressed_tokens": 0,
+                "tokens_saved": 0,
+                "error": str(e)
+            }
 
 
 # Global singleton instance (optional)

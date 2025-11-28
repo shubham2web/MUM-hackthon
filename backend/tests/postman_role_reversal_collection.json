@@ -1,0 +1,339 @@
+{
+  "info": {
+    "name": "ATLAS - Phase 2 Role Reversal API",
+    "description": "Postman collection for testing Phase 2 Role Reversal endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "atlas-phase2-role-reversal",
+    "version": "1.0.0"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "debate_id",
+      "value": "debate_renewable_energy_001",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/memory/health",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "health"]
+        },
+        "description": "Check if memory system is operational"
+      },
+      "response": []
+    },
+    {
+      "name": "2. Start Debate Session",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"debate_id\": \"{{debate_id}}\",\n  \"clear_previous\": false\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/debate/start",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "debate", "start"]
+        },
+        "description": "Initialize memory for a new debate session"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Add Memory - Proponent Arg 1",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"proponent\",\n  \"content\": \"Renewable energy significantly reduces carbon emissions and combats climate change effectively.\",\n  \"metadata\": {\n    \"agent\": \"Agent_A\",\n    \"turn\": 1,\n    \"phase\": \"initial\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/add",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "add"]
+        },
+        "description": "Add a proponent argument to memory"
+      },
+      "response": []
+    },
+    {
+      "name": "3. Add Memory - Proponent Arg 2",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"proponent\",\n  \"content\": \"Solar and wind power are now cost-competitive with fossil fuels in most regions.\",\n  \"metadata\": {\n    \"agent\": \"Agent_A\",\n    \"turn\": 2,\n    \"phase\": \"initial\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/add",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "add"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "3. Add Memory - Proponent Arg 3",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"proponent\",\n  \"content\": \"Renewable energy creates more sustainable jobs than the fossil fuel industry.\",\n  \"metadata\": {\n    \"agent\": \"Agent_A\",\n    \"turn\": 3,\n    \"phase\": \"initial\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/add",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "add"]
+        }
+      },
+      "response": []
+    },
+    {
+      "name": "4. Get Role History",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"proponent\",\n  \"debate_id\": \"{{debate_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/role/history",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "role", "history"]
+        },
+        "description": "Get all historical arguments for a specific role"
+      },
+      "response": []
+    },
+    {
+      "name": "5. Build Role Reversal Context",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"current_role\": \"opponent\",\n  \"previous_role\": \"proponent\",\n  \"system_prompt\": \"You are Agent A, now arguing as OPPONENT against renewable energy adoption. You must present counterarguments while being aware you previously argued FOR renewables.\",\n  \"current_task\": \"Present your opening argument against widespread renewable energy adoption. Consider the economic costs, reliability issues, and infrastructure challenges.\",\n  \"debate_id\": \"{{debate_id}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/role/reversal",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "role", "reversal"]
+        },
+        "description": "Build specialized context for role reversal scenarios"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Check Consistency - No Contradiction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"proponent\",\n  \"new_statement\": \"Renewable energy investments provide long-term economic benefits and energy independence.\",\n  \"debate_id\": \"{{debate_id}}\",\n  \"threshold\": 0.3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/consistency/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "consistency", "check"]
+        },
+        "description": "Check a consistent statement (should pass)"
+      },
+      "response": []
+    },
+    {
+      "name": "6. Check Consistency - With Contradiction",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"role\": \"proponent\",\n  \"new_statement\": \"Renewable energy is NOT economically viable and is far more expensive than fossil fuels in all cases.\",\n  \"debate_id\": \"{{debate_id}}\",\n  \"threshold\": 0.3\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/consistency/check",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "consistency", "check"]
+        },
+        "description": "Check a contradictory statement (should detect inconsistency)"
+      },
+      "response": []
+    },
+    {
+      "name": "7. Get Memory Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/memory/status",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "status"]
+        },
+        "description": "Get current memory system status and statistics"
+      },
+      "response": []
+    },
+    {
+      "name": "8. Search Memories (RAG)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"query\": \"What arguments were made about renewable energy costs and economic viability?\",\n  \"top_k\": 5,\n  \"filter\": {\n    \"role\": \"proponent\"\n  }\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/search",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "search"]
+        },
+        "description": "Search long-term memory with semantic similarity"
+      },
+      "response": []
+    },
+    {
+      "name": "9. Build Context Payload",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"system_prompt\": \"You are a debate moderator analyzing renewable energy arguments.\",\n  \"current_task\": \"Summarize the key points made by the proponent so far.\",\n  \"query\": \"renewable energy arguments\",\n  \"top_k_rag\": 4,\n  \"use_short_term\": true,\n  \"use_long_term\": true\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/context",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "context"]
+        },
+        "description": "Build 4-zone context payload for a given task"
+      },
+      "response": []
+    },
+    {
+      "name": "10. Clear Short-term Memory",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"target\": \"short_term\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/clear",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "clear"]
+        },
+        "description": "Clear short-term memory only"
+      },
+      "response": []
+    },
+    {
+      "name": "10. Clear All Memory",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"target\": \"all\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/memory/clear",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "clear"]
+        },
+        "description": "Clear both short-term and long-term memory"
+      },
+      "response": []
+    },
+    {
+      "name": "11. Export Memory State",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/memory/export",
+          "host": ["{{baseUrl}}"],
+          "path": ["memory", "export"]
+        },
+        "description": "Export memory state for debugging/persistence"
+      },
+      "response": []
+    }
+  ]
+}
