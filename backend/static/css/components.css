@@ -202,8 +202,8 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
     border-radius: 12px;
     padding: 12px 16px;
     transition: all 0.3s ease;
@@ -382,4 +382,33 @@
 #closeModalBtn {
     background-color: #333;
     color: #ccc;
+}
+
+/* === MICROPHONE BUTTON === */
+.mic-btn {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    width: 36px !important;
+    height: 36px !important;
+    padding: 8px !important;
+    border-radius: 8px !important;
+    color: rgba(255, 255, 255, 0.7) !important;
+    transition: all 0.3s ease !important;
+    cursor: pointer !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+.mic-btn:hover {
+    color: #00d9ff !important;
+    border-color: #00d9ff !important;
+    box-shadow: 0 0 8px rgba(0, 217, 255, 0.5) !important;
+}
+
+.mic-btn.active {
+    background: rgba(0, 217, 255, 0.1) !important;
+    color: #00d9ff !important;
+    border-color: #00d9ff !important;
+    box-shadow: 0 0 12px rgba(0, 217, 255, 0.8) !important;
 }
