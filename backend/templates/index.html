@@ -599,8 +599,24 @@
             const urlParams = new URLSearchParams(window.location.search);
             const modeParam = urlParams.get('mode');
             
-            if (modeParam === 'debate') {
+            // Also check sessionStorage for chatMode (from homepage)
+            const storedMode = sessionStorage.getItem('chatMode');
+            
+            if (modeParam === 'debate' || storedMode === 'debate') {
                 this.currentMode = 'debate';
+            } else if (storedMode === 'simplified') {
+                this.currentMode = 'simplified';
+            } else {
+                this.currentMode = 'analytical';
+            }
+            
+            // Clear the stored mode after using
+            sessionStorage.removeItem('chatMode');
+            
+            // Update page title based on mode
+            const chatTitle = document.getElementById('chatTitle');
+            if (chatTitle) {
+                chatTitle.textContent = this.currentMode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
             }
 
             // Clear messages container and add single welcome message
@@ -627,7 +643,10 @@
             // Update navigation active state
             document.querySelectorAll('.nav-item').forEach(nav => {
                 const navMode = nav.getAttribute('data-mode');
-                if (navMode === this.currentMode) {
+                // Match debate mode, or match chat for analytical/simplified modes
+                if (navMode === 'debate' && this.currentMode === 'debate') {
+                    nav.classList.add('active');
+                } else if (navMode === 'chat' && this.currentMode !== 'debate') {
                     nav.classList.add('active');
                 } else {
                     nav.classList.remove('active');
