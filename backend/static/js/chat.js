@@ -42,29 +42,12 @@ const Chat = {
             }
         }
 
-        // Check if user is coming from homepage with a new message
-        // If so, we want to start a fresh chat instead of loading the previous one
-        const initialPrompt = sessionStorage.getItem('initialPrompt');
-        const ocrResults = sessionStorage.getItem('ocrResults');
-        const ocrResult = sessionStorage.getItem('ocrResult');
-        const isComingFromHomepage = !!(initialPrompt || ocrResults || ocrResult);
-
-        // If coming from homepage, clear current chat references to force a fresh start
-        if (isComingFromHomepage) {
-            console.log('🏠 Coming from homepage - starting fresh chat');
-            ChatStore.currentChatId = null;
-            if (ChatStore.currentChatIdByMode) {
-                delete ChatStore.currentChatIdByMode[this.currentMode];
-                localStorage.setItem('chatIdsByMode', JSON.stringify(ChatStore.currentChatIdByMode));
-            }
-        }
-
         // Restore per-mode chat if present, otherwise clear messages and add welcome
         const messages = document.getElementById('chatMessages');
         try {
             const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[this.currentMode] : null;
-            if (mappedId && !isComingFromHomepage) {
-                // Attempt to open the mapped chat for this mode (only if NOT coming from homepage)
+            if (mappedId) {
+                // Attempt to open the mapped chat for this mode
                 try { ChatStore.openChat(mappedId); ChatStore.currentChatId = mappedId; }
                 catch (e) { console.warn('Failed to open mapped chat', e); if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } }
             } else {
@@ -75,18 +58,21 @@ const Chat = {
         }
 
         // Check for OCR result from sessionStorage (old single file format)
+        const ocrResult = sessionStorage.getItem('ocrResult');
         if (ocrResult) {
             this.handleOCRResult(JSON.parse(ocrResult));
             sessionStorage.removeItem('ocrResult'); // Clear after using
         }
 
         // Check for OCR results from homepage (new multiple files format)
+        const ocrResults = sessionStorage.getItem('ocrResults');
         if (ocrResults) {
             this.handleMultipleOCRResults(JSON.parse(ocrResults));
             sessionStorage.removeItem('ocrResults'); // Clear after using
         }
 
         // If homepage set an initial prompt (text or link), auto-fill and send it
+        const initialPrompt = sessionStorage.getItem('initialPrompt');
         if (initialPrompt) {
             try {
                 const inputEl = document.getElementById('messageInput');
@@ -291,24 +277,12 @@ const Chat = {
                         await this.startWebSpeechRecognition(SpeechRecognition);
                         return;
                     } catch (err) {
-                        console.warn('Web Speech API failed', err);
-                        
-                        // Show user-friendly error for permission issues
-                        if (err.name === 'NotAllowedError' || err.error === 'not-allowed') {
-                            const statusDiv = document.createElement('div');
-                            statusDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,100,100,0.95); color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 90%; text-align: center;';
-                            statusDiv.textContent = 'Microphone access denied. Please allow microphone permissions in your browser settings.';
-                            document.body.appendChild(statusDiv);
-                            setTimeout(() => statusDiv.remove(), 5000);
-                            return;
-                        }
-                        
-                        // Fallback to MediaRecorder flow (server-side transcription)
-                        console.warn('Falling back to MediaRecorder', err);
+                        console.warn('Web Speech API failed, falling back to MediaRecorder', err);
+                        // fallthrough to MediaRecorder fallback
                     }
                 }
 
-                // Fallback: MediaRecorder flow (server-side transcription) for browsers without Web Speech API
+                // Fallback: MediaRecorder flow (server-side transcription)
                 if (!this.recordingModal) this.createRecordingModal();
                 this.showRecordingModal();
                 try {
@@ -565,20 +539,7 @@ const Chat = {
                 if (input && transcript) input.value = transcript;
             } catch (err) {
                 console.error('Transcription failed', err);
-                // Show friendlier message for common errors
-                let errorMsg = 'Transcription failed. ';
-                if (err.message && err.message.includes('Speech-to-text unavailable')) {
-                    errorMsg = 'Speech-to-text is not configured on the server. Please type your message instead.';
-                } else {
-                    errorMsg += err.message || err;
-                }
-                
-                // Create a temporary status message instead of alert
-                const statusDiv = document.createElement('div');
-                statusDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,100,100,0.95); color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 90%; text-align: center;';
-                statusDiv.textContent = errorMsg;
-                document.body.appendChild(statusDiv);
-                setTimeout(() => statusDiv.remove(), 5000);
+                alert('Transcription failed: ' + (err.message || err));
             }
         };
 
@@ -611,43 +572,30 @@ const Chat = {
         const micBtn = document.getElementById('micBtn');
         if (micBtn) micBtn.classList.add('listening');
 
-        // Return a promise that resolves when recognition starts successfully
-        return new Promise((resolve, reject) => {
-            recognition.onresult = (event) => {
-                let finalTranscript = '';
-                interimText = '';
-                for (let i = event.resultIndex; i < event.results.length; ++i) {
-                    const res = event.results[i];
-                    if (res.isFinal) finalTranscript += res[0].transcript;
-                    else interimText += res[0].transcript;
-                }
-                if (input) input.value = (finalTranscript + ' ' + interimText).trim();
-            };
-
-            recognition.onerror = (ev) => {
-                console.error('Speech recognition error', ev);
-                this._recognitionListening = false;
-                if (micBtn) micBtn.classList.remove('listening');
-                
-                // Reject the promise with the error for the click handler to catch
-                reject(ev);
-            };
-
-            recognition.onend = () => {
-                this._recognitionListening = false;
-                if (micBtn) micBtn.classList.remove('listening');
-                // leave final value in input
-            };
-
-            try {
-                recognition.start();
-                resolve(); // Resolve immediately after starting
-            } catch (err) {
-                this._recognitionListening = false;
-                if (micBtn) micBtn.classList.remove('listening');
-                reject(err);
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+            interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const res = event.results[i];
+                if (res.isFinal) finalTranscript += res[0].transcript;
+                else interimText += res[0].transcript;
             }
-        });
+            if (input) input.value = (finalTranscript + ' ' + interimText).trim();
+        };
+
+        recognition.onerror = (ev) => {
+            console.error('Speech recognition error', ev);
+            this._recognitionListening = false;
+            if (micBtn) micBtn.classList.remove('listening');
+        };
+
+        recognition.onend = () => {
+            this._recognitionListening = false;
+            if (micBtn) micBtn.classList.remove('listening');
+            // leave final value in input
+        };
+
+        recognition.start();
     },
 
     stopWebSpeechRecognition() {
@@ -733,11 +681,7 @@ const Chat = {
             const j = await resp.json().catch(() => null);
             if (resp.status === 401) {
                 const serverMsg = (j && j.error) ? j.error : 'Unauthorized';
-                throw new Error(`Speech-to-text unavailable: The server requires OpenAI API key for transcription. Please use keyboard input or enable browser speech recognition.`);
-            }
-            if (resp.status === 503) {
-                const serverMsg = (j && j.error) ? j.error : 'Service unavailable';
-                throw new Error(`Speech-to-text unavailable: ${serverMsg}. Please use keyboard input.`);
+                throw new Error(`Unauthorized: ${serverMsg}. The server requires an application API key (X-API-Key) to use transcription.`);
             }
             throw new Error((j && j.error) ? j.error : `Server returned ${resp.status}`);
         }
@@ -823,105 +767,105 @@ const Chat = {
             setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
         );
 
-        try {
-            // Check v2 toggle state
-            const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
-            console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
-            
-            // Collect conversation history from chat messages
-            const conversationHistory = this.getConversationHistory();
-            
-            let response;
-            
-            // DEBATE MODE: Always use streaming debate, ignore v2 toggle
-            if (this.currentMode === 'debate') {
-                console.log('🎭 Running debate mode...');
-                response = await Promise.race([
-                    API.sendMessage(message, 'debate', conversationHistory),
-                    timeoutPromise
-                ]);
+            try {
+                // Check v2 toggle state
+                const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
+                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
                 
-                // DON'T hide loading yet - let it continue until first debate message arrives
+                // Collect conversation history from chat messages
+                const conversationHistory = this.getConversationHistory();
                 
-                // Should be SSE stream
-                if (response && response.isStream) {
-                    await this.handleDebateStream(response.response, message);
-                } else {
-                    Messages.hideLoading();
-                    Messages.addAIMessage('Error: Expected debate stream but got regular response.');
-                }
-            }
-            // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
-            else {
-                if (v2Enabled && typeof ATLASv2 !== 'undefined') {
-                    console.log('💎 Using v2.0 enhanced analysis...');
-                    // Use v2.0 enhanced analysis
+                let response;
+                
+                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+                if (this.currentMode === 'debate') {
+                    console.log('🎭 Running debate mode...');
                     response = await Promise.race([
-                        ATLASv2.analyzeWithV2(message, {
-                            num_agents: 4,
-                            enable_reversal: true,
-                            reversal_rounds: 1
-                        }),
+                        API.sendMessage(message, 'debate', conversationHistory),
                         timeoutPromise
                     ]);
                     
-                    console.log('Received v2.0 response:', response);
-                    Messages.hideLoading();
+                    // DON'T hide loading yet - let it continue until first debate message arrives
                     
-                    if (response.success && response.data) {
-                        // Use V2UI to render enhanced response
-                        const v2Card = V2UI.createV2ResponseCard(response.data);
-                        this.addV2Card(v2Card);
-                        // Persist a short synthesis from v2 response if available
-                        try {
-                            const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
-                            if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
-                        } catch (e) { console.warn('append v2 response failed', e); }
+                    // Should be SSE stream
+                    if (response && response.isStream) {
+                        await this.handleDebateStream(response.response, message);
                     } else {
-                        Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
+                        Messages.hideLoading();
+                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                    }
+                }
+                // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
+                else {
+                    if (v2Enabled && typeof ATLASv2 !== 'undefined') {
+                        console.log('💎 Using v2.0 enhanced analysis...');
+                        // Use v2.0 enhanced analysis
+                        response = await Promise.race([
+                            ATLASv2.analyzeWithV2(message, {
+                                num_agents: 4,
+                                enable_reversal: true,
+                                reversal_rounds: 1
+                            }),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received v2.0 response:', response);
+                        Messages.hideLoading();
+                        
+                        if (response.success && response.data) {
+                            // Use V2UI to render enhanced response
+                            const v2Card = V2UI.createV2ResponseCard(response.data);
+                            this.addV2Card(v2Card);
+                            // Persist a short synthesis from v2 response if available
+                            try {
+                                const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
+                                if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
+                            } catch (e) { console.warn('append v2 response failed', e); }
+                        } else {
+                            Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
+                        }
+                    } else {
+                        console.log('💬 Using standard chat analysis...');
+                        // Use standard v1.0 analysis
+                        response = await Promise.race([
+                            API.sendMessage(message, 'analytical', conversationHistory),
+                            timeoutPromise
+                        ]);
+                        
+                        console.log('Received response:', response);
+                        Messages.hideLoading();
+                        
+                        // Regular chat response
+                        const aiMessage = response.analysis || 
+                                        response.result || 
+                                        response.answer ||
+                                        'No response received.';
+                                        
+                        Messages.addAIMessage(aiMessage);
+                        // Persist assistant reply (best-effort)
+                        try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
+                    }
+                }
+                
+            } catch (error) {
+                Messages.hideLoading();
+                
+                if (error.message === 'Request timed out') {
+                    const v2On = document.getElementById('v2Toggle')?.checked || false;
+                    if (v2On) {
+                        Messages.addAIMessage('⏱️ The v2.0 enhanced analysis took too long (API rate limits may have caused delays). Try disabling v2.0 for faster results, or try again in a minute.');
+                    } else {
+                        Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
                     }
                 } else {
-                    console.log('💬 Using standard chat analysis...');
-                    // Use standard v1.0 analysis
-                    response = await Promise.race([
-                        API.sendMessage(message, 'analytical', conversationHistory),
-                        timeoutPromise
-                    ]);
-                    
-                    console.log('Received response:', response);
-                    Messages.hideLoading();
-                    
-                    // Regular chat response
-                    const aiMessage = response.analysis || 
-                                    response.result || 
-                                    response.answer ||
-                                    'No response received.';
-                                    
-                    Messages.addAIMessage(aiMessage);
-                    // Persist assistant reply (best-effort)
-                    try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
+                    Messages.addAIMessage('❌ Error: ' + error.message);
                 }
+                
+                console.error('Chat error:', error);
+            } finally {
+                this.isProcessing = false;
             }
-            
-        } catch (error) {
-            Messages.hideLoading();
-            
-            if (error.message === 'Request timed out') {
-                const v2On = document.getElementById('v2Toggle')?.checked || false;
-                if (v2On) {
-                    Messages.addAIMessage('⏱️ The v2.0 enhanced analysis took too long (API rate limits may have caused delays). Try disabling v2.0 for faster results, or try again in a minute.');
-                } else {
-                    Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
-                }
-            } else {
-                Messages.addAIMessage('❌ Error: ' + error.message);
-            }
-            
-            console.error('Chat error:', error);
-        } finally {
-            this.isProcessing = false;
-        }
-    },
+        },
 
     async handleDebateStream(response, originalTopic) {
         console.log('📡 Handling debate stream...');

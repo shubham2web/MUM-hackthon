@@ -25,7 +25,6 @@ from core.utils import compute_advanced_analytics, format_sse
 import io
 
 # Import OCR functionality (EasyOCR - no Tesseract needed!)
-<<<<<<< HEAD
 try:
     from services.ocr_processor import get_ocr_processor
     OCR_AVAILABLE = True
@@ -102,65 +101,6 @@ except ImportError as e:
     # Create dummy functions
     def get_audit_logger():
         return None
-=======
-# Defer import to avoid scipy loading issues
-OCR_AVAILABLE = False
-get_ocr_processor = None
-
-def lazy_load_ocr():
-    """Lazy load OCR processor to avoid startup issues"""
-    global OCR_AVAILABLE, get_ocr_processor
-    if get_ocr_processor is None:
-        try:
-            from services.ocr_processor import get_ocr_processor as _get_ocr_processor
-            get_ocr_processor = _get_ocr_processor
-            OCR_AVAILABLE = True
-            logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
-        except Exception as e:
-            OCR_AVAILABLE = False
-            logging.warning(f"OCR functionality not available: {e}. OCR routes will be disabled.")
-    return OCR_AVAILABLE
-
-# Import v2.0 routes
-# Defer import due to slow transformers loading
-V2_AVAILABLE = False
-v2_bp = None
-
-def lazy_load_v2():
-    """Lazy load v2.0 routes to avoid startup issues"""
-    global V2_AVAILABLE, v2_bp
-    if v2_bp is None:
-        try:
-            from api.api_v2_routes import v2_bp as _v2_bp
-            v2_bp = _v2_bp
-            V2_AVAILABLE = True
-            logging.info("✅ ATLAS v2.0 routes loaded successfully")
-        except Exception as e:
-            V2_AVAILABLE = False
-            logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
-    return V2_AVAILABLE
-
-# Import Hybrid Memory System routes
-MEMORY_AVAILABLE = False
-memory_bp = None
-get_memory_manager = None
-
-def lazy_load_memory():
-    """Lazy load memory routes to avoid startup issues"""
-    global MEMORY_AVAILABLE, memory_bp, get_memory_manager
-    if memory_bp is None:
-        try:
-            from api.memory_routes import memory_bp as _memory_bp
-            from memory.memory_manager import get_memory_manager as _get_memory_manager
-            memory_bp = _memory_bp
-            get_memory_manager = _get_memory_manager
-            MEMORY_AVAILABLE = True
-            logging.info("✅ Hybrid Memory System routes loaded successfully")
-        except Exception as e:
-            MEMORY_AVAILABLE = False
-            logging.warning(f"⚠️ Memory System routes not available: {e}. Install: pip install -r memory_requirements.txt")
-    return MEMORY_AVAILABLE
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 
 # --------------------------
 # Setup Quart App & Executor
@@ -177,7 +117,6 @@ app = cors(app,
            allow_headers=["Content-Type", "Authorization"])
 
 # --- Register v2.0 Blueprint ---
-<<<<<<< HEAD
 if V2_AVAILABLE:
     app.register_blueprint(v2_bp)
     logging.info("✅ ATLAS v2.0 endpoints registered at /v2/*")
@@ -186,17 +125,6 @@ if V2_AVAILABLE:
 if MEMORY_AVAILABLE:
     app.register_blueprint(memory_bp)
     logging.info("✅ Hybrid Memory System endpoints registered at /memory/*")
-=======
-# Blueprints are lazy-loaded on first use
-# if V2_AVAILABLE:
-#     app.register_blueprint(v2_bp)
-#     logging.info("✅ ATLAS v2.0 endpoints registered at /v2/*")
-
-# --- Register Memory System Blueprint ---
-# if MEMORY_AVAILABLE:
-#     app.register_blueprint(memory_bp)
-#     logging.info("✅ Hybrid Memory System endpoints registered at /memory/*")
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 
 # --- Register Chat Persistence Blueprint (MongoDB-backed) ---
 try:
@@ -207,14 +135,11 @@ try:
 except Exception as e:
     CHAT_API_AVAILABLE = False
     logging.warning(f"Chat API not available: {e}")
-<<<<<<< HEAD
 
 # --- Register ATLAS v4.0 Analysis Pipeline Blueprint ---
 if ANALYZE_PIPELINE_AVAILABLE:
     app.register_blueprint(analyze_bp)
     logging.info("✅ ATLAS v4.0 Analysis Pipeline endpoints registered at /analyze/*")
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 
 executor = ThreadPoolExecutor(max_workers=10)
 
@@ -259,11 +184,7 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-<<<<<<< HEAD
     if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
-=======
-    if (request.endpoint in ['home', 'about', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
@@ -326,14 +247,6 @@ async def home():
     """Landing/Hero page"""
     return await render_template("homepage.html")
 
-<<<<<<< HEAD
-=======
-@app.route("/about")
-async def about():
-    """About page"""
-    return await render_template("about.html")
-
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 @app.route("/chat")
 async def chat():
     """Render the chat interface with optional mode parameter"""
@@ -607,12 +520,7 @@ async def ocr_upload():
     Extracts text from image and optionally analyzes it with AI.
     Uses EasyOCR - no Tesseract installation required!
     """
-<<<<<<< HEAD
     if not OCR_AVAILABLE:
-=======
-    # Lazy load OCR
-    if not lazy_load_ocr():
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         return jsonify({
             "success": False,
             "error": "OCR functionality not available. Please install dependencies: pip install easyocr pillow"
@@ -645,7 +553,6 @@ async def ocr_upload():
         # Log file info
         logging.info(f"Processing OCR for image: {image_file.filename} ({len(image_bytes)} bytes)")
         
-<<<<<<< HEAD
         # Check if OCR is available (lazy load)
         if not OCR_AVAILABLE:
             try:
@@ -659,10 +566,6 @@ async def ocr_upload():
         # Process OCR
         loop = asyncio.get_running_loop()
         from services.ocr_processor import get_ocr_processor
-=======
-        # Process OCR
-        loop = asyncio.get_running_loop()
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         ocr_processor = get_ocr_processor()
         
         # Run OCR in executor to avoid blocking
@@ -804,7 +707,6 @@ If the text appears to contain claims or information, verify its accuracy."""
                     relevant_memories = []
                     if memory.enable_rag and memory.long_term:
                         search_results = memory.long_term.search(
-<<<<<<< HEAD
                             query=extracted_text[:100],
                             top_k=2,
                             filter_metadata={"debate_id": session_id}
@@ -812,14 +714,6 @@ If the text appears to contain claims or information, verify its accuracy."""
                         # RetrievalResult is a dataclass with .text attribute
                         relevant_memories = [
                             f"Previous context: {result.text[:200]}..."
-=======
-                            query_text=extracted_text[:100],
-                            top_k=2,
-                            filter_metadata={"debate_id": session_id}
-                        )
-                        relevant_memories = [
-                            f"Previous context: {result['text'][:200]}..."
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
                             for result in search_results
                         ]
                     
@@ -1041,20 +935,13 @@ Keep each stance to 2-3 sentences. Be specific and tactical."""
 
 
 # -----------------------------
-<<<<<<< HEAD
 # Helper: Generate Final Verdict (PRD 4.5)
 # -----------------------------
 def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list, dossier: dict = None) -> dict:
-=======
-# Helper: Generate Final Verdict
-# -----------------------------
-def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list) -> dict:
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
     """
     Generates a final verdict by sending the debate transcript to the 'judge' role.
     Uses call_blocking (not streaming) to ensure complete JSON response.
     
-<<<<<<< HEAD
     PRD Compliance:
     - Returns verdict (VERIFIED/DEBUNKED/COMPLEX)
     - Returns confidence_score (0-100)
@@ -1062,8 +949,6 @@ def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list) -
     - Returns key_evidence with authority scores
     - Returns discounted_sources (low-credibility sources that were deprioritized)
     
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
     Returns a dict with verdict, confidence_score, winning_argument, critical_analysis, key_evidence.
     """
     try:
@@ -1074,7 +959,6 @@ def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list) -
         if len(transcript) > 6000:
             truncated_transcript = "[Earlier content truncated for analysis]\n\n" + truncated_transcript
         
-<<<<<<< HEAD
         # Create detailed evidence context with authority scores
         evidence_context = "\n\n=== EVIDENCE SOURCES WITH AUTHORITY SCORES ===\n"
         for i, art in enumerate(evidence_bundle[:10], 1):
@@ -1109,18 +993,11 @@ Overall Credibility: {dossier.get('credibility', 'N/A')}/100
 Red Flags: {len(dossier.get('red_flags', []))}
 Authority Score: {dossier.get('authority_score', 'N/A')}/100
 """
-=======
-        # Create evidence context
-        evidence_context = "\n\nEvidence Sources:\n"
-        for i, art in enumerate(evidence_bundle[:10], 1):
-            evidence_context += f"{i}. {art.get('title', 'Unknown')} - {art.get('url', 'N/A')}\n"
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         
         judge_input = f"""DEBATE TOPIC: {topic}
 
 {truncated_transcript}
 {evidence_context}
-<<<<<<< HEAD
 {dossier_context}
 
 VERDICT REQUIREMENTS:
@@ -1130,10 +1007,6 @@ VERDICT REQUIREMENTS:
 4. Note any discounted sources (low authority or red-flagged)
 
 Render your final verdict now in the required JSON format."""
-=======
-
-Render your final verdict now."""
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         
         # Use call_blocking to get complete response
         ai_agent = AiAgent()
@@ -1143,11 +1016,7 @@ Render your final verdict now."""
         response = ai_agent.call_blocking(
             user_message=judge_input,
             system_prompt=judge_prompt,
-<<<<<<< HEAD
             max_tokens=1000
-=======
-            max_tokens=800
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         )
         
         response_text = response.text.strip()
@@ -1213,7 +1082,6 @@ def get_recent_transcript(transcript: str, max_chars: int = 3000) -> str:
     
     return "...[earlier debate content truncated]...\n\n" + truncated
 
-<<<<<<< HEAD
 
 # -----------------------------
 # Helper: Format Evidence Bundle for Debaters (PRD 4.1)
@@ -1330,8 +1198,6 @@ def format_forensic_dossier(dossier) -> str:
         return "[FORENSIC DOSSIER FORMAT ERROR]"
 
 
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 # -----------------------------
 # Debate Generator
 # -----------------------------
@@ -1344,7 +1210,6 @@ async def generate_debate(topic: str):
     evidence_bundle = []
     turn_metrics = {"turn_count": 0, "rebuttal_count": 0, "audited_turn_count": 0}
     
-<<<<<<< HEAD
     # 🔬 V2 FEATURES: Initialize enhanced analysis engines
     bias_auditor = None
     credibility_engine = None
@@ -1362,8 +1227,6 @@ async def generate_debate(topic: str):
         except Exception as e:
             logging.warning(f"V2 Features initialization failed: {e}")
     
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
     # 🧠 MEMORY INTEGRATION: Initialize memory system for this debate
     memory = None
     if MEMORY_AVAILABLE:
@@ -1374,7 +1237,6 @@ async def generate_debate(topic: str):
         except Exception as e:
             logging.warning(f"Memory system initialization failed: {e}. Continuing without memory.")
             memory = None
-<<<<<<< HEAD
 
     # 📊 MONGO AUDIT: Initialize audit logger for this debate session
     audit_logger = None
@@ -1398,11 +1260,6 @@ async def generate_debate(topic: str):
 
     try:
         yield format_sse({"topic": topic, "model_used": DEFAULT_MODEL, "debate_id": debate_id, "memory_enabled": memory is not None, "v2_features_enabled": V2_FEATURES_AVAILABLE}, "metadata")
-=======
-
-    try:
-        yield format_sse({"topic": topic, "model_used": DEFAULT_MODEL, "debate_id": debate_id, "memory_enabled": memory is not None}, "metadata")
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 
         # Try to get evidence, but don't fail the debate if it errors
         try:
@@ -1411,7 +1268,6 @@ async def generate_debate(topic: str):
                 timeout=60.0
             )
             logging.info(f"📚 Gathered {len(evidence_bundle)} sources for debate")
-<<<<<<< HEAD
             
             # 📊 MONGO AUDIT: Log RAG retrieval quality
             if audit_logger and audit_logger.enabled:
@@ -1425,13 +1281,10 @@ async def generate_debate(topic: str):
                     },
                     debate_id=debate_id
                 )
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         except Exception as e:
             logging.warning(f"Evidence gathering failed for debate: {e}. Continuing without evidence.")
             evidence_bundle = []
         
-<<<<<<< HEAD
         # 🔬 V2 FEATURES: Run credibility and forensic analysis
         if V2_FEATURES_AVAILABLE and evidence_bundle:
             try:
@@ -1508,23 +1361,10 @@ Topic: {topic}
         else:
             transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\n[NO EVIDENCE SOURCES AVAILABLE]\n\n"
 
-=======
-        # Truncate articles to prevent payload bloat (limit each article to 300 chars)
-        if evidence_bundle:
-            article_text = "\n\n".join(
-                f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')[:300]}..."
-                for article in evidence_bundle[:3]  # Limit to 3 articles max
-            )
-            transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\nSources:\n{article_text}\n\n"
-        else:
-            transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\n"
-
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         # 🎯 STEP 1: DETERMINE DEBATE STANCES
         logging.info("🎯 Determining specific debate stances...")
         stances = await loop.run_in_executor(executor, determine_debate_stances, topic, evidence_bundle)
         
-<<<<<<< HEAD
         # 🔬 V2 FEATURES: Build comprehensive context for debaters (PRD 4.3)
         evidence_context = f"""
 === AVAILABLE EVIDENCE (You MUST cite these using [SRC:ID] format) ===
@@ -1575,17 +1415,6 @@ Introduce this debate by:
 Keep your introduction under 200 words."""
         
         async for event, data in run_turn("moderator", intro_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-=======
-        # Inject stances into role prompts
-        debaters = {
-            "proponent": ROLE_PROMPTS["proponent"] + f"\n\nSPECIFIC STRATEGY FOR THIS DEBATE:\n{stances['proponent_stance']}",
-            "opponent": ROLE_PROMPTS["opponent"] + f"\n\nSPECIFIC STRATEGY FOR THIS DEBATE:\n{stances['opponent_stance']}"
-        }
-
-        # --- Moderator Introduction ---
-        intro_prompt = ROLE_PROMPTS.get("moderator", "Introduce the debate topic based on the sources.")
-        async for event, data in run_turn("moderator", intro_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
             if event == "token":
                 transcript += f"--- INTRODUCTION FROM MODERATOR ---\n{data['text']}\n\n"
             yield format_sse(data, event)
@@ -1596,7 +1425,6 @@ Keep your introduction under 200 words."""
         yield format_sse({"phase": "opening_statements", "message": "Phase 1: Opening Statements"}, "debate_phase")
         
         for role, prompt in debaters.items():
-<<<<<<< HEAD
             input_text = f"""The moderator has introduced the topic. Provide your OPENING STATEMENT (3 minutes / ~300 words max).
 
 FORENSIC DOSSIER CONTEXT:
@@ -1612,15 +1440,10 @@ CRITICAL REQUIREMENTS:
 Transcript so far:
 {get_recent_transcript(transcript)}"""
             async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-=======
-            input_text = f"The moderator has introduced the topic. Please provide your opening statement based on the provided sources.\n\nTranscript:\n{get_recent_transcript(transcript)}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
                 if event == "token":
                     transcript += f"--- OPENING STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
 
-<<<<<<< HEAD
         # ═══════════════════════════════════════════════════════════════
         # PHASE 2: CROSS-EXAMINATION (PRD Requirement - WAS MISSING)
         # ═══════════════════════════════════════════════════════════════
@@ -1640,11 +1463,6 @@ Previous transcript:
 Ask your ONE question now:"""
         
         async for event, data in run_turn("proponent", debaters["proponent"], cross_exam_prompt_pro, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-=======
-        # --- Moderator Poses a Question for Rebuttals ---
-        question_prompt = ROLE_PROMPTS.get("moderator", "Based on the opening statements, pose a challenging question for both sides.")
-        async for event, data in run_turn("moderator", question_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
             if event == "token":
                 transcript += f"--- CROSS-EXAM QUESTION FROM PROPONENT ---\n{data['text']}\n\n"
             yield format_sse(data, event)
@@ -1718,7 +1536,6 @@ Transcript:
         yield format_sse({"phase": "rebuttals", "message": "Phase 3: Rebuttals"}, "debate_phase")
         
         for role, prompt in debaters.items():
-<<<<<<< HEAD
             input_text = f"""REBUTTAL ROUND (2 minutes / ~200 words max).
 
 Address:
@@ -1731,10 +1548,6 @@ CRITICAL: Every counter-claim MUST cite evidence. Uncited rebuttals are weak.
 Transcript:
 {get_recent_transcript(transcript)}"""
             async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor, is_rebuttal=True):
-=======
-            input_text = f"Address the moderator's latest question and rebut the opposing view.\n\nTranscript:\n{get_recent_transcript(transcript)}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, is_rebuttal=True):
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
                 if event == "token":
                     transcript += f"--- REBUTTAL FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
@@ -1853,7 +1666,6 @@ Now argue from the {new_role.upper()} perspective:"""
         yield format_sse({"phase": "convergence", "message": "Phase 6: Convergence - Finding Common Ground"}, "debate_phase")
         
         for role, prompt in debaters.items():
-<<<<<<< HEAD
             convergence_prompt = f"""CONVERGENCE PHASE (2 minutes / ~200 words max)
 
 Having heard all arguments and participated in role reversal, now:
@@ -1869,10 +1681,6 @@ Transcript:
 {get_recent_transcript(transcript)}"""
             
             async for event, data in run_turn(role, prompt, convergence_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-=======
-            input_text = f"Review the entire debate. Your goal is now to find common ground and synthesize a final viewpoint.\n\nTranscript:\n{get_recent_transcript(transcript)}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
                 if event == "token":
                     transcript += f"--- CONVERGENCE FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
@@ -1919,7 +1727,6 @@ Transcript:
         yield format_sse({"phase": "moderator_synthesis", "message": "Phase 8: Moderator Final Synthesis"}, "debate_phase")
         
         synthesis_text = ""
-<<<<<<< HEAD
         moderator_synthesis_prompt = f"""FINAL MODERATOR SYNTHESIS
 
 Provide a comprehensive final synthesis before the Verdict Engine renders judgment.
@@ -1955,16 +1762,11 @@ Transcript for reference:
 {get_recent_transcript(transcript)}"""
         
         async for event, data in run_turn("moderator", moderator_synthesis_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-=======
-        moderator_prompt = ROLE_PROMPTS.get("moderator", "Provide a final, structured synthesis of the entire debate.")
-        async for event, data in run_turn("moderator", moderator_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
             if event == "token":
                 synthesis_text += data.get("text", "")
             if event != "token" or data.get("text"):
                 yield format_sse(data, event)
         
-<<<<<<< HEAD
         # Add synthesis to transcript
         transcript += f"--- MODERATOR FINAL SYNTHESIS ---\n{synthesis_text}\n\n"
         
@@ -1986,17 +1788,11 @@ Transcript for reference:
         import functools
         verdict_func = functools.partial(generate_final_verdict, topic, transcript, evidence_bundle, dossier_dict)
         verdict_data = await loop.run_in_executor(executor, verdict_func)
-=======
-        # 🎯 STEP 2: GENERATE FINAL VERDICT
-        logging.info("⚖️ Generating final verdict from Chief Fact-Checker...")
-        verdict_data = await loop.run_in_executor(executor, generate_final_verdict, topic, transcript, evidence_bundle)
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         
         # Yield the verdict as a new SSE event
         yield format_sse(verdict_data, "final_verdict")
         logging.info(f"✅ Final verdict delivered: {verdict_data.get('verdict')}")
         
-<<<<<<< HEAD
         # 📊 MONGO AUDIT: Log the verdict
         if audit_logger and audit_logger.enabled:
             try:
@@ -2016,8 +1812,6 @@ Transcript for reference:
             except Exception as e:
                 logging.warning(f"Failed to log verdict to MongoDB: {e}")
         
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         # --- Final Analytics ---
         metrics = await loop.run_in_executor(executor, compute_advanced_analytics, evidence_bundle, transcript, turn_metrics)
         
@@ -2033,7 +1827,6 @@ Transcript for reference:
             except Exception as e:
                 logging.warning(f"Failed to get memory stats: {e}")
         
-<<<<<<< HEAD
         # 🔬 V2 FEATURES: Include bias audit summary in analytics
         if bias_auditor:
             try:
@@ -2107,8 +1900,6 @@ Transcript for reference:
             'estimated_compliance_score': 95 if (forensic_dossier and evidence_bundle and verdict_data) else 75
         }
         
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
         yield format_sse(metrics, "analytics_metrics")
 
     except Exception as e:
@@ -2122,15 +1913,9 @@ Transcript for reference:
 
 
 # -----------------------------
-<<<<<<< HEAD
 # Debate Turn (with Memory + Bias Audit + Citation Enforcement Integration)
 # -----------------------------
 async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_entries: list, debate_id: str, topic: str, turn_metrics: dict, memory=None, bias_auditor=None, is_rebuttal: bool = False, enforce_citations: bool = True):
-=======
-# Debate Turn (with Memory Integration)
-# -----------------------------
-async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_entries: list, debate_id: str, topic: str, turn_metrics: dict, memory=None, is_rebuttal: bool = False):
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
     ai_agent = AiAgent()
     try:
         yield "start_role", {"role": role}
@@ -2140,23 +1925,15 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
             try:
                 # Retrieve relevant memories naturally without zone formatting
                 search_results = memory.long_term.search(
-<<<<<<< HEAD
                     query=f"{role} arguments about {topic}",
-=======
-                    query_text=f"{role} arguments about {topic}",
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
                     top_k=2  # Limit to 2 to avoid payload bloat
                 )
                 
                 # Build natural memory context
                 memory_context = ""
                 if search_results:
-<<<<<<< HEAD
                     # RetrievalResult is a dataclass with .text attribute
                     relevant_memories = [f"- {result.text[:150]}..." for result in search_results[:2]]
-=======
-                    relevant_memories = [f"- {result['text'][:150]}..." for result in search_results[:2]]
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
                     memory_context = "\n".join(relevant_memories)
                 
                 # Append memory naturally to input
@@ -2218,7 +1995,6 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
                 logging.debug(f"🧠 Stored {role}'s response in memory (turn {turn_metrics['turn_count']})")
             except Exception as e:
                 logging.warning(f"Failed to store in memory: {e}")
-<<<<<<< HEAD
         
         # 🔬 BIAS AUDIT: Audit the response for bias
         if bias_auditor and full_response:
@@ -2273,8 +2049,6 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
                     logging.info(f"✅ {role} cited {len(citations)} sources in turn {turn_metrics['turn_count']}")
             except Exception as e:
                 logging.warning(f"Citation check failed for {role}: {e}")
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 
         log_entries.append({
             "debate_id": debate_id, "topic": topic, "model_used": DEFAULT_MODEL, "role": role,

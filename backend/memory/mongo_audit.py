@@ -328,7 +328,6 @@ class MongoAuditLogger:
             logger.error(f"Error getting audit stats: {e}")
             return {"enabled": True, "error": str(e)}
     
-<<<<<<< HEAD
     def log_rag_retrieval(
         self,
         debate_id: str,
@@ -427,8 +426,6 @@ class MongoAuditLogger:
         except Exception as e:
             logger.error(f"Error logging verdict: {e}")
     
-=======
->>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
     def close(self):
         """Close MongoDB connection"""
         if self.client:
