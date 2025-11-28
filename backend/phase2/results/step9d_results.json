@@ -1,0 +1,151 @@
+{
+  "baseline": {
+    "relevance": 74.78316897328251,
+    "precision": 32.94871794871795,
+    "recall": 92.3076923076923,
+    "f1": 47.50915750915751,
+    "tests_passed": "6/13",
+    "duration": 0.7862920761108398
+  },
+  "strategies": [
+    {
+      "mode": "baseline",
+      "description": "No expansion (Alpha-v7)",
+      "metrics": {
+        "relevance": 74.78316897328251,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "6/13",
+        "duration": 0.7862920761108398
+      },
+      "delta_relevance": 0.0,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.7967691421508789,
+      "timestamp": "2025-11-11T19:06:24.833962"
+    },
+    {
+      "mode": "9d-1",
+      "description": "Paraphrase generation (GPT-4o-mini)",
+      "metrics": {
+        "relevance": 71.47362196272506,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "5/13",
+        "duration": 0.7557601928710938
+      },
+      "delta_relevance": -3.309547010557452,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.7571253776550293,
+      "timestamp": "2025-11-11T19:06:25.592684"
+    },
+    {
+      "mode": "9d-2",
+      "description": "Synonym expansion (WordNet)",
+      "metrics": {
+        "relevance": 70.24616869818678,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "5/13",
+        "duration": 0.8321137428283691
+      },
+      "delta_relevance": -4.5370002750957354,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.832935094833374,
+      "timestamp": "2025-11-11T19:06:27.942988"
+    },
+    {
+      "mode": "9d-3",
+      "description": "Entity extraction (NER + key concepts)",
+      "metrics": {
+        "relevance": 70.24616869818678,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "5/13",
+        "duration": 0.7304842472076416
+      },
+      "delta_relevance": -4.5370002750957354,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.7307581901550293,
+      "timestamp": "2025-11-11T19:06:28.676491"
+    },
+    {
+      "mode": "9d-4",
+      "description": "Semantic reformulation (Q\u2192S conversion)",
+      "metrics": {
+        "relevance": 70.24616869818678,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "5/13",
+        "duration": 0.7201690673828125
+      },
+      "delta_relevance": -4.5370002750957354,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.7204930782318115,
+      "timestamp": "2025-11-11T19:06:29.400020"
+    },
+    {
+      "mode": "9d-5",
+      "description": "Contextual augmentation (domain terms)",
+      "metrics": {
+        "relevance": 70.24616869818678,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "5/13",
+        "duration": 0.867729663848877
+      },
+      "delta_relevance": -4.5370002750957354,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.8682987689971924,
+      "timestamp": "2025-11-11T19:06:30.272258"
+    },
+    {
+      "mode": "9d-6",
+      "description": "Multi-perspective expansion (viewpoints)",
+      "metrics": {
+        "relevance": 70.24616869818678,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "5/13",
+        "duration": 0.8069033622741699
+      },
+      "delta_relevance": -4.5370002750957354,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.8075487613677979,
+      "timestamp": "2025-11-11T19:06:31.083417"
+    },
+    {
+      "mode": "9d-7",
+      "description": "Hybrid ensemble (best strategies)",
+      "metrics": {
+        "relevance": 70.24616869818678,
+        "precision": 32.94871794871795,
+        "recall": 92.3076923076923,
+        "f1": 47.50915750915751,
+        "tests_passed": "5/13",
+        "duration": 0.7917053699493408
+      },
+      "delta_relevance": -4.5370002750957354,
+      "delta_precision": 0.0,
+      "delta_recall": 0.0,
+      "duration": 0.7924473285675049,
+      "timestamp": "2025-11-11T19:06:31.880577"
+    }
+  ],
+  "timestamp": "2025-11-11T19:06:31.881213",
+  "alpha_version": "v7",
+  "target_version": "v9"
+}

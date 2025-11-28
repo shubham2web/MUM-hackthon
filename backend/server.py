@@ -39,6 +39,16 @@ except ImportError as e:
     V2_AVAILABLE = False
     logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
 
+# Import Hybrid Memory System routes
+try:
+    from api.memory_routes import memory_bp
+    from memory.memory_manager import get_memory_manager
+    MEMORY_AVAILABLE = True
+    logging.info("✅ Hybrid Memory System routes loaded successfully")
+except ImportError as e:
+    MEMORY_AVAILABLE = False
+    logging.warning(f"⚠️ Memory System routes not available: {e}. Install: pip install -r memory_requirements.txt")
+
 # --------------------------
 # Setup Quart App & Executor
 # --------------------------
@@ -57,6 +67,11 @@ app = cors(app,
 if V2_AVAILABLE:
     app.register_blueprint(v2_bp)
     logging.info("✅ ATLAS v2.0 endpoints registered at /v2/*")
+
+# --- Register Memory System Blueprint ---
+if MEMORY_AVAILABLE:
+    app.register_blueprint(memory_bp)
+    logging.info("✅ Hybrid Memory System endpoints registered at /memory/*")
 
 executor = ThreadPoolExecutor(max_workers=10)
 
@@ -177,23 +192,51 @@ async def run_debate_route():
 
 @app.route("/analyze_topic", methods=["POST"])
 async def analyze_topic():
-    """Analyze a topic and return insights"""
+    """Analyze a topic and return insights (with memory support)"""
     try:
         data = await request.get_json()
         topic = data.get("topic", "")
         model = data.get("model", "llama3")
+        session_id = data.get("session_id")  # Optional: maintain conversation context
+        mode = data.get("mode", "analytical")  # Get mode parameter
         
         if not topic:
             return jsonify({"error": "No topic provided"}), 400
         
-        logging.info(f"Analyzing topic: {topic}")
+        # 🎯 DEBATE MODE: If mode is 'debate', run debate instead of analysis
+        if mode == "debate":
+            logging.info(f"Running debate on topic: {topic}")
+            
+            async def stream():
+                async for chunk in generate_debate(topic):
+                    yield chunk
+            
+            return Response(stream(), mimetype="text/event-stream")
+        
+        logging.info(f"Analyzing topic: {topic} (session: {session_id or 'new'})")
+        
+        # 🧠 MEMORY INTEGRATION: Initialize or retrieve memory session
+        memory = None
+        if MEMORY_AVAILABLE:
+            try:
+                memory = get_memory_manager()
+                if session_id:
+                    memory.set_debate_context(session_id)
+                    logging.info(f"🧠 Using existing chat session: {session_id}")
+                else:
+                    session_id = str(uuid.uuid4())
+                    memory.set_debate_context(session_id)
+                    logging.info(f"🧠 Created new chat session: {session_id}")
+            except Exception as e:
+                logging.warning(f"Memory initialization failed: {e}")
+                memory = None
         
         loop = asyncio.get_running_loop()
         
         try:
             # Get evidence with timeout
             evidence_bundle = await asyncio.wait_for(
-                loop.run_in_executor(executor, get_diversified_evidence, topic),
+                get_diversified_evidence(topic),
                 timeout=30.0
             )
             logging.info(f"Found {len(evidence_bundle)} sources")
@@ -215,6 +258,22 @@ async def analyze_topic():
         system_prompt = """You are Atlas, an AI misinformation fighter. 
 Analyze the user's question and provide a clear, factual response.
 Keep your response concise (2-3 paragraphs)."""
+        
+        # 🧠 MEMORY INTEGRATION: Build memory-enhanced context
+        if memory:
+            try:
+                user_message = memory.build_context_payload(
+                    system_prompt=system_prompt,
+                    current_task=user_message,
+                    query=topic,  # RAG query to retrieve relevant past conversations
+                    top_k_rag=2,
+                    use_short_term=True,
+                    use_long_term=True
+                )
+                system_prompt = None  # Already in context payload
+                logging.info(f"🧠 Memory-enhanced context built for analysis")
+            except Exception as e:
+                logging.warning(f"Memory context building failed: {e}")
         
         # Generate response - FIX: Collect generator properly
         ai_agent = AiAgent()
@@ -247,6 +306,25 @@ Keep your response concise (2-3 paragraphs)."""
         if not full_response:
             full_response = "I couldn't generate a response. Please try again."
         
+        # 🧠 MEMORY INTEGRATION: Store interaction in memory
+        if memory:
+            try:
+                memory.add_interaction(
+                    role="user",
+                    content=topic,
+                    metadata={"type": "question", "model": model},
+                    store_in_rag=False  # Don't RAG-store user questions
+                )
+                memory.add_interaction(
+                    role="assistant",
+                    content=full_response,
+                    metadata={"type": "analysis", "model": model, "sources": len(evidence_bundle)},
+                    store_in_rag=True  # Store AI responses for future retrieval
+                )
+                logging.debug(f"🧠 Stored analysis in memory session {session_id}")
+            except Exception as e:
+                logging.warning(f"Failed to store in memory: {e}")
+        
         logging.info(f"Response generated: {len(full_response)} characters")
         
         return jsonify({
@@ -254,7 +332,8 @@ Keep your response concise (2-3 paragraphs)."""
             "topic": topic,
             "analysis": full_response,
             "model": model,
-            "sources_used": len(evidence_bundle)
+            "sources_used": len(evidence_bundle),
+            "session_id": session_id if memory else None  # Return session ID for multi-turn conversations
         })
         
     except Exception as e:
@@ -268,7 +347,7 @@ Keep your response concise (2-3 paragraphs)."""
 @app.route("/ocr_upload", methods=["POST"])
 async def ocr_upload():
     """
-    Handle image upload and OCR processing.
+    Handle image upload and OCR processing (with memory support).
     Extracts text from image and optionally analyzes it with AI.
     Uses EasyOCR - no Tesseract installation required!
     """
@@ -329,6 +408,23 @@ async def ocr_upload():
         analyze = form_data.get('analyze', 'true').lower() == 'true'
         use_scraper = form_data.get('use_scraper', 'true').lower() == 'true'
         question = form_data.get('question', '')
+        session_id = form_data.get('session_id')  # Optional: OCR conversation session
+        
+        # 🧠 MEMORY INTEGRATION: Initialize memory for OCR analysis
+        memory = None
+        if MEMORY_AVAILABLE and analyze:
+            try:
+                memory = get_memory_manager()
+                if session_id:
+                    memory.set_debate_context(session_id)
+                    logging.info(f"🧠 Using existing OCR session: {session_id}")
+                else:
+                    session_id = str(uuid.uuid4())
+                    memory.set_debate_context(session_id)
+                    logging.info(f"🧠 Created new OCR session: {session_id}")
+            except Exception as e:
+                logging.warning(f"Memory initialization failed: {e}")
+                memory = None
         
         ai_analysis = None
         evidence_articles = []
@@ -406,6 +502,22 @@ Be thorough, objective, and help users understand the truth."""
 Provide clear, helpful analysis of the text content.
 If the text appears to contain claims or information, verify its accuracy."""
             
+            # 🧠 MEMORY INTEGRATION: Build memory-enhanced context for OCR
+            if memory:
+                try:
+                    user_message = memory.build_context_payload(
+                        system_prompt=system_prompt,
+                        current_task=user_message,
+                        query=extracted_text[:100],  # Use OCR text snippet for RAG
+                        top_k_rag=2,
+                        use_short_term=True,
+                        use_long_term=True
+                    )
+                    system_prompt = None  # Already in context payload
+                    logging.info(f"🧠 Memory-enhanced OCR context built")
+                except Exception as e:
+                    logging.warning(f"Memory context building failed: {e}")
+            
             # Generate AI response
             ai_agent = AiAgent()
             
@@ -430,6 +542,25 @@ If the text appears to contain claims or information, verify its accuracy."""
                 )
             except asyncio.TimeoutError:
                 ai_analysis = "Analysis timed out. Please try again."
+            
+            # 🧠 MEMORY INTEGRATION: Store OCR analysis in memory
+            if memory and ai_analysis:
+                try:
+                    memory.add_interaction(
+                        role="user",
+                        content=f"OCR Text: {extracted_text[:200]}...",
+                        metadata={"type": "ocr_input", "filename": image_file.filename},
+                        store_in_rag=False
+                    )
+                    memory.add_interaction(
+                        role="assistant",
+                        content=ai_analysis,
+                        metadata={"type": "ocr_analysis", "evidence_count": len(evidence_articles)},
+                        store_in_rag=True  # Store analysis for future reference
+                    )
+                    logging.debug(f"🧠 Stored OCR analysis in memory session {session_id}")
+                except Exception as e:
+                    logging.warning(f"Failed to store OCR in memory: {e}")
         
         return jsonify({
             "success": True,
@@ -449,7 +580,8 @@ If the text appears to contain claims or information, verify its accuracy."""
                 }
                 for article in evidence_articles
             ] if evidence_articles else [],
-            "filename": image_file.filename
+            "filename": image_file.filename,
+            "session_id": session_id if memory else None  # Return session ID for follow-up questions
         })
         
     except Exception as e:
@@ -470,11 +602,22 @@ async def generate_debate(topic: str):
     log_entries = []
     evidence_bundle = []
     turn_metrics = {"turn_count": 0, "rebuttal_count": 0, "audited_turn_count": 0}
+    
+    # 🧠 MEMORY INTEGRATION: Initialize memory system for this debate
+    memory = None
+    if MEMORY_AVAILABLE:
+        try:
+            memory = get_memory_manager()
+            memory.set_debate_context(debate_id)
+            logging.info(f"🧠 Memory system enabled for debate: {debate_id}")
+        except Exception as e:
+            logging.warning(f"Memory system initialization failed: {e}. Continuing without memory.")
+            memory = None
 
     try:
-        yield format_sse({"topic": topic, "model_used": DEFAULT_MODEL, "debate_id": debate_id}, "metadata")
+        yield format_sse({"topic": topic, "model_used": DEFAULT_MODEL, "debate_id": debate_id, "memory_enabled": memory is not None}, "metadata")
 
-        evidence_bundle = await loop.run_in_executor(executor, get_diversified_evidence, topic)
+        evidence_bundle = await get_diversified_evidence(topic)
         
         article_text = "\n\n".join(
             f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')}"
@@ -486,7 +629,7 @@ async def generate_debate(topic: str):
 
         # --- Moderator Introduction ---
         intro_prompt = ROLE_PROMPTS.get("moderator", "Introduce the debate topic based on the sources.")
-        async for event, data in run_turn("moderator", intro_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics):
+        async for event, data in run_turn("moderator", intro_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics, memory):
             if event == "token":
                 transcript += f"--- INTRODUCTION FROM MODERATOR ---\n{data['text']}\n\n"
             yield format_sse(data, event)
@@ -494,14 +637,14 @@ async def generate_debate(topic: str):
         # --- Round 1: Opening Statements ---
         for role, prompt in debaters.items():
             input_text = f"The moderator has introduced the topic. Please provide your opening statement based on the provided sources.\n\nTranscript:\n{transcript}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics):
+            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
                 if event == "token":
                     transcript += f"--- STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
 
         # --- Moderator Poses a Question for Rebuttals ---
         question_prompt = ROLE_PROMPTS.get("moderator", "Based on the opening statements, pose a challenging question for both sides.")
-        async for event, data in run_turn("moderator", question_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics):
+        async for event, data in run_turn("moderator", question_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics, memory):
             if event == "token":
                 transcript += f"--- QUESTION FROM MODERATOR ---\n{data['text']}\n\n"
             yield format_sse(data, event)
@@ -509,7 +652,7 @@ async def generate_debate(topic: str):
         # --- Round 2: Rebuttals ---
         for role, prompt in debaters.items():
             input_text = f"Address the moderator's latest question and rebut the opposing view.\n\nTranscript:\n{transcript}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, is_rebuttal=True):
+            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, is_rebuttal=True):
                 if event == "token":
                     transcript += f"--- REBUTTAL FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
@@ -517,7 +660,7 @@ async def generate_debate(topic: str):
         # --- Round 3: Convergence ---
         for role, prompt in debaters.items():
             input_text = f"Review the entire debate. Your goal is now to find common ground and synthesize a final viewpoint.\n\nTranscript:\n{transcript}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics):
+            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
                 if event == "token":
                     transcript += f"--- CONVERGENCE FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
@@ -525,7 +668,7 @@ async def generate_debate(topic: str):
         # --- Final Synthesis by Moderator ---
         synthesis_text = ""
         moderator_prompt = ROLE_PROMPTS.get("moderator", "Provide a final, structured synthesis of the entire debate.")
-        async for event, data in run_turn("moderator", moderator_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics):
+        async for event, data in run_turn("moderator", moderator_prompt, transcript, loop, log_entries, debate_id, topic, turn_metrics, memory):
             if event == "token":
                 synthesis_text += data.get("text", "")
             if event != "token" or data.get("text"):
@@ -533,6 +676,19 @@ async def generate_debate(topic: str):
         
         # --- Final Analytics ---
         metrics = await loop.run_in_executor(executor, compute_advanced_analytics, evidence_bundle, transcript, turn_metrics)
+        
+        # 🧠 MEMORY INTEGRATION: Include memory statistics in analytics
+        if memory:
+            try:
+                memory_summary = memory.get_memory_summary()
+                metrics['memory_stats'] = {
+                    'total_turns': memory_summary.get('turn_counter', 0),
+                    'short_term_messages': memory_summary['short_term']['current_count'],
+                    'long_term_memories': memory_summary['long_term']['total_memories'] if memory_summary.get('long_term') else 0
+                }
+            except Exception as e:
+                logging.warning(f"Failed to get memory stats: {e}")
+        
         yield format_sse(metrics, "analytics_metrics")
 
     except Exception as e:
@@ -546,17 +702,42 @@ async def generate_debate(topic: str):
 
 
 # -----------------------------
-# Debate Turn
+# Debate Turn (with Memory Integration)
 # -----------------------------
-async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_entries: list, debate_id: str, topic: str, turn_metrics: dict, is_rebuttal: bool = False):
+async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_entries: list, debate_id: str, topic: str, turn_metrics: dict, memory=None, is_rebuttal: bool = False):
     ai_agent = AiAgent()
     try:
         yield "start_role", {"role": role}
 
+        # 🧠 MEMORY INTEGRATION: Build context with memory if available
+        if memory:
+            try:
+                # Build 4-zone context payload
+                memory_enhanced_input = memory.build_context_payload(
+                    system_prompt=system_prompt,
+                    current_task=input_text,
+                    query=f"{role} arguments about {topic}",  # RAG query
+                    top_k_rag=3,  # Retrieve top 3 relevant memories
+                    use_short_term=True,
+                    use_long_term=True
+                )
+                # Use memory-enhanced context
+                final_input = memory_enhanced_input
+                final_system_prompt = None  # System prompt is in ZONE 1
+                logging.info(f"🧠 Memory-enhanced context built for {role} (turn {turn_metrics['turn_count'] + 1})")
+            except Exception as e:
+                logging.warning(f"Memory context building failed: {e}. Using traditional context.")
+                final_input = input_text
+                final_system_prompt = system_prompt
+        else:
+            # No memory available, use traditional approach
+            final_input = input_text
+            final_system_prompt = system_prompt
+
         full_response = ""
         stream_generator = ai_agent.stream(
-            user_message=input_text,
-            system_prompt=system_prompt,
+            user_message=final_input,
+            system_prompt=final_system_prompt,
             max_tokens=DEFAULT_MAX_TOKENS
         )
         
@@ -571,6 +752,24 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
         turn_metrics["turn_count"] += 1
         if is_rebuttal:
             turn_metrics["rebuttal_count"] += 1
+        
+        # 🧠 MEMORY INTEGRATION: Store interaction in memory
+        if memory:
+            try:
+                memory.add_interaction(
+                    role=role,
+                    content=full_response,
+                    metadata={
+                        "turn": turn_metrics["turn_count"],
+                        "is_rebuttal": is_rebuttal,
+                        "topic": topic,
+                        "model": DEFAULT_MODEL
+                    },
+                    store_in_rag=True
+                )
+                logging.debug(f"🧠 Stored {role}'s response in memory (turn {turn_metrics['turn_count']})")
+            except Exception as e:
+                logging.warning(f"Failed to store in memory: {e}")
 
         log_entries.append({
             "debate_id": debate_id, "topic": topic, "model_used": DEFAULT_MODEL, "role": role,
@@ -588,6 +787,22 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
 # -----------------------------
 # Main
 # -----------------------------
+# Initialize database on module load (needed for uvicorn/hypercorn)
+async def initialize():
+    await AsyncDbManager.init_db()
+    logging.info("Database has been initialized.")
+
+# Set Windows event loop policy
+if os.name == 'nt':
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+
+# Startup event for Quart (runs when server starts)
+@app.before_serving
+async def startup():
+    """Initialize database before server starts accepting requests"""
+    await AsyncDbManager.init_db()
+    logging.info("Database has been initialized.")
+
 if __name__ == "__main__":
     if DEBUG_MODE and os.path.exists(DATABASE_FILE):
         try:
@@ -600,21 +815,33 @@ if __name__ == "__main__":
             )
             exit()
 
-    async def initialize():
-        await AsyncDbManager.init_db()
-        logging.info("Database has been initialized.")
-
     if not os.path.exists("templates"):
         os.makedirs("templates")
     if not os.path.exists("templates/index.html"):
         with open("templates/index.html", "w") as f:
             f.write("<h1>AI Debate Server Chat Interface</h1>")
 
-    if os.name == 'nt':
-        asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
+    logging.info("Starting Quart server on http://0.0.0.0:8000")
     
-    asyncio.run(initialize())
+    # Use Quart with explicit Hypercorn config for Windows compatibility
+    from hypercorn.config import Config
+    from hypercorn.asyncio import serve
+    import asyncio
+    
+    config = Config()
+    config.bind = ["0.0.0.0:8000"]  # Try port 8000 instead
+    config.use_reloader = False
+    config.workers = 1  # Single worker for Windows
+    config.accesslog = "-"  # Log to stdout
+    config.errorlog = "-"   # Log errors to stdout
+    
+    # Set Windows-compatible event loop
+    if os.name == 'nt':
+        asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+    
+    # Run with asyncio
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+    loop.run_until_complete(serve(app, config))
 
-    logging.info("Starting Quart async server. Use Hypercorn/Uvicorn in production.")
-    app.run(debug=DEBUG_MODE, port=5000)
 
