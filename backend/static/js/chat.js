@@ -247,11 +247,50 @@ const Chat = {
         console.log(`✅ Switched to ${mode} mode`);
     },
 
+    // Abort controller for canceling requests
+    abortController: null,
+
+    // Show loading state - hide send button, show stop button
+    showLoadingState() {
+        const sendBtn = document.getElementById('sendBtn');
+        const sendText = document.getElementById('sendText');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        if (sendBtn) sendBtn.style.display = 'none';
+        if (sendText) sendText.style.display = 'none';
+        if (stopBtn) stopBtn.style.display = 'flex';
+    },
+
+    // Hide loading state - show send button, hide stop button
+    hideLoadingState() {
+        const sendBtn = document.getElementById('sendBtn');
+        const sendText = document.getElementById('sendText');
+        const stopBtn = document.getElementById('stopBtn');
+        
+        if (sendBtn) sendBtn.style.display = 'flex';
+        if (sendText) sendText.style.display = 'inline';
+        if (stopBtn) stopBtn.style.display = 'none';
+    },
+
+    // Stop the current generation
+    stopGeneration() {
+        if (this.abortController) {
+            this.abortController.abort();
+            this.abortController = null;
+        }
+        this.isProcessing = false;
+        Messages.hideLoading();
+        this.hideLoadingState();
+        Messages.addAIMessage('⏹️ Generation stopped by user.');
+    },
+
     setupEventListeners() {
         const sendBtn = document.getElementById('sendBtn');
+        const stopBtn = document.getElementById('stopBtn');
         const input = document.getElementById('messageInput');
 
         sendBtn?.addEventListener('click', () => this.handleSend());
+        stopBtn?.addEventListener('click', () => this.stopGeneration());
         input?.addEventListener('keypress', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
@@ -699,6 +738,13 @@ const Chat = {
 
         this.isProcessing = true;
         input.value = '';
+        
+        // Show loading state (hide send button, show stop button)
+        this.showLoadingState();
+        
+        // Create abort controller for this request
+        this.abortController = new AbortController();
+        
         // Ensure we have a chat to append to. Create one if necessary.
         try {
             if (!ChatStore.currentChatId) {
@@ -751,6 +797,7 @@ const Chat = {
 
             // Don't send additional message to chat endpoint - OCR already provided analysis
             this.isProcessing = false;
+            this.hideLoadingState();
             return;
         }
 
@@ -850,6 +897,12 @@ const Chat = {
             } catch (error) {
                 Messages.hideLoading();
                 
+                // Check if this was an abort (user clicked stop)
+                if (error.name === 'AbortError') {
+                    // Already handled by stopGeneration()
+                    return;
+                }
+                
                 if (error.message === 'Request timed out') {
                     const v2On = document.getElementById('v2Toggle')?.checked || false;
                     if (v2On) {
@@ -864,6 +917,8 @@ const Chat = {
                 console.error('Chat error:', error);
             } finally {
                 this.isProcessing = false;
+                this.hideLoadingState();
+                this.abortController = null;
             }
         },
 
@@ -920,6 +975,7 @@ const Chat = {
                             }
 
                             console.log('✅ Debate stream complete');
+                            this.hideLoadingState();
                             currentEventType = null;
                             return;
                         }
@@ -1059,6 +1115,7 @@ const Chat = {
         } catch (error) {
             console.error('Error in debate stream:', error);
             Messages.hideLoading(); // Hide loading on error
+            this.hideLoadingState(); // Also hide the loading button state
             Messages.addAIMessage('❌ Error streaming debate: ' + error.message);
         }
     },

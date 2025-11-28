@@ -163,11 +163,14 @@
                         </div>
                     </div>
                     <div class="toolbar-right">
-                        <span class="model-name send-text">SEND</span>
+                        <span class="model-name send-text" id="sendText">SEND</span>
                         <button class="input-btn send-btn" id="sendBtn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M5 12h14M12 5l7 7-7 7"/>
                             </svg>
+                        </button>
+                        <button class="input-btn stop-btn" id="stopBtn" style="display: none;" title="Stop generating">
+                            <div class="loading-spinner"></div>
                         </button>
                     </div>
                 </div>
