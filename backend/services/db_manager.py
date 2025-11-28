@@ -14,9 +14,12 @@ from datetime import datetime, timezone, timedelta
 from typing import List, Dict, Any, Optional, AsyncIterator, TypedDict, Literal
 
 # --- Configuration ---
-DATABASE_FILE = "database/database.db"
-BACKUP_FILE_PATH = "database/debate_backup.db"
-ARCHIVE_FILE_PATH = "database/debate_archive.jsonl.gz" # Using compressed archive
+# Use absolute path based on this file's location to avoid CWD issues
+_DB_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "database")
+os.makedirs(_DB_DIR, exist_ok=True)  # Ensure directory exists
+DATABASE_FILE = os.path.join(_DB_DIR, "database.db")
+BACKUP_FILE_PATH = os.path.join(_DB_DIR, "debate_backup.db")
+ARCHIVE_FILE_PATH = os.path.join(_DB_DIR, "debate_archive.jsonl.gz")  # Using compressed archive
 SLOW_QUERY_THRESHOLD_MS = 10.0
 DELETE_CHUNK_SIZE = 500 # Number of records to delete per transaction in batch deletes
 

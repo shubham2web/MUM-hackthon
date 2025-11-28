@@ -821,7 +821,7 @@ if __name__ == "__main__":
         with open("templates/index.html", "w") as f:
             f.write("<h1>AI Debate Server Chat Interface</h1>")
 
-    logging.info("Starting Quart server on http://0.0.0.0:8000")
+    logging.info("Starting Quart server on http://127.0.0.1:8000")
     
     # Use Quart with explicit Hypercorn config for Windows compatibility
     from hypercorn.config import Config
@@ -829,7 +829,7 @@ if __name__ == "__main__":
     import asyncio
     
     config = Config()
-    config.bind = ["0.0.0.0:8000"]  # Try port 8000 instead
+    config.bind = ["127.0.0.1:8000"]  # Bind to localhost for Windows compatibility
     config.use_reloader = False
     config.workers = 1  # Single worker for Windows
     config.accesslog = "-"  # Log to stdout
