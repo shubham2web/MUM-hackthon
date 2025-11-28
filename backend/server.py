@@ -87,6 +87,17 @@ except Exception as e:
 
 executor = ThreadPoolExecutor(max_workers=10)
 
+# --- Windows asyncio StopIteration fix ---
+def safe_next(iterator, default=None):
+    """
+    Safely get next item from iterator without raising StopIteration.
+    This is required for Windows asyncio compatibility (Python 3.7+).
+    """
+    try:
+        return next(iterator)
+    except StopIteration:
+        return default
+
 # --- JSON logging (production-ready) ---
 class JsonFormatter(logging.Formatter):
     def format(self, record):
@@ -908,13 +919,13 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
             max_tokens=DEFAULT_MAX_TOKENS
         )
         
+        # Use safe_next to avoid StopIteration issues on Windows
         while True:
-            try:
-                chunk = await loop.run_in_executor(executor, next, stream_generator)
-                full_response += chunk
-                yield "token", {"role": role, "text": chunk}
-            except StopIteration:
+            chunk = await loop.run_in_executor(executor, safe_next, stream_generator)
+            if chunk is None:  # Stream finished
                 break
+            full_response += chunk
+            yield "token", {"role": role, "text": chunk}
         
         turn_metrics["turn_count"] += 1
         if is_rebuttal:
