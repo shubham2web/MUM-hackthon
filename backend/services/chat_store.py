@@ -21,6 +21,7 @@ import os
 import json
 import logging
 import asyncio
+import shutil
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from uuid import uuid4
@@ -43,27 +44,64 @@ def get_mongo_uri() -> str:
 
 
 # -----------------------
-# File-backed fallback
+# File-backed fallback (per-user)
 # -----------------------
-_file_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'chats.json')
-_file_path = os.path.abspath(_file_path)
 
-def _ensure_data_dir():
-    d = os.path.dirname(_file_path)
+# Repo-shipped path (unsafe to use for shared repositories)
+_repo_data_file = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'data', 'chats.json'))
+
+def get_user_data_path() -> str:
+    """Return a per-user chats.json path.
+
+    Priority:
+    - Env var `ATLAS_CHAT_STORE_PATH` or `ATLAS_CHAT_DATA_PATH` (absolute file path)
+    - On Windows: %LOCALAPPDATA%\atlas_chat\chats.json
+    - On Unix: $XDG_DATA_HOME/atlas_chat/chats.json or ~/.local/share/atlas_chat/chats.json
+    """
+    env = os.getenv('ATLAS_CHAT_STORE_PATH') or os.getenv('ATLAS_CHAT_DATA_PATH')
+    if env:
+        return os.path.abspath(env)
+
+    if os.name == 'nt':
+        base = os.getenv('LOCALAPPDATA') or os.path.expanduser('~')
+    else:
+        base = os.getenv('XDG_DATA_HOME') or os.path.join(os.path.expanduser('~'), '.local', 'share')
+
+    d = os.path.join(base, 'atlas_chat')
+    return os.path.join(d, 'chats.json')
+
+def _ensure_data_file(user_path: Optional[str] = None):
+    path = user_path or get_user_data_path()
+    d = os.path.dirname(path)
     os.makedirs(d, exist_ok=True)
-    if not os.path.exists(_file_path):
-        with open(_file_path, 'w', encoding='utf-8') as f:
-            json.dump({'chats': []}, f)
+    if not os.path.exists(path):
+        # If a repo-shipped chats.json exists, migrate it to the user path (best-effort)
+        try:
+            if os.path.exists(_repo_data_file):
+                shutil.copy2(_repo_data_file, path)
+                logger.info(f"Migrated repo chats.json to user path: {path}")
+            else:
+                with open(path, 'w', encoding='utf-8') as f:
+                    json.dump({'chats': []}, f)
+        except Exception:
+            # Fallback: create empty file
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump({'chats': []}, f)
 
 def _now_iso():
     return datetime.utcnow().isoformat()
 
 async def _read_file() -> Dict[str, Any]:
-    return await asyncio.to_thread(lambda: json.loads(open(_file_path, 'r', encoding='utf-8').read()))
+    path = get_user_data_path()
+    def _r():
+        with open(path, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    return await asyncio.to_thread(_r)
 
 async def _write_file(data: Dict[str, Any]):
+    path = get_user_data_path()
     def _w():
-        with open(_file_path, 'w', encoding='utf-8') as f:
+        with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
     await asyncio.to_thread(_w)
 
@@ -164,11 +202,13 @@ if USE_MONGO:
 
 else:
     # File-based fallback implementation (for local dev without Mongo)
-    _ensure_data_dir()
 
     async def init_chat_db(app=None):
-        # noop for file-based store
-        _ensure_data_dir()
+        # Ensure user-specific data file exists and migrate any repo file on first run
+        try:
+            _ensure_data_file()
+        except Exception as e:
+            logger.warn('Failed to ensure user data file for chats.json: %s', e)
 
     async def create_chat(title: str = 'New Chat', metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         metadata = metadata or {}
