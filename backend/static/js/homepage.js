@@ -4,6 +4,7 @@ console.log('📦 homepage.js LOADED');
 const promptInput = document.getElementById('prompt');
 const loader = document.getElementById('loader');
 const optionButtons = document.querySelectorAll('.option-btn[data-mode]');
+const ctaButton = document.querySelector('.cta-button');
 const attachBtn = document.getElementById('attachBtn');
 const attachmentArea = document.getElementById('attachmentArea');
 const sendBtn = document.getElementById('sendBtn');
@@ -51,6 +52,15 @@ optionButtons.forEach(button => {
         currentMode = button.dataset.mode;
     });
 });
+
+// Prevent CTA button from navigating, make it behave like send button
+if (ctaButton) {
+    ctaButton.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        handleSubmit();
+    });
+}
 
 // ===== ATTACHMENT FUNCTIONS =====
 function formatFileSize(bytes) {

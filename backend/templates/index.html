@@ -527,25 +527,44 @@
             
             if (initialPrompt) {
                 setTimeout(async () => {
-                    Messages.showLoading('Analyzing uploaded images...');
+                    Messages.showLoading('Analyzing uploaded images with evidence gathering...');
                     try {
-                        const response = await fetch('/chat', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-API-Key': API_KEY
-                            },
-                            body: JSON.stringify({
-                                message: `${initialPrompt}\n\nExtracted text from images:\n${allText}`,
-                                mode: this.currentMode
-                            })
-                        });
+                        // Process each image with scraper-enhanced analysis
+                        for (let i = 0; i < ocrResults.length; i++) {
+                            const ocrData = ocrResults[i];
+                            
+                            // Create FormData for re-processing with scraper
+                            // We'll use the extracted text to trigger scraper analysis
+                            const analysisPrompt = `${initialPrompt}\n\nAnalyze this text extracted from ${ocrData.filename}:\n\n${ocrData.extractedText}`;
+                            
+                            const response = await fetch('/chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-Key': API_KEY
+                                },
+                                body: JSON.stringify({
+                                    message: analysisPrompt,
+                                    mode: this.currentMode,
+                                    use_scraper: true  // Enable scraper for fact-checking
+                                })
+                            });
 
-                        const data = await response.json();
-                        Messages.hideLoading();
-
-                        if (data.response) {
-                            Messages.addAIMessage(data.response);
+                            const data = await response.json();
+                            
+                            if (i === 0) {
+                                Messages.hideLoading();
+                            }
+                            
+                            if (data.analysis || data.result || data.answer) {
+                                const aiMessage = data.analysis || data.result || data.answer;
+                                Messages.addAIMessage(`**Analysis of "${ocrData.filename}" (${i + 1}/${ocrResults.length}):**\n\n${aiMessage}`);
+                            }
+                            
+                            // Small delay between processing multiple files
+                            if (i < ocrResults.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 1000));
+                            }
                         }
                     } catch (error) {
                         Messages.hideLoading();
@@ -636,6 +655,10 @@
                 // Clear attached files after processing
                 Attachments.attachedFiles = [];
                 Messages.addAIMessage(`✅ All files processed successfully!\n\n`);
+                
+                // Don't send additional message to chat endpoint - OCR already provided analysis
+                this.isProcessing = false;
+                return;
             }
             
             Messages.showLoading();
@@ -831,8 +854,8 @@
                             self.attachedFiles.push(file);
                             console.log(`✅ File "${file.name}" attached. Total files: ${self.attachedFiles.length}`);
                             
-                            // Show confirmation message
-                            Messages.addUserMessage(`� Attached: ${file.name}`);
+                            // Show preview for the file
+                            self.showFilePreview(file);
                         }
                         
                         if (self.attachedFiles.length > 0) {
@@ -882,6 +905,71 @@
             console.log('✅ Attachments module initialized');
         },
 
+        showFilePreview(file) {
+            const attachmentArea = document.getElementById('attachmentArea');
+            if (!attachmentArea) return;
+
+            const previewId = `preview-${Date.now()}-${Math.random()}`;
+            const previewItem = document.createElement('div');
+            previewItem.className = 'preview-item';
+            previewItem.id = previewId;
+            previewItem.style.cssText = 'display: inline-flex; align-items: center; margin: 5px; padding: 8px; background: rgba(255,255,255,0.1); border-radius: 8px; position: relative;';
+
+            const isImage = file.type && file.type.startsWith('image/');
+            const isText = file.name.toLowerCase().endsWith('.md') || file.name.toLowerCase().endsWith('.txt');
+
+            // Create thumbnail
+            const thumbnailDiv = document.createElement('div');
+            thumbnailDiv.style.cssText = 'width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); border-radius: 6px; overflow: hidden; margin-right: 10px;';
+
+            if (isImage) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.cssText = 'width: 100%; height: 100%; object-fit: cover;';
+                    thumbnailDiv.appendChild(img);
+                };
+                reader.readAsDataURL(file);
+            } else if (isText) {
+                thumbnailDiv.innerHTML = '<span style="font-size: 24px;">📄</span>';
+            } else {
+                thumbnailDiv.innerHTML = '<span style="font-size: 24px;">📎</span>';
+            }
+
+            // File info
+            const infoDiv = document.createElement('div');
+            infoDiv.style.cssText = 'flex: 1; min-width: 0;';
+            const fileName = document.createElement('div');
+            fileName.textContent = file.name;
+            fileName.style.cssText = 'font-size: 14px; color: #fff; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;';
+            const fileSize = document.createElement('div');
+            fileSize.textContent = (file.size / 1024).toFixed(1) + ' KB';
+            fileSize.style.cssText = 'font-size: 12px; color: rgba(255,255,255,0.6);';
+            infoDiv.appendChild(fileName);
+            infoDiv.appendChild(fileSize);
+
+            // Remove button
+            const removeBtn = document.createElement('button');
+            removeBtn.innerHTML = '×';
+            removeBtn.style.cssText = 'width: 24px; height: 24px; border-radius: 50%; border: none; background: rgba(255,255,255,0.2); color: #fff; cursor: pointer; font-size: 18px; margin-left: 10px;';
+            removeBtn.onclick = () => {
+                previewItem.remove();
+                const index = this.attachedFiles.indexOf(file);
+                if (index > -1) {
+                    this.attachedFiles.splice(index, 1);
+                }
+                console.log(`📎 Removed "${file.name}". Total files: ${this.attachedFiles.length}`);
+            };
+
+            previewItem.appendChild(thumbnailDiv);
+            previewItem.appendChild(infoDiv);
+            previewItem.appendChild(removeBtn);
+            attachmentArea.appendChild(previewItem);
+
+            console.log(`📸 Preview added for "${file.name}"`);
+        },
+
         isValidUrl(string) {
             try {
                 new URL(string);
@@ -912,12 +1000,14 @@
                     reader.readAsDataURL(file);
                 });
 
-                Messages.showLoading(`Processing "${file.name}" with OCR...`);
+                Messages.showLoading(`Processing "${file.name}" with OCR and gathering evidence...`);
 
                 const formData = new FormData();
                 formData.append('image', file);
+                formData.append('analyze', 'true');  // Enable AI analysis
+                formData.append('use_scraper', 'true');  // Enable scraper for evidence gathering
 
-                console.log(`📤 Sending "${file.name}" to OCR endpoint...`);
+                console.log(`📤 Sending "${file.name}" to OCR endpoint with scraper enabled...`);
                 
                 const response = await fetch('http://127.0.0.1:5000/ocr_upload', {
                     method: 'POST',
@@ -936,16 +1026,31 @@
                 Messages.hideLoading();
 
                 if (result.success) {
-                    const { ocr_result, ai_analysis } = result;
+                    const { ocr_result, ai_analysis, evidence_count, evidence_sources } = result;
                     
                     // Log the extracted text to console but don't show to user
                     console.log(`📝 "${file.name}" - Text Extracted (${ocr_result.confidence.toFixed(1)}% confidence)`);
                     console.log(`Text: ${ocr_result.text}`);
                     console.log(`Words found: ${ocr_result.word_count}`);
+                    console.log(`Evidence sources: ${evidence_count}`);
 
-                    // Only show AI analysis to user with file context
+                    // Show evidence sources if available
+                    if (evidence_sources && evidence_sources.length > 0) {
+                        let evidenceMessage = `**📚 Evidence gathered from ${evidence_count} source(s):**\n\n`;
+                        evidence_sources.forEach((source, idx) => {
+                            evidenceMessage += `${idx + 1}. **${source.title}**\n`;
+                            evidenceMessage += `   🔗 [${source.domain}](${source.url})\n`;
+                            if (source.summary) {
+                                evidenceMessage += `   📄 ${source.summary.substring(0, 150)}...\n`;
+                            }
+                            evidenceMessage += `\n`;
+                        });
+                        Messages.addAIMessage(evidenceMessage);
+                    }
+
+                    // Show AI analysis to user with file context
                     if (ai_analysis) {
-                        Messages.addAIMessage(`**Analysis of "${file.name}":**\n\n${ai_analysis}`);
+                        Messages.addAIMessage(`**🔍 Fact-Checked Analysis of "${file.name}":**\n\n${ai_analysis}`);
                     } else {
                         Messages.addAIMessage(`✅ "${file.name}" processed successfully, but no analysis was generated.`);
                     }
