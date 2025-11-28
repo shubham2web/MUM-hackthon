@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test ATLAS v2.0 Integration</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .container {
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+        }
+        h1 { margin-top: 0; }
+        button {
+            background: #764ba2;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #667eea; }
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 8px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .success { color: #4ade80; }
+        .error { color: #f87171; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 ATLAS v2.0 Integration Test</h1>
+        
+        <div>
+            <button onclick="testV2Analyze()">Test v2.0 Analysis</button>
+            <button onclick="testCredibility()">Test Credibility Score</button>
+            <button onclick="testRoles()">Test Role Library</button>
+            <button onclick="testBiasReport()">Test Bias Report</button>
+        </div>
+
+        <div id="result" class="result">
+            Click a button to test the v2.0 endpoints...
+        </div>
+    </div>
+
+    <script>
+        const baseURL = 'http://127.0.0.1:5000';
+        const resultDiv = document.getElementById('result');
+
+        function showResult(message, isError = false) {
+            resultDiv.innerHTML = `<span class="${isError ? 'error' : 'success'}">${message}</span>`;
+        }
+
+        async function testV2Analyze() {
+            showResult('🔄 Testing v2.0 analysis...');
+            try {
+                const response = await fetch(`${baseURL}/v2/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        claim: 'Is artificial intelligence safe?',
+                        num_agents: 4,
+                        enable_reversal: true,
+                        reversal_rounds: 1
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                showResult('✅ v2.0 Analysis Success!\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ Error: ' + error.message, true);
+            }
+        }
+
+        async function testCredibility() {
+            showResult('🔄 Testing credibility score...');
+            try {
+                const response = await fetch(`${baseURL}/v2/credibility`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        claim: 'The Earth is round',
+                        sources: [
+                            { url: 'https://www.nasa.gov', domain: 'nasa.gov', trust_score: 0.95 },
+                            { url: 'https://www.wikipedia.org', domain: 'wikipedia.org', trust_score: 0.80 }
+                        ],
+                        evidence_texts: ['Scientific evidence proves...', 'Multiple observations show...']
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                showResult('✅ Credibility Check Success!\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ Error: ' + error.message, true);
+            }
+        }
+
+        async function testRoles() {
+            showResult('🔄 Testing role library...');
+            try {
+                const response = await fetch(`${baseURL}/v2/roles?topic=AI`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                showResult('✅ Roles Retrieved!\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ Error: ' + error.message, true);
+            }
+        }
+
+        async function testBiasReport() {
+            showResult('🔄 Testing bias report...');
+            try {
+                const response = await fetch(`${baseURL}/v2/bias-report`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                showResult('✅ Bias Report Retrieved!\n\n' + JSON.stringify(data, null, 2));
+            } catch (error) {
+                showResult('❌ Error: ' + error.message, true);
+            }
+        }
+    </script>
+</body>
+</html>
