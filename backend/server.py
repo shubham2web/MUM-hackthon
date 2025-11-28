@@ -22,22 +22,28 @@ from services.pro_scraper import get_diversified_evidence
 from core.utils import compute_advanced_analytics, format_sse
 
 # Import OCR functionality (EasyOCR - no Tesseract needed!)
-try:
-    from services.ocr_processor import get_ocr_processor
-    OCR_AVAILABLE = True
-    logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
-except (ImportError, OSError, RuntimeError) as e:
-    OCR_AVAILABLE = False
-    logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
+# Temporarily disabled due to slow PyTorch loading
+OCR_AVAILABLE = False
+logging.warning("OCR functionality temporarily disabled to speed up server startup. PyTorch/EasyOCR will be loaded on-demand.")
+# try:
+#     from services.ocr_processor import get_ocr_processor
+#     OCR_AVAILABLE = True
+#     logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
+# except (ImportError, OSError, RuntimeError) as e:
+#     OCR_AVAILABLE = False
+#     logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
 
 # Import v2.0 routes
-try:
-    from api.api_v2_routes import v2_bp
-    V2_AVAILABLE = True
-    logging.info("✅ ATLAS v2.0 routes loaded successfully")
-except ImportError as e:
-    V2_AVAILABLE = False
-    logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
+# Temporarily disabled due to slow transformers loading
+V2_AVAILABLE = False
+logging.warning("⚠️ ATLAS v2.0 routes temporarily disabled to speed up server startup.")
+# try:
+#     from api.api_v2_routes import v2_bp
+#     V2_AVAILABLE = True
+#     logging.info("✅ ATLAS v2.0 routes loaded successfully")
+# except ImportError as e:
+#     V2_AVAILABLE = False
+#     logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
 
 # --------------------------
 # Setup Quart App & Executor
@@ -305,8 +311,19 @@ async def ocr_upload():
         # Log file info
         logging.info(f"Processing OCR for image: {image_file.filename} ({len(image_bytes)} bytes)")
         
+        # Check if OCR is available (lazy load)
+        if not OCR_AVAILABLE:
+            try:
+                from services.ocr_processor import get_ocr_processor
+            except Exception as e:
+                return jsonify({
+                    "success": False,
+                    "error": f"OCR functionality not available: {str(e)}"
+                }), 503
+        
         # Process OCR
         loop = asyncio.get_running_loop()
+        from services.ocr_processor import get_ocr_processor
         ocr_processor = get_ocr_processor()
         
         # Run OCR in executor to avoid blocking
