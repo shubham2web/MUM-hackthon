@@ -428,12 +428,17 @@ async function handleSubmit() {
     sessionStorage.setItem('chatMode', currentMode);
 
     console.log('✅ Stored in sessionStorage');
-    console.log('✅ Redirecting to /chat...');
+    console.log('✅ Redirecting to /chat with mode:', currentMode);
 
     loader.style.display = 'flex';
     setTimeout(() => loader.style.opacity = '1', 10);
 
-    window.location.href = '/chat';
+    // Navigate to chat page with mode parameter if debate mode is selected
+    if (currentMode === 'debate') {
+        window.location.href = '/chat?mode=debate';
+    } else {
+        window.location.href = '/chat';
+    }
 }
 
 sendBtn.addEventListener('click', handleSubmit);
