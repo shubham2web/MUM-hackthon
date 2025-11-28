@@ -14,6 +14,14 @@ from memory.vector_store import VectorStore
 from memory.short_term_memory import ShortTermMemory
 from memory.embeddings import get_embedding_service
 
+# Import web scraper for External RAG
+try:
+    from tools.web_scraper import fetch_url_content, extract_url
+    WEB_SCRAPER_AVAILABLE = True
+except ImportError:
+    WEB_SCRAPER_AVAILABLE = False
+    logging.warning("Web scraper not available - External RAG disabled")
+
 
 class HybridMemoryManager:
     """
@@ -305,10 +313,14 @@ class HybridMemoryManager:
         top_k_rag: int = 4,
         use_short_term: bool = True,
         use_long_term: bool = True,
-        format_style: str = "structured"
+        format_style: str = "structured",
+        enable_web_rag: bool = True
     ) -> str:
         """
-        Build the complete 4-Zone Context Payload for LLM.
+        Build the complete 4-Zone Context Payload for LLM with External RAG support.
+        
+        CRITICAL FIX: This now conditionally inserts evidence to prevent "Evidence Block" leakage.
+        When no evidence exists, it explicitly tells the LLM instead of leaving a template.
         
         Args:
             system_prompt: ZONE 1 - Agent identity and rules
@@ -318,6 +330,7 @@ class HybridMemoryManager:
             use_short_term: Include ZONE 3 (recent conversation)
             use_long_term: Include ZONE 2 (RAG retrieval)
             format_style: "structured" or "conversational"
+            enable_web_rag: Enable External Web RAG for URL content
             
         Returns:
             Complete formatted context string
@@ -331,7 +344,12 @@ class HybridMemoryManager:
         zones.append(system_prompt)
         zones.append("")
         
-        # ZONE 2: LONG-TERM MEMORY (RAG)
+        # Prepare to collect evidence from multiple sources
+        rag_context = ""
+        web_context = ""
+        has_evidence = False
+        
+        # ZONE 2A: LONG-TERM MEMORY (Internal RAG from vector DB)
         if use_long_term and self.enable_rag and self.long_term:
             rag_query = query if query else current_task
             rag_context = self.long_term.get_relevant_context(
@@ -340,12 +358,80 @@ class HybridMemoryManager:
                 format_style=format_style
             )
             
+            if rag_context and rag_context.strip():
+                has_evidence = True
+        
+        # ZONE 2B: EXTERNAL WEB RAG (Live URL fetching) + PERMANENT LEARNING
+        if enable_web_rag and WEB_SCRAPER_AVAILABLE:
+            # Check if query or current_task contains a URL
+            search_text = query if query else current_task
+            url = extract_url(search_text)
+            
+            if url:
+                self.logger.info(f"🌐 External RAG: Fetching URL {url}")
+                web_content = fetch_url_content(url, max_length=8000)
+                
+                # Clean the tag "[LIVE FETCH]" or "[CACHED SUMMARY]" for storage
+                clean_content = web_content.replace("[LIVE FETCH]", "").replace("[CACHED SUMMARY]", "").strip()
+                
+                # Only add if fetch was successful
+                if clean_content and not clean_content.startswith("Error"):
+                    web_context = f"\n### LIVE WEB CONTENT FROM {url}:\n{clean_content}\n"
+                    has_evidence = True
+                    
+                    # --- THE UPGRADE: PERMANENT LEARNING LOOP ---
+                    # Inject web summary into Vector DB for cross-conversation recall
+                    if self.enable_rag and self.long_term:
+                        try:
+                            self.logger.info(f"🧠 LEARNING: Injecting web summary into Long-Term Memory (Vector DB)")
+                            
+                            # Add to vector store with rich metadata
+                            memory_id = self.long_term.add_memory(
+                                text=clean_content,
+                                metadata={
+                                    "source": url,
+                                    "type": "web_memory",
+                                    "timestamp": datetime.now().isoformat(),
+                                    "ingestion_method": "auto_web_rag"
+                                }
+                            )
+                            
+                            self.logger.info(f"✅ Successfully stored web content in Vector DB (ID: {memory_id})")
+                        except Exception as e:
+                            self.logger.error(f"Failed to store web content in Vector DB: {e}")
+                    # ---------------------------------------
+                else:
+                    self.logger.warning(f"Failed to fetch URL: {web_content}")
+        
+        # ZONE 2: EVIDENCE BLOCK (Conditionally inserted)
+        if has_evidence:
+            zones.append("=" * 80)
+            zones.append("[ZONE 2: RETRIEVED EVIDENCE]")
+            zones.append("=" * 80)
+            zones.append("### IMPORTANT: Use this evidence to answer accurately ###")
+            zones.append("")
+            
             if rag_context:
-                zones.append("=" * 80)
-                zones.append("[ZONE 2: LONG-TERM MEMORY (RAG)]")
-                zones.append("=" * 80)
+                zones.append("--- Internal Memory (Past Debates) ---")
                 zones.append(rag_context)
                 zones.append("")
+            
+            if web_context:
+                zones.append("--- External Web Source (Live Data) ---")
+                zones.append(web_context)
+                zones.append("")
+            
+            zones.append("### END OF EVIDENCE ###")
+            zones.append("")
+        else:
+            # CRITICAL: Explicitly tell LLM there's no external evidence
+            zones.append("=" * 80)
+            zones.append("[ZONE 2: EVIDENCE STATUS]")
+            zones.append("=" * 80)
+            zones.append("[NO EXTERNAL EVIDENCE RETRIEVED]")
+            zones.append("Rely on your internal knowledge, but admit if you don't know.")
+            zones.append("Do NOT hallucinate facts - if uncertain, say so explicitly.")
+            zones.append("")
         
         # ZONE 3: SHORT-TERM MEMORY (recent conversation)
         if use_short_term and len(self.short_term) > 0:

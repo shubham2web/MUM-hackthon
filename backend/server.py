@@ -300,30 +300,27 @@ async def analyze_topic():
         - Keep your answer concise (2-3 short paragraphs), and at the end include a short 'Sources' list with titles and URLs.
         """
         
-        # 🧠 MEMORY INTEGRATION: Retrieve relevant context from memory but don't use zone formatting for chat
+        # 🧠 MEMORY INTEGRATION + WEB RAG: Build complete context payload with external web content
         if memory:
             try:
-                # For analytical mode, just retrieve relevant memories without zone formatting
-                relevant_memories = []
-                if memory.enable_rag and memory.long_term:
-                    search_results = memory.long_term.search(
-                        query_text=topic,
-                        top_k=2,
-                        filter_metadata={"debate_id": session_id}
-                    )
-                    relevant_memories = [
-                        f"Previous context: {result['text'][:200]}..."
-                        for result in search_results
-                    ]
+                # Use build_context_payload for complete RAG (internal memories + external web)
+                # This enables the Permanent Learning Loop!
+                context_payload = memory.build_context_payload(
+                    system_prompt=system_prompt,
+                    current_task=user_message,
+                    query=topic,  # Will extract URLs and fetch if present
+                    enable_web_rag=True,  # Enable External RAG + Learning Loop
+                    use_long_term=True,   # Search Vector DB for relevant memories
+                    use_short_term=True,  # Include recent conversation
+                    format_style="conversational"  # Better for chat UI
+                )
                 
-                # Add memory context naturally to user message if available
-                if relevant_memories:
-                    memory_context = "\n\n".join(relevant_memories)
-                    user_message = f"{user_message}\n\nRelevant previous discussion:\n{memory_context}"
-                    logging.info(f"🧠 Added {len(relevant_memories)} relevant memories to context")
+                # Replace user_message with enriched payload
+                user_message = context_payload
+                logging.info(f"🧠 Enhanced with RAG context (web + memories)")
                 
             except Exception as e:
-                logging.warning(f"Memory context retrieval failed: {e}")
+                logging.warning(f"Memory context enhancement failed: {e}")
         
         # Generate response - FIX: Collect generator properly
         ai_agent = AiAgent()

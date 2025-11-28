@@ -13,6 +13,64 @@ from core.ai_agent import AiAgent, AiResponse
 from memory.memory_manager import HybridMemoryManager
 
 
+def condense_query(chat_history: str, latest_user_input: str, llm_client: AiAgent) -> str:
+    """
+    Uses LLM to rewrite the user query based on chat history.
+    
+    This solves "Goldfish Memory" - when user says "go to the sources",
+    this function knows they meant "go to the NDTV source I just sent."
+    
+    Args:
+        chat_history: Recent conversation history
+        latest_user_input: Current user message
+        llm_client: AiAgent instance for LLM calls
+        
+    Returns:
+        Standalone query that includes context from history
+        
+    Examples:
+        Input: "go to the sources"
+        Context: [User sent NDTV link previously]
+        Output: "Verify the facts in the NDTV link provided in the previous turn."
+        
+        Input: "what about that article?"
+        Context: [Discussion about climate change article]
+        Output: "What does the climate change article say about renewable energy?"
+    """
+    system_prompt = """Given the following conversation and a follow up question, 
+rephrase the follow up question to be a standalone question. 
+If the follow up question is referencing a link or context from the history, include it explicitly.
+
+DO NOT answer the question - just rephrase it to be self-contained."""
+    
+    # Construct prompt with history
+    prompt = f"""{system_prompt}
+
+History:
+{chat_history}
+
+Follow Up Input: {latest_user_input}
+
+Standalone Question:"""
+    
+    try:
+        # Call LLM with fast model (Zone 3 from architecture)
+        response = llm_client.call_blocking(
+            user_message=prompt,
+            system_prompt=None,
+            max_tokens=256  # Short response needed
+        )
+        
+        condensed = response.text.strip()
+        logging.info(f"Query condensed: '{latest_user_input}' → '{condensed}'")
+        return condensed
+        
+    except Exception as e:
+        logging.error(f"Query condensation failed: {e}")
+        # Fallback to original input
+        return latest_user_input
+
+
 class MemoryEnhancedAgent:
     """
     AI Agent with integrated Hybrid Memory System.
