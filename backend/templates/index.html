@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>Atlas Chat Interface</title>
     
     <!-- Fonts -->
@@ -329,6 +332,20 @@
                 <div class="message-content">
                     <div class="message-avatar">You</div>
                     <div class="message-text">${this.escapeHtml(text)}</div>
+                </div>
+                <div class="message-time">${this.getTimeString()}</div>
+            `;
+            this.container.appendChild(messageDiv);
+            this.scrollToBottom();
+        },
+
+        addUserMessageWithHTML(htmlContent) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message user-message';
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    <div class="message-avatar">You</div>
+                    <div class="message-text">${htmlContent}</div>
                 </div>
                 <div class="message-time">${this.getTimeString()}</div>
             `;
@@ -687,28 +704,61 @@
                     
                     const input = document.createElement('input');
                     input.type = 'file';
-                    input.accept = 'image/*,.pdf,.doc,.docx,.txt';
-                    input.multiple = false;
+                    input.accept = '.pdf,.md,.txt,.jpg,.jpeg,.png';
+                    input.multiple = true; // Allow multiple files
 
                     const self = this; // Capture context
                     
                     input.onchange = async (e) => {
-                        const file = e.target.files[0];
-                        if (!file) return;
+                        const files = Array.from(e.target.files);
+                        if (files.length === 0) return;
 
-                        console.log('📁 File selected:', file.name, file.type, file.size);
+                        console.log(`📁 ${files.length} file(s) selected`);
 
-                        if (file.size > 10 * 1024 * 1024) {
-                            Messages.addAIMessage('❌ File too large. Maximum size is 10MB.');
+                        // Check file limit
+                        if (files.length > 10) {
+                            Messages.addAIMessage('❌ Maximum 10 files allowed at a time.');
                             return;
                         }
 
-                        // Check if it's an image
-                        if (file.type && file.type.startsWith('image/')) {
-                            console.log('🖼️ Processing image with OCR...');
-                            await self.processImageWithOCR(file);
-                        } else {
-                            Messages.addAIMessage('📄 Currently only image files are supported for OCR.');
+                        // Validate and process each file
+                        for (const file of files) {
+                            console.log('📁 Processing file:', file.name, file.type, file.size);
+
+                            // File size check
+                            if (file.size > 10 * 1024 * 1024) {
+                                Messages.addAIMessage(`❌ File "${file.name}" is too large. Maximum size is 10MB.`);
+                                continue;
+                            }
+
+                            // Format validation
+                            const allowedExtensions = ['.pdf', '.md', '.txt', '.jpg', '.jpeg', '.png'];
+                            const fileName = file.name.toLowerCase();
+                            const isValidFormat = allowedExtensions.some(ext => fileName.endsWith(ext));
+
+                            if (!isValidFormat) {
+                                Messages.addAIMessage(`❌ Format not supported: "${file.name}". Allowed formats: PDF, MD, TXT, JPG, JPEG, PNG`);
+                                continue;
+                            }
+
+                            // Check if it's an image
+                            if (file.type.startsWith('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
+                                console.log(`🖼️ Processing image ${files.indexOf(file) + 1}/${files.length}: ${file.name}`);
+                                
+                                // Add separator for multiple files
+                                if (files.length > 1) {
+                                    Messages.addAIMessage(`\n--- Processing file ${files.indexOf(file) + 1} of ${files.length} ---\n`);
+                                }
+                                
+                                await self.processImageWithOCR(file);
+                                
+                                // Small delay between files to ensure proper sequencing
+                                if (files.indexOf(file) < files.length - 1) {
+                                    await new Promise(resolve => setTimeout(resolve, 500));
+                                }
+                            } else {
+                                Messages.addAIMessage(`📄 File "${file.name}" - text extraction coming soon.`);
+                            }
                         }
                     };
 
@@ -767,27 +817,43 @@
             console.log('🖼️ Starting OCR process for file:', file.name);
             
             try {
-                Messages.addUserMessage(`📷 Uploaded: ${file.name}`);
-                Messages.showLoading('Processing image with OCR...');
+                // Create image preview - wait for it to load
+                await new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const imageUrl = e.target.result;
+                        const previewHtml = `
+                            <strong>📷 ${file.name}</strong>
+                            <div class="image-preview" style="max-width: 300px; margin: 10px 0; border-radius: 8px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                                <img src="${imageUrl}" alt="${file.name}" style="width: 100%; height: auto; display: block;">
+                            </div>
+                        `;
+                        Messages.addUserMessageWithHTML(previewHtml);
+                        resolve();
+                    };
+                    reader.readAsDataURL(file);
+                });
+
+                Messages.showLoading(`Processing "${file.name}" with OCR...`);
 
                 const formData = new FormData();
-                formData.append('image', file);  // Changed from 'file' to 'image' to match server endpoint
+                formData.append('image', file);
 
-                console.log('📤 Sending to OCR endpoint...');
+                console.log(`📤 Sending "${file.name}" to OCR endpoint...`);
                 
                 const response = await fetch('http://127.0.0.1:5000/ocr_upload', {
                     method: 'POST',
                     body: formData
                 });
 
-                console.log('📥 OCR Response status:', response.status);
+                console.log(`📥 OCR Response for "${file.name}":`, response.status);
 
                 if (!response.ok) {
                     throw new Error(`Server error: ${response.status}`);
                 }
 
                 const result = await response.json();
-                console.log('📊 OCR Result:', result);
+                console.log(`📊 OCR Result for "${file.name}":`, result);
 
                 Messages.hideLoading();
 
@@ -795,18 +861,18 @@
                     const { ocr_result, ai_analysis } = result;
                     
                     // Log the extracted text to console but don't show to user
-                    console.log(`📝 Text Extracted (${ocr_result.confidence.toFixed(1)}% confidence)`);
+                    console.log(`📝 "${file.name}" - Text Extracted (${ocr_result.confidence.toFixed(1)}% confidence)`);
                     console.log(`Text: ${ocr_result.text}`);
                     console.log(`Words found: ${ocr_result.word_count}`);
 
-                    // Only show AI analysis to user
+                    // Only show AI analysis to user with file context
                     if (ai_analysis) {
-                        Messages.addAIMessage(ai_analysis);
+                        Messages.addAIMessage(`**Analysis of "${file.name}":**\n\n${ai_analysis}`);
                     } else {
-                        Messages.addAIMessage('✅ Image processed successfully, but no analysis was generated.');
+                        Messages.addAIMessage(`✅ "${file.name}" processed successfully, but no analysis was generated.`);
                     }
                 } else {
-                    Messages.addAIMessage(`❌ OCR Error: ${result.error || 'Unknown error'}`);
+                    Messages.addAIMessage(`❌ OCR Error for "${file.name}": ${result.error || 'Unknown error'}`);
                 }
 
             } catch (error) {
