@@ -42,12 +42,29 @@ const Chat = {
             }
         }
 
+        // Check if user is coming from homepage with a new message
+        // If so, we want to start a fresh chat instead of loading the previous one
+        const initialPrompt = sessionStorage.getItem('initialPrompt');
+        const ocrResults = sessionStorage.getItem('ocrResults');
+        const ocrResult = sessionStorage.getItem('ocrResult');
+        const isComingFromHomepage = !!(initialPrompt || ocrResults || ocrResult);
+
+        // If coming from homepage, clear current chat references to force a fresh start
+        if (isComingFromHomepage) {
+            console.log('🏠 Coming from homepage - starting fresh chat');
+            ChatStore.currentChatId = null;
+            if (ChatStore.currentChatIdByMode) {
+                delete ChatStore.currentChatIdByMode[this.currentMode];
+                localStorage.setItem('chatIdsByMode', JSON.stringify(ChatStore.currentChatIdByMode));
+            }
+        }
+
         // Restore per-mode chat if present, otherwise clear messages and add welcome
         const messages = document.getElementById('chatMessages');
         try {
             const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[this.currentMode] : null;
-            if (mappedId) {
-                // Attempt to open the mapped chat for this mode
+            if (mappedId && !isComingFromHomepage) {
+                // Attempt to open the mapped chat for this mode (only if NOT coming from homepage)
                 try { ChatStore.openChat(mappedId); ChatStore.currentChatId = mappedId; }
                 catch (e) { console.warn('Failed to open mapped chat', e); if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } }
             } else {
@@ -58,21 +75,18 @@ const Chat = {
         }
 
         // Check for OCR result from sessionStorage (old single file format)
-        const ocrResult = sessionStorage.getItem('ocrResult');
         if (ocrResult) {
             this.handleOCRResult(JSON.parse(ocrResult));
             sessionStorage.removeItem('ocrResult'); // Clear after using
         }
 
         // Check for OCR results from homepage (new multiple files format)
-        const ocrResults = sessionStorage.getItem('ocrResults');
         if (ocrResults) {
             this.handleMultipleOCRResults(JSON.parse(ocrResults));
             sessionStorage.removeItem('ocrResults'); // Clear after using
         }
 
         // If homepage set an initial prompt (text or link), auto-fill and send it
-        const initialPrompt = sessionStorage.getItem('initialPrompt');
         if (initialPrompt) {
             try {
                 const inputEl = document.getElementById('messageInput');
@@ -482,7 +496,7 @@ const Chat = {
             if (state === 'denied') statusEl.textContent += ' (permission state: denied)';
             else if (state === 'granted') statusEl.textContent += ' (permission state: granted)';
             else if (state === 'prompt') statusEl.textContent += ' (permission state: prompt)';
-        }).catch(() => {});
+        }).catch(() => { });
     },
 
     hidePermissionModal() {
@@ -523,7 +537,7 @@ const Chat = {
 
         this.mediaRecorder.onstop = async () => {
             // Stop audio nodes if any
-            try { if (this._audioContext) { this._audioContext.close(); this._audioContext = null; } } catch (e) {}
+            try { if (this._audioContext) { this._audioContext.close(); this._audioContext = null; } } catch (e) { }
 
             this.hideRecordingModal();
 
@@ -612,8 +626,8 @@ const Chat = {
         try {
             if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') this.mediaRecorder.stop();
         } catch (e) { console.warn('mediaRecorder.stop error', e); }
-        try { if (this._mediaStream) { this._mediaStream.getTracks().forEach(t => t.stop()); this._mediaStream = null; } } catch (e) {}
-        try { if (this._vadInterval) { clearInterval(this._vadInterval); this._vadInterval = null; } } catch (e) {}
+        try { if (this._mediaStream) { this._mediaStream.getTracks().forEach(t => t.stop()); this._mediaStream = null; } } catch (e) { }
+        try { if (this._vadInterval) { clearInterval(this._vadInterval); this._vadInterval = null; } } catch (e) { }
     },
 
     startVAD(stream) {
@@ -672,7 +686,7 @@ const Chat = {
             body: form,
             headers: {}
         };
-        try { if (typeof API_KEY !== 'undefined' && API_KEY) fetchOpts.headers['X-API-Key'] = API_KEY; } catch (e) {}
+        try { if (typeof API_KEY !== 'undefined' && API_KEY) fetchOpts.headers['X-API-Key'] = API_KEY; } catch (e) { }
 
         const resp = await fetch('/transcribe', fetchOpts);
 
@@ -761,100 +775,100 @@ const Chat = {
             setTimeout(() => reject(new Error('Request timed out')), 180000)
         );
 
-            try {
-                // Check v2 toggle state
-                const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
-                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
-                
-                // Collect conversation history from chat messages
-                const conversationHistory = this.getConversationHistory();
-                
-                let response;
-                
-                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
-                if (this.currentMode === 'debate') {
-                    console.log('🎭 Running debate mode...');
+        try {
+            // Check v2 toggle state
+            const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
+            console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
+
+            // Collect conversation history from chat messages
+            const conversationHistory = this.getConversationHistory();
+
+            let response;
+
+            // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+            if (this.currentMode === 'debate') {
+                console.log('🎭 Running debate mode...');
+                response = await Promise.race([
+                    API.sendMessage(message, 'debate', conversationHistory),
+                    timeoutPromise
+                ]);
+
+                // DON'T hide loading yet - let it continue until first debate message arrives
+
+                // Should be SSE stream
+                if (response && response.isStream) {
+                    await this.handleDebateStream(response.response, message);
+                } else {
+                    Messages.hideLoading();
+                    Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                }
+            }
+            // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
+            else {
+                if (v2Enabled && typeof ATLASv2 !== 'undefined') {
+                    console.log('💎 Using v2.0 enhanced analysis...');
+                    // Use v2.0 enhanced analysis
                     response = await Promise.race([
-                        API.sendMessage(message, 'debate', conversationHistory),
+                        ATLASv2.analyzeWithV2(message, {
+                            num_agents: 4,
+                            enable_reversal: true,
+                            reversal_rounds: 1
+                        }),
                         timeoutPromise
                     ]);
-                    
-                    // DON'T hide loading yet - let it continue until first debate message arrives
-                    
-                    // Should be SSE stream
-                    if (response && response.isStream) {
-                        await this.handleDebateStream(response.response, message);
+
+                    console.log('Received v2.0 response:', response);
+                    Messages.hideLoading();
+
+                    if (response.success && response.data) {
+                        // Use V2UI to render enhanced response
+                        const v2Card = V2UI.createV2ResponseCard(response.data);
+                        this.addV2Card(v2Card);
+                        // Persist a short synthesis from v2 response if available
+                        try {
+                            const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
+                            if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
+                        } catch (e) { console.warn('append v2 response failed', e); }
                     } else {
-                        Messages.hideLoading();
-                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                        Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
                     }
-                }
-                // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
-                else {
-                    if (v2Enabled && typeof ATLASv2 !== 'undefined') {
-                        console.log('💎 Using v2.0 enhanced analysis...');
-                        // Use v2.0 enhanced analysis
-                        response = await Promise.race([
-                            ATLASv2.analyzeWithV2(message, {
-                                num_agents: 4,
-                                enable_reversal: true,
-                                reversal_rounds: 1
-                            }),
-                            timeoutPromise
-                        ]);
-                        
-                        console.log('Received v2.0 response:', response);
-                        Messages.hideLoading();
-                        
-                        if (response.success && response.data) {
-                            // Use V2UI to render enhanced response
-                            const v2Card = V2UI.createV2ResponseCard(response.data);
-                            this.addV2Card(v2Card);
-                            // Persist a short synthesis from v2 response if available
-                            try {
-                                const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
-                                if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
-                            } catch (e) { console.warn('append v2 response failed', e); }
-                        } else {
-                            Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
-                        }
-                    } else {
-                        console.log('💬 Using standard chat analysis...');
-                        // Use standard v1.0 analysis
-                        response = await Promise.race([
-                            API.sendMessage(message, 'analytical', conversationHistory),
-                            timeoutPromise
-                        ]);
-                        
-                        console.log('Received response:', response);
-                        Messages.hideLoading();
-                        
-                        // Regular chat response
-                        const aiMessage = response.analysis || 
-                                        response.result || 
-                                        response.answer ||
-                                        'No response received.';
-                                        
-                        Messages.addAIMessage(aiMessage);
-                        // Persist assistant reply (best-effort)
-                        try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
-                    }
-                }
-                
-            } catch (error) {
-                Messages.hideLoading();
-                
-                if (error.message === 'Request timed out') {
-                    Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
                 } else {
-                    Messages.addAIMessage('❌ Error: ' + error.message);
+                    console.log('💬 Using standard chat analysis...');
+                    // Use standard v1.0 analysis
+                    response = await Promise.race([
+                        API.sendMessage(message, 'analytical', conversationHistory),
+                        timeoutPromise
+                    ]);
+
+                    console.log('Received response:', response);
+                    Messages.hideLoading();
+
+                    // Regular chat response
+                    const aiMessage = response.analysis ||
+                        response.result ||
+                        response.answer ||
+                        'No response received.';
+
+                    Messages.addAIMessage(aiMessage);
+                    // Persist assistant reply (best-effort)
+                    try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage); } catch (e) { console.warn('append assistant message failed', e); }
                 }
-                
-                console.error('Chat error:', error);
-            } finally {
-                this.isProcessing = false;
             }
-        },
+
+        } catch (error) {
+            Messages.hideLoading();
+
+            if (error.message === 'Request timed out') {
+                Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
+            } else {
+                Messages.addAIMessage('❌ Error: ' + error.message);
+            }
+
+            console.error('Chat error:', error);
+        } finally {
+            this.isProcessing = false;
+        }
+    },
 
     async handleDebateStream(response, originalTopic) {
         console.log('📡 Handling debate stream...');

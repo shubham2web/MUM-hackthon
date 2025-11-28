@@ -13,6 +13,11 @@ const Sidebar = {
         if (historyBtn) {
             historyBtn.addEventListener('click', async (e) => {
                 e.preventDefault();
+                const panel = document.getElementById('historyPanel');
+                if (panel && panel.classList.contains('active')) {
+                    panel.classList.remove('active');
+                    return;
+                }
                 if (typeof ChatStore !== 'undefined' && typeof ChatStore.showHistoryPanel === 'function') {
                     await ChatStore.showHistoryPanel();
                 }
