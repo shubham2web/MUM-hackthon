@@ -107,6 +107,7 @@ itsdangerous==2.2.0
 
 # Async MongoDB driver for chat persistence
 motor==3.1.1
+pymongo>=4.0.0
 
 # Character Encoding
 charset-normalizer==3.4.4
@@ -128,7 +129,7 @@ charset-normalizer==3.4.4
 # numpy==1.26.4
 
 # ML libraries (Optional - heavy dependencies)
-# spacy>=3.4,<3.8
+spacy>=3.4,<3.8
 # transformers>=4.21,<4.30
 # torch>=1.13,<2.2
 
