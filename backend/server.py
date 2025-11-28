@@ -25,33 +25,63 @@ from core.utils import compute_advanced_analytics, format_sse
 import io
 
 # Import OCR functionality (EasyOCR - no Tesseract needed!)
-try:
-    from services.ocr_processor import get_ocr_processor
-    OCR_AVAILABLE = True
-    logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
-except (ImportError, OSError, RuntimeError) as e:
-    OCR_AVAILABLE = False
-    logging.warning(f"OCR functionality not available: {e}. Install dependencies: pip install easyocr pillow torch torchvision")
+# Defer import to avoid scipy loading issues
+OCR_AVAILABLE = False
+get_ocr_processor = None
+
+def lazy_load_ocr():
+    """Lazy load OCR processor to avoid startup issues"""
+    global OCR_AVAILABLE, get_ocr_processor
+    if get_ocr_processor is None:
+        try:
+            from services.ocr_processor import get_ocr_processor as _get_ocr_processor
+            get_ocr_processor = _get_ocr_processor
+            OCR_AVAILABLE = True
+            logging.info("✅ EasyOCR module loaded successfully (no Tesseract needed!)")
+        except Exception as e:
+            OCR_AVAILABLE = False
+            logging.warning(f"OCR functionality not available: {e}. OCR routes will be disabled.")
+    return OCR_AVAILABLE
 
 # Import v2.0 routes
-# Temporarily disabled due to slow transformers loading
-try:
-    from api.api_v2_routes import v2_bp
-    V2_AVAILABLE = True
-    logging.info("✅ ATLAS v2.0 routes loaded successfully")
-except ImportError as e:
-    V2_AVAILABLE = False
-    logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
+# Defer import due to slow transformers loading
+V2_AVAILABLE = False
+v2_bp = None
+
+def lazy_load_v2():
+    """Lazy load v2.0 routes to avoid startup issues"""
+    global V2_AVAILABLE, v2_bp
+    if v2_bp is None:
+        try:
+            from api.api_v2_routes import v2_bp as _v2_bp
+            v2_bp = _v2_bp
+            V2_AVAILABLE = True
+            logging.info("✅ ATLAS v2.0 routes loaded successfully")
+        except Exception as e:
+            V2_AVAILABLE = False
+            logging.warning(f"⚠️ ATLAS v2.0 routes not available: {e}")
+    return V2_AVAILABLE
 
 # Import Hybrid Memory System routes
-try:
-    from api.memory_routes import memory_bp
-    from memory.memory_manager import get_memory_manager
-    MEMORY_AVAILABLE = True
-    logging.info("✅ Hybrid Memory System routes loaded successfully")
-except ImportError as e:
-    MEMORY_AVAILABLE = False
-    logging.warning(f"⚠️ Memory System routes not available: {e}. Install: pip install -r memory_requirements.txt")
+MEMORY_AVAILABLE = False
+memory_bp = None
+get_memory_manager = None
+
+def lazy_load_memory():
+    """Lazy load memory routes to avoid startup issues"""
+    global MEMORY_AVAILABLE, memory_bp, get_memory_manager
+    if memory_bp is None:
+        try:
+            from api.memory_routes import memory_bp as _memory_bp
+            from memory.memory_manager import get_memory_manager as _get_memory_manager
+            memory_bp = _memory_bp
+            get_memory_manager = _get_memory_manager
+            MEMORY_AVAILABLE = True
+            logging.info("✅ Hybrid Memory System routes loaded successfully")
+        except Exception as e:
+            MEMORY_AVAILABLE = False
+            logging.warning(f"⚠️ Memory System routes not available: {e}. Install: pip install -r memory_requirements.txt")
+    return MEMORY_AVAILABLE
 
 # --------------------------
 # Setup Quart App & Executor
@@ -68,14 +98,15 @@ app = cors(app,
            allow_headers=["Content-Type", "Authorization"])
 
 # --- Register v2.0 Blueprint ---
-if V2_AVAILABLE:
-    app.register_blueprint(v2_bp)
-    logging.info("✅ ATLAS v2.0 endpoints registered at /v2/*")
+# Blueprints are lazy-loaded on first use
+# if V2_AVAILABLE:
+#     app.register_blueprint(v2_bp)
+#     logging.info("✅ ATLAS v2.0 endpoints registered at /v2/*")
 
 # --- Register Memory System Blueprint ---
-if MEMORY_AVAILABLE:
-    app.register_blueprint(memory_bp)
-    logging.info("✅ Hybrid Memory System endpoints registered at /memory/*")
+# if MEMORY_AVAILABLE:
+#     app.register_blueprint(memory_bp)
+#     logging.info("✅ Hybrid Memory System endpoints registered at /memory/*")
 
 # --- Register Chat Persistence Blueprint (MongoDB-backed) ---
 try:
@@ -130,7 +161,7 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
+    if (request.endpoint in ['home', 'about', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
@@ -169,6 +200,11 @@ async def add_header(response):
 async def home():
     """Landing/Hero page"""
     return await render_template("homepage.html")
+
+@app.route("/about")
+async def about():
+    """About page"""
+    return await render_template("about.html")
 
 @app.route("/chat")
 async def chat():
@@ -443,7 +479,8 @@ async def ocr_upload():
     Extracts text from image and optionally analyzes it with AI.
     Uses EasyOCR - no Tesseract installation required!
     """
-    if not OCR_AVAILABLE:
+    # Lazy load OCR
+    if not lazy_load_ocr():
         return jsonify({
             "success": False,
             "error": "OCR functionality not available. Please install dependencies: pip install easyocr pillow"
@@ -476,19 +513,8 @@ async def ocr_upload():
         # Log file info
         logging.info(f"Processing OCR for image: {image_file.filename} ({len(image_bytes)} bytes)")
         
-        # Check if OCR is available (lazy load)
-        if not OCR_AVAILABLE:
-            try:
-                from services.ocr_processor import get_ocr_processor
-            except Exception as e:
-                return jsonify({
-                    "success": False,
-                    "error": f"OCR functionality not available: {str(e)}"
-                }), 503
-        
         # Process OCR
         loop = asyncio.get_running_loop()
-        from services.ocr_processor import get_ocr_processor
         ocr_processor = get_ocr_processor()
         
         # Run OCR in executor to avoid blocking

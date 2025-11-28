@@ -277,22 +277,34 @@ const Chat = {
                         await this.startWebSpeechRecognition(SpeechRecognition);
                         return;
                     } catch (err) {
-                        console.warn('Web Speech API failed, falling back to MediaRecorder', err);
-                        // fallthrough to MediaRecorder fallback
+                        console.warn('Web Speech API failed', err);
+                        
+                        // Show user-friendly error for permission issues
+                        if (err.name === 'NotAllowedError' || err.error === 'not-allowed') {
+                            const statusDiv = document.createElement('div');
+                            statusDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,100,100,0.95); color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 90%; text-align: center;';
+                            statusDiv.textContent = 'Microphone access denied. Please allow microphone permissions in your browser settings.';
+                            document.body.appendChild(statusDiv);
+                            setTimeout(() => statusDiv.remove(), 5000);
+                            return;
+                        }
+                        
+                        // For other errors, don't fallback - just show error
+                        const statusDiv = document.createElement('div');
+                        statusDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,100,100,0.95); color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 90%; text-align: center;';
+                        statusDiv.textContent = 'Speech recognition is not available. Please type your message instead.';
+                        document.body.appendChild(statusDiv);
+                        setTimeout(() => statusDiv.remove(), 5000);
+                        return;
                     }
                 }
 
-                // Fallback: MediaRecorder flow (server-side transcription)
-                if (!this.recordingModal) this.createRecordingModal();
-                this.showRecordingModal();
-                try {
-                    await this.startMediaRecording();
-                } catch (err) {
-                    console.error('Failed to start recording', err);
-                    this.hideRecordingModal();
-                    // Use a more helpful permission-aware handler
-                    try { this.handleMediaPermissionError(err); } catch (e) { alert('Could not start microphone recording: ' + (err && err.message ? err.message : err)); }
-                }
+                // No Web Speech API support - show message instead of trying server transcription
+                const statusDiv = document.createElement('div');
+                statusDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,150,100,0.95); color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 90%; text-align: center;';
+                statusDiv.textContent = 'Voice input is not supported in this browser. Please use Chrome or Edge.';
+                document.body.appendChild(statusDiv);
+                setTimeout(() => statusDiv.remove(), 5000);
             });
         }
     },
@@ -539,7 +551,20 @@ const Chat = {
                 if (input && transcript) input.value = transcript;
             } catch (err) {
                 console.error('Transcription failed', err);
-                alert('Transcription failed: ' + (err.message || err));
+                // Show friendlier message for common errors
+                let errorMsg = 'Transcription failed. ';
+                if (err.message && err.message.includes('Speech-to-text unavailable')) {
+                    errorMsg = 'Speech-to-text is not configured on the server. Please type your message instead.';
+                } else {
+                    errorMsg += err.message || err;
+                }
+                
+                // Create a temporary status message instead of alert
+                const statusDiv = document.createElement('div');
+                statusDiv.style.cssText = 'position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: rgba(255,100,100,0.95); color: white; padding: 12px 24px; border-radius: 8px; z-index: 10000; box-shadow: 0 4px 12px rgba(0,0,0,0.3); max-width: 90%; text-align: center;';
+                statusDiv.textContent = errorMsg;
+                document.body.appendChild(statusDiv);
+                setTimeout(() => statusDiv.remove(), 5000);
             }
         };
 
@@ -572,30 +597,43 @@ const Chat = {
         const micBtn = document.getElementById('micBtn');
         if (micBtn) micBtn.classList.add('listening');
 
-        recognition.onresult = (event) => {
-            let finalTranscript = '';
-            interimText = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                const res = event.results[i];
-                if (res.isFinal) finalTranscript += res[0].transcript;
-                else interimText += res[0].transcript;
+        // Return a promise that resolves when recognition starts successfully
+        return new Promise((resolve, reject) => {
+            recognition.onresult = (event) => {
+                let finalTranscript = '';
+                interimText = '';
+                for (let i = event.resultIndex; i < event.results.length; ++i) {
+                    const res = event.results[i];
+                    if (res.isFinal) finalTranscript += res[0].transcript;
+                    else interimText += res[0].transcript;
+                }
+                if (input) input.value = (finalTranscript + ' ' + interimText).trim();
+            };
+
+            recognition.onerror = (ev) => {
+                console.error('Speech recognition error', ev);
+                this._recognitionListening = false;
+                if (micBtn) micBtn.classList.remove('listening');
+                
+                // Reject the promise with the error for the click handler to catch
+                reject(ev);
+            };
+
+            recognition.onend = () => {
+                this._recognitionListening = false;
+                if (micBtn) micBtn.classList.remove('listening');
+                // leave final value in input
+            };
+
+            try {
+                recognition.start();
+                resolve(); // Resolve immediately after starting
+            } catch (err) {
+                this._recognitionListening = false;
+                if (micBtn) micBtn.classList.remove('listening');
+                reject(err);
             }
-            if (input) input.value = (finalTranscript + ' ' + interimText).trim();
-        };
-
-        recognition.onerror = (ev) => {
-            console.error('Speech recognition error', ev);
-            this._recognitionListening = false;
-            if (micBtn) micBtn.classList.remove('listening');
-        };
-
-        recognition.onend = () => {
-            this._recognitionListening = false;
-            if (micBtn) micBtn.classList.remove('listening');
-            // leave final value in input
-        };
-
-        recognition.start();
+        });
     },
 
     stopWebSpeechRecognition() {
@@ -681,7 +719,11 @@ const Chat = {
             const j = await resp.json().catch(() => null);
             if (resp.status === 401) {
                 const serverMsg = (j && j.error) ? j.error : 'Unauthorized';
-                throw new Error(`Unauthorized: ${serverMsg}. The server requires an application API key (X-API-Key) to use transcription.`);
+                throw new Error(`Speech-to-text unavailable: The server requires OpenAI API key for transcription. Please use keyboard input or enable browser speech recognition.`);
+            }
+            if (resp.status === 503) {
+                const serverMsg = (j && j.error) ? j.error : 'Service unavailable';
+                throw new Error(`Speech-to-text unavailable: ${serverMsg}. Please use keyboard input.`);
             }
             throw new Error((j && j.error) ? j.error : `Server returned ${resp.status}`);
         }
