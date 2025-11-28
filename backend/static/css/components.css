@@ -672,6 +672,54 @@ body.light-mode .dropdown-btn {
     box-shadow: 0 2px 8px rgba(7,89,133,0.12) !important;
 }
 
+/* History panel clear button - default/dark mode */
+.history-clear-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.75);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    transition: all 0.18s ease;
+}
+
+.history-clear-btn:hover {
+    background: rgba(255,255,255,0.04);
+    color: #fff;
+}
+
+/* Make the Clear All button clearly visible in light mode: dark red background with white text */
+body.light-mode .history-clear-btn {
+    /* Slight reddish transparent background for subtle emphasis */
+    background: rgba(255,94,94,0.12); /* light translucent red */
+    color: #6b0b0b; /* dark red text for contrast */
+    border: 1px solid rgba(107,11,11,0.10);
+    box-shadow: 0 2px 8px rgba(107,11,11,0.06);
+    backdrop-filter: blur(2px);
+}
+
+body.light-mode .history-clear-btn:hover {
+    background: rgba(255,94,94,0.18);
+    box-shadow: 0 6px 18px rgba(107,11,11,0.10);
+}
+
+/* Make the Clear All button identical in dark mode as requested */
+body:not(.light-mode) .history-clear-btn {
+    /* Match light-mode translucent red for consistency, but use light text for dark theme */
+    background: rgba(255,94,94,0.12);
+    color: rgba(255,255,255,0.95); /* light text in dark mode */
+    border: 1px solid rgba(107,11,11,0.10);
+    box-shadow: 0 2px 8px rgba(107,11,11,0.06);
+    backdrop-filter: blur(2px);
+}
+
+body:not(.light-mode) .history-clear-btn:hover {
+    background: rgba(255,94,94,0.18);
+    box-shadow: 0 6px 18px rgba(107,11,11,0.10);
+    color: rgba(255,255,255,0.98);
+}
+
 body.light-mode .dropdown-menu {
     background: linear-gradient(180deg, rgba(230, 251, 255, 0.95), rgba(220, 246, 255, 0.95)) !important;
     border: 1px solid rgba(7,89,133,0.12) !important;
@@ -685,6 +733,22 @@ body.light-mode .dropdown-menu .dropdown-item {
 body.light-mode .dropdown-menu .dropdown-item.active {
     background: rgba(7,89,133,0.10) !important;
     color: #022b31 !important;
+}
+
+/* Dropdown item checkmark rendered via CSS when `active` class is present */
+.dropdown-item {
+    position: relative;
+}
+.dropdown-item.active::after {
+    content: '\2713';
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 14px;
+    line-height: 1;
+    color: inherit;
+    opacity: 0.95;
 }
 
 /* Dark-mode: give the chat input a beautiful cyan treatment similar to light-mode */
@@ -726,6 +790,34 @@ body:not(.light-mode) .mic-btn {
     background: rgba(255,255,255,0.02) !important;
     border: 1px solid rgba(125,211,252,0.10) !important;
     color: #7dd3fc !important;
+}
+
+/* Recording modal specific styles */
+.recording-modal .modal-content {
+    max-width: 420px;
+    padding: 22px;
+}
+
+.recording-modal.active {
+    display: flex !important;
+}
+
+.rec-dot {
+    animation: pulse 1s infinite ease-in-out;
+}
+
+@keyframes pulse {
+    0% { transform: scale(1); box-shadow: 0 0 8px rgba(255,77,77,0.4); }
+    50% { transform: scale(1.4); box-shadow: 0 0 18px rgba(255,77,77,0.7); }
+    100% { transform: scale(1); box-shadow: 0 0 8px rgba(255,77,77,0.4); }
+}
+
+/* Microphone button listening state (visual hint) */
+.mic-btn.listening {
+    background: rgba(255,77,77,0.14) !important;
+    color: #ff4d4d !important;
+    border-color: rgba(255,77,77,0.3) !important;
+    box-shadow: 0 0 18px rgba(255,77,77,0.22) !important;
 }
 
 /* Inner colored panel for the input area in dark mode */

@@ -18,10 +18,11 @@ from limits.strategies import MovingWindowRateLimiter
 
 # Note: These local imports need to exist in your project structure
 from core.ai_agent import AiAgent
-from core.config import API_KEY, DEBUG_MODE, DEFAULT_MAX_TOKENS, DEFAULT_MODEL, ROLE_PROMPTS
+from core.config import API_KEY, DEBUG_MODE, DEFAULT_MAX_TOKENS, DEFAULT_MODEL, ROLE_PROMPTS, OPENAI_API_KEY
 from services.db_manager import AsyncDbManager, DATABASE_FILE
 from services.pro_scraper import get_diversified_evidence
 from core.utils import compute_advanced_analytics, format_sse
+import io
 
 # Import OCR functionality (EasyOCR - no Tesseract needed!)
 try:
@@ -147,7 +148,9 @@ async def add_security_headers(response):
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
-    response.headers["Permissions-Policy"] = "geolocation=(), microphone=()"
+    # Allow microphone for same-origin pages so getUserMedia can be used from the app
+    # Previous value denied microphone; change to allow same-origin usage.
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(self)"
     return response
 
 # Add this to ensure correct MIME types
@@ -171,7 +174,11 @@ async def home():
 async def chat():
     """Render the chat interface with optional mode parameter"""
     mode = request.args.get('mode', 'analytical')
-    return await render_template('index.html', mode=mode)
+    # Pass API_KEY into the template so the client can use it for authenticated requests (dev only)
+    try:
+        return await render_template('index.html', mode=mode, API_KEY=API_KEY)
+    except Exception:
+        return await render_template('index.html', mode=mode)
 
 @app.route("/ocr")
 async def ocr_page():
@@ -713,6 +720,67 @@ If the text appears to contain claims or information, verify its accuracy."""
             "success": False,
             "error": str(e)
         }), 500
+
+
+@app.route('/transcribe', methods=['POST'])
+@limit('30/minute')
+async def transcribe_audio():
+    """Accepts an uploaded audio file (field name 'audio') and returns a transcript.
+    Uses OpenAI Speech-to-Text when `OPENAI_API_KEY` is configured. Otherwise returns 503.
+    """
+    try:
+        files = await request.files
+        if 'audio' not in files:
+            return jsonify({"success": False, "error": "No audio file provided (form field 'audio')."}), 400
+
+        audio_file = files['audio']
+        if not audio_file.filename:
+            return jsonify({"success": False, "error": "Empty filename provided."}), 400
+
+        audio_bytes = audio_file.read()
+        if not audio_bytes:
+            return jsonify({"success": False, "error": "Empty audio file."}), 400
+
+        # If OPENAI_API_KEY is not configured, return explanatory error
+        if not OPENAI_API_KEY:
+            logging.warning('Transcription requested but OPENAI_API_KEY is not set')
+            return jsonify({
+                "success": False,
+                "error": "Speech-to-text provider is not configured on the server. Set OPENAI_API_KEY to enable transcription."
+            }), 503
+
+        # Use openai client if available
+        try:
+            from openai import OpenAI
+        except Exception as e:
+            logging.error(f"openai package not available: {e}")
+            return jsonify({"success": False, "error": "Server missing 'openai' package. Install requirements."}), 500
+
+        loop = asyncio.get_running_loop()
+
+        def _call_openai_transcribe():
+            try:
+                client = OpenAI(api_key=OPENAI_API_KEY)
+                bio = io.BytesIO(audio_bytes)
+                # Let OpenAI detect the audio format; use 'whisper-1' model
+                resp = client.audio.transcriptions.create(file=bio, model='whisper-1')
+                # The client returns an object with 'text' field
+                text = getattr(resp, 'text', None) or resp.get('text') if isinstance(resp, dict) else None
+                return text or ''
+            except Exception as err:
+                logging.error(f"OpenAI transcription error: {err}", exc_info=True)
+                raise
+
+        try:
+            transcript = await loop.run_in_executor(executor, _call_openai_transcribe)
+        except Exception as e:
+            return jsonify({"success": False, "error": f"Transcription failed: {str(e)}"}), 500
+
+        return jsonify({"success": True, "transcript": transcript}), 200
+
+    except Exception as e:
+        logging.error(f"Error in /transcribe: {e}", exc_info=True)
+        return jsonify({"success": False, "error": str(e)}), 500
 
 # -----------------------------
 # Helper: Determine Debate Stances

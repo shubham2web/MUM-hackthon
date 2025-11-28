@@ -29,6 +29,13 @@
             if (selectedTheme) {
                 const cap = theme.charAt(0).toUpperCase() + theme.slice(1);
                 selectedTheme.textContent = cap;
+                // Update dropdown item active state (CSS will render checkmark)
+                if (themeMenu) {
+                    themeMenu.querySelectorAll('.dropdown-item').forEach(it => {
+                        const t = it.getAttribute('data-theme');
+                        if (t === theme) it.classList.add('active'); else it.classList.remove('active');
+                    });
+                }
             }
         }
 

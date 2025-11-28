@@ -274,6 +274,437 @@ const Chat = {
                 this.handleSend();
             }
         });
+
+        // Wire microphone: prefer browser Web Speech API when available (no server keys required)
+        const micBtn = document.getElementById('micBtn');
+        if (micBtn) {
+            micBtn.addEventListener('click', async (ev) => {
+                ev.preventDefault();
+
+                // If browser supports Web Speech API, use it for client-only recognition (no server/API key needed)
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition || null;
+                if (SpeechRecognition) {
+                    try {
+                        // Toggle recognition on/off if already listening
+                        if (this._recognition && this._recognitionListening) {
+                            this.stopWebSpeechRecognition();
+                            return;
+                        }
+                        await this.startWebSpeechRecognition(SpeechRecognition);
+                        return;
+                    } catch (err) {
+                        console.warn('Web Speech API failed, falling back to MediaRecorder', err);
+                        // fallthrough to MediaRecorder fallback
+                    }
+                }
+
+                // Fallback: MediaRecorder flow (server-side transcription)
+                if (!this.recordingModal) this.createRecordingModal();
+                this.showRecordingModal();
+                try {
+                    await this.startMediaRecording();
+                } catch (err) {
+                    console.error('Failed to start recording', err);
+                    this.hideRecordingModal();
+                    // Use a more helpful permission-aware handler
+                    try { this.handleMediaPermissionError(err); } catch (e) { alert('Could not start microphone recording: ' + (err && err.message ? err.message : err)); }
+                }
+            });
+        }
+    },
+
+    /************************************************************************
+     * Recording UI + MediaRecorder
+     ************************************************************************/
+    createRecordingModal() {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay recording-modal';
+        modal.innerHTML = `
+            <div class="modal-content" role="dialog" aria-label="Recording">
+                <h2 id="recordingTitle">Recording...</h2>
+                <div id="recordingAnimation" style="margin:18px 0;"></div>
+                <div style="display:flex; gap:10px; justify-content:center; margin-top:8px;">
+                    <button id="stopRecordingBtn" class="input-btn">Stop</button>
+                    <button id="cancelRecordingBtn" class="input-btn">Cancel</button>
+                </div>
+                <div id="recordingStatus" style="margin-top:12px; font-size:13px; color: #cbd5e1;">Listening...</div>
+            </div>`;
+
+        document.body.appendChild(modal);
+        this.recordingModal = modal;
+
+        // Simple animation: pulsing dot
+        const anim = modal.querySelector('#recordingAnimation');
+        anim.innerHTML = `<div class="rec-dot" style="width:18px;height:18px;border-radius:50%;background:#ff4d4d;margin:0 auto;box-shadow:0 0 12px rgba(255,77,77,0.6);"></div>`;
+
+        modal.querySelector('#stopRecordingBtn').addEventListener('click', () => this.stopMediaRecording());
+        modal.querySelector('#cancelRecordingBtn').addEventListener('click', () => {
+            this.cancelRecording = true;
+            this.stopMediaRecording();
+        });
+    },
+
+    showRecordingModal() {
+        if (!this.recordingModal) this.createRecordingModal();
+        this.recordingModal.classList.add('active');
+    },
+
+    hideRecordingModal() {
+        if (this.recordingModal) this.recordingModal.classList.remove('active');
+    },
+
+    /************************************************************************
+     * Permission help modal + helpers
+     ************************************************************************/
+    handleMediaPermissionError(err) {
+        // Normalize name
+        const name = (err && err.name) ? err.name : null;
+
+        if (name === 'NotAllowedError' || name === 'PermissionDeniedError') {
+            // Show helpful modal guiding the user to enable microphone access
+            this.showPermissionModal({
+                title: 'Microphone access blocked',
+                message: 'Microphone access was blocked by your browser or operating system. To record audio, please allow microphone access for this site and reload the page.',
+                details: err && err.message ? err.message : 'Permission denied',
+                reason: 'denied'
+            });
+            return;
+        }
+
+        if (name === 'NotFoundError' || name === 'DevicesNotFoundError') {
+            this.showPermissionModal({
+                title: 'No microphone detected',
+                message: 'No microphone device was found. Please connect a microphone and ensure it is enabled in your OS settings.',
+                details: err && err.message ? err.message : 'No microphone',
+                reason: 'notfound'
+            });
+            return;
+        }
+
+        // Generic fallback: attempt to query permission state for more info
+        this.checkMicrophonePermission().then(state => {
+            if (state === 'denied') {
+                this.showPermissionModal({
+                    title: 'Microphone access blocked',
+                    message: 'Your browser is blocking microphone access for this site. Please allow microphone access in Site Settings and reload.',
+                    details: err && err.message ? err.message : 'Permission denied',
+                    reason: 'denied'
+                });
+            } else if (state === 'prompt') {
+                this.showPermissionModal({
+                    title: 'Allow microphone access',
+                    message: 'The browser may prompt you to allow microphone access. Please allow it and try again.',
+                    details: err && err.message ? err.message : 'Permission prompt',
+                    reason: 'prompt'
+                });
+            } else {
+                // Unknown / other error
+                this.showPermissionModal({
+                    title: 'Could not start recording',
+                    message: 'An unexpected error occurred while trying to start the microphone.',
+                    details: (err && err.message) ? err.message : String(err),
+                    reason: 'unknown'
+                });
+            }
+        }).catch(() => {
+            // If permissions API unavailable, show generic modal
+            this.showPermissionModal({
+                title: 'Microphone not available',
+                message: 'Could not access the microphone. Check your browser and OS microphone permissions.',
+                details: err && err.message ? err.message : 'Error',
+                reason: 'unknown'
+            });
+        });
+    },
+
+    createPermissionModal() {
+        if (this.permissionModal) return;
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay permission-modal';
+        modal.innerHTML = `
+            <div class="modal-content" role="dialog" aria-label="Microphone help">
+                <h2 id="permissionTitle">Microphone access</h2>
+                <div id="permissionMessage" style="margin:8px 0; color:#cbd5e1;"></div>
+                <pre id="permissionDetails" style="white-space:pre-wrap; font-size:12px; color:#94a3b8; background:transparent; border:none;"></pre>
+                <div style="display:flex; gap:8px; justify-content:center; margin-top:12px;">
+                    <button id="permissionRetryBtn" class="input-btn">Retry</button>
+                    <button id="permissionOpenSettingsBtn" class="input-btn">Open site settings</button>
+                    <button id="permissionDiagBtn" class="input-btn">Diagnostics</button>
+                    <button id="permissionCloseBtn" class="input-btn">Close</button>
+                </div>
+                <div style="margin-top:10px; font-size:13px; color:#9ca3af; text-align:left;">Tips:
+                    <ul style="margin:6px 0 0 18px; padding:0; color:#9ca3af;">
+                        <li>Reload the page after changing permissions.</li>
+                        <li>Test in Incognito / Private mode to rule out extensions.</li>
+                        <li>Check Windows Settings → Privacy → Microphone and allow apps to access it.</li>
+                    </ul>
+                </div>
+            </div>`;
+
+        document.body.appendChild(modal);
+        this.permissionModal = modal;
+
+        modal.querySelector('#permissionCloseBtn').addEventListener('click', () => this.hidePermissionModal());
+        modal.querySelector('#permissionRetryBtn').addEventListener('click', async () => {
+            this.hidePermissionModal();
+            // Try to start recording again
+            try { await this.startMediaRecording(); } catch (e) { this.handleMediaPermissionError(e); }
+        });
+
+        modal.querySelector('#permissionOpenSettingsBtn').addEventListener('click', () => {
+            // Try to guide user to site settings; best-effort to open a helpful URL
+            try {
+                // Many browsers block chrome:// links; open WebRTC sample as alternative
+                window.open('chrome://settings/content/microphone', '_blank');
+            } catch (e) {
+                try { window.open('about:preferences#privacy', '_blank'); } catch (e) { /* ignore */ }
+            }
+            // Also open a troubleshooting sample page
+            window.open('https://webrtc.github.io/samples/src/content/getusermedia/', '_blank');
+        });
+
+        // Diagnostics: show enumerateDevices + permissions info
+        modal.querySelector('#permissionDiagBtn').addEventListener('click', async () => {
+            const detailsEl = modal.querySelector('#permissionDetails');
+            detailsEl.textContent = 'Running diagnostics...';
+            try {
+                const perm = navigator.permissions && navigator.permissions.query ? await navigator.permissions.query({ name: 'microphone' }) : null;
+                const permState = perm ? perm.state : 'unavailable';
+                let devices = [];
+                try { devices = await navigator.mediaDevices.enumerateDevices(); } catch (e) { devices = [{ error: String(e) }]; }
+
+                const out = {
+                    permissionState: permState,
+                    userAgent: navigator.userAgent,
+                    devices: devices.map(d => ({ kind: d.kind, label: d.label, deviceId: d.deviceId }))
+                };
+                detailsEl.textContent = JSON.stringify(out, null, 2);
+            } catch (e) {
+                detailsEl.textContent = 'Diagnostics failed: ' + (e && e.message ? e.message : String(e));
+            }
+        });
+    },
+
+    showPermissionModal({ title, message, details, reason } = {}) {
+        if (!this.permissionModal) this.createPermissionModal();
+        const modal = this.permissionModal;
+        modal.querySelector('#permissionTitle').textContent = title || 'Microphone access';
+        modal.querySelector('#permissionMessage').textContent = message || '';
+        modal.querySelector('#permissionDetails').textContent = details || '';
+        modal.classList.add('active');
+        // Update a simple status from Permissions API
+        this.checkMicrophonePermission().then(state => {
+            const statusEl = modal.querySelector('#permissionMessage');
+            if (state === 'denied') statusEl.textContent += ' (permission state: denied)';
+            else if (state === 'granted') statusEl.textContent += ' (permission state: granted)';
+            else if (state === 'prompt') statusEl.textContent += ' (permission state: prompt)';
+        }).catch(() => {});
+    },
+
+    hidePermissionModal() {
+        if (this.permissionModal) this.permissionModal.classList.remove('active');
+    },
+
+    async checkMicrophonePermission() {
+        if (!navigator.permissions || !navigator.permissions.query) return null;
+        try {
+            const p = await navigator.permissions.query({ name: 'microphone' });
+            return p.state; // 'granted' | 'denied' | 'prompt'
+        } catch (e) {
+            return null;
+        }
+    },
+
+    async startMediaRecording() {
+        // Reset any previous state
+        this.cancelRecording = false;
+        this.recordedChunks = [];
+
+        // Request microphone access
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        this._mediaStream = stream;
+
+        // Setup MediaRecorder
+        const options = { mimeType: 'audio/webm' };
+        try {
+            this.mediaRecorder = new MediaRecorder(stream, options);
+        } catch (e) {
+            // Fallback to default
+            this.mediaRecorder = new MediaRecorder(stream);
+        }
+
+        this.mediaRecorder.ondataavailable = (ev) => {
+            if (ev.data && ev.data.size > 0) this.recordedChunks.push(ev.data);
+        };
+
+        this.mediaRecorder.onstop = async () => {
+            // Stop audio nodes if any
+            try { if (this._audioContext) { this._audioContext.close(); this._audioContext = null; } } catch (e) {}
+
+            this.hideRecordingModal();
+
+            if (this.cancelRecording) {
+                this.recordedChunks = [];
+                return;
+            }
+
+            const blob = new Blob(this.recordedChunks, { type: this.recordedChunks[0]?.type || 'audio/webm' });
+            try {
+                const transcript = await this.sendAudioToServer(blob);
+                const input = document.getElementById('messageInput');
+                if (input && transcript) input.value = transcript;
+            } catch (err) {
+                console.error('Transcription failed', err);
+                alert('Transcription failed: ' + (err.message || err));
+            }
+        };
+
+        // Start recording
+        this.mediaRecorder.start();
+
+        // Start VAD (silence detection) to auto-stop
+        this.startVAD(stream);
+    },
+
+    /************************************************************************
+     * Web Speech API (client-only) recognition fallback
+     * Uses browser speech recognition (no server/API key) when available.
+     ************************************************************************/
+    async startWebSpeechRecognition(SpeechRecognitionCtor) {
+        if (this._recognition && this._recognitionListening) return;
+
+        // Create recognition instance
+        const recognition = new SpeechRecognitionCtor();
+        recognition.lang = 'en-US';
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+
+        this._recognition = recognition;
+        this._recognitionListening = true;
+
+        const input = document.getElementById('messageInput');
+        let interimText = '';
+
+        const micBtn = document.getElementById('micBtn');
+        if (micBtn) micBtn.classList.add('listening');
+
+        recognition.onresult = (event) => {
+            let finalTranscript = '';
+            interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                const res = event.results[i];
+                if (res.isFinal) finalTranscript += res[0].transcript;
+                else interimText += res[0].transcript;
+            }
+            if (input) input.value = (finalTranscript + ' ' + interimText).trim();
+        };
+
+        recognition.onerror = (ev) => {
+            console.error('Speech recognition error', ev);
+            this._recognitionListening = false;
+            if (micBtn) micBtn.classList.remove('listening');
+        };
+
+        recognition.onend = () => {
+            this._recognitionListening = false;
+            if (micBtn) micBtn.classList.remove('listening');
+            // leave final value in input
+        };
+
+        recognition.start();
+    },
+
+    stopWebSpeechRecognition() {
+        if (!this._recognition) return;
+        try {
+            this._recognition.stop();
+        } catch (e) { console.warn('recognition.stop failed', e); }
+        this._recognitionListening = false;
+        const micBtn = document.getElementById('micBtn');
+        if (micBtn) micBtn.classList.remove('listening');
+    },
+
+    stopMediaRecording() {
+        try {
+            if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') this.mediaRecorder.stop();
+        } catch (e) { console.warn('mediaRecorder.stop error', e); }
+        try { if (this._mediaStream) { this._mediaStream.getTracks().forEach(t => t.stop()); this._mediaStream = null; } } catch (e) {}
+        try { if (this._vadInterval) { clearInterval(this._vadInterval); this._vadInterval = null; } } catch (e) {}
+    },
+
+    startVAD(stream) {
+        // Very small VAD implementation using WebAudio RMS
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            this._audioContext = new AudioContext();
+            const source = this._audioContext.createMediaStreamSource(stream);
+            const analyser = this._audioContext.createAnalyser();
+            analyser.fftSize = 2048;
+            source.connect(analyser);
+
+            const data = new Uint8Array(analyser.fftSize);
+            const silenceThreshold = 6; // adjust (lower = more sensitive)
+            let silentMs = 0;
+            const checkInterval = 250; // ms
+
+            this._vadInterval = setInterval(() => {
+                analyser.getByteTimeDomainData(data);
+                // compute RMS
+                let sum = 0;
+                for (let i = 0; i < data.length; i++) {
+                    const v = (data[i] - 128) / 128;
+                    sum += v * v;
+                }
+                const rms = Math.sqrt(sum / data.length);
+                const db = 20 * Math.log10(rms + 1e-8);
+
+                // Update UI status
+                const statusEl = this.recordingModal ? this.recordingModal.querySelector('#recordingStatus') : null;
+                if (statusEl) statusEl.textContent = `Listening... (level: ${Math.round(db)})`;
+
+                if (rms < 0.01) {
+                    silentMs += checkInterval;
+                } else {
+                    silentMs = 0;
+                }
+
+                // If silence for > 1400ms, stop automatically
+                if (silentMs > 1400) {
+                    this.stopMediaRecording();
+                }
+            }, checkInterval);
+        } catch (e) {
+            console.warn('VAD not available', e);
+        }
+    },
+
+    async sendAudioToServer(blob) {
+        const form = new FormData();
+        form.append('audio', blob, 'recording.webm');
+
+        // Include application API key header if available (server requires X-API-Key)
+        const fetchOpts = {
+            method: 'POST',
+            body: form,
+            headers: {}
+        };
+        try { if (typeof API_KEY !== 'undefined' && API_KEY) fetchOpts.headers['X-API-Key'] = API_KEY; } catch (e) {}
+
+        const resp = await fetch('/transcribe', fetchOpts);
+
+        if (!resp.ok) {
+            // Try to parse server JSON for structured error
+            const j = await resp.json().catch(() => null);
+            if (resp.status === 401) {
+                const serverMsg = (j && j.error) ? j.error : 'Unauthorized';
+                throw new Error(`Unauthorized: ${serverMsg}. The server requires an application API key (X-API-Key) to use transcription.`);
+            }
+            throw new Error((j && j.error) ? j.error : `Server returned ${resp.status}`);
+        }
+
+        const data = await resp.json();
+        if (data && data.success && data.transcript) return data.transcript;
+        throw new Error('No transcript returned');
     },
 
     async handleSend() {
