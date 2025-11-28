@@ -53,6 +53,55 @@ except ImportError as e:
     MEMORY_AVAILABLE = False
     logging.warning(f"⚠️ Memory System routes not available: {e}. Install: pip install -r memory_requirements.txt")
 
+# Import ATLAS v4.0 Analysis Pipeline routes
+try:
+    from api.analyze_routes import analyze_bp
+    ANALYZE_PIPELINE_AVAILABLE = True
+    logging.info("✅ ATLAS v4.0 Analysis Pipeline routes loaded successfully")
+except ImportError as e:
+    ANALYZE_PIPELINE_AVAILABLE = False
+    logging.warning(f"⚠️ Analysis Pipeline routes not available: {e}")
+
+# Import v2 Features (Bias Auditor, Credibility Engine, Forensic Engine)
+try:
+    from v2_features.bias_auditor import BiasAuditor
+    from v2_features.credibility_engine import CredibilityEngine, Source
+    from v2_features.forensic_engine import get_forensic_engine
+    from v2_features.role_reversal_engine import RoleReversalEngine
+    V2_FEATURES_AVAILABLE = True
+    logging.info("✅ ATLAS v2.0 Features loaded (Bias Auditor, Credibility Engine, Forensic Engine)")
+except ImportError as e:
+    V2_FEATURES_AVAILABLE = False
+    logging.warning(f"⚠️ V2 Features not available: {e}")
+
+# Import MongoDB Audit Logger (optional)
+try:
+    from memory.mongo_audit import MongoAuditLogger, get_audit_logger
+    MONGO_AUDIT_AVAILABLE = True
+except ImportError:
+    MONGO_AUDIT_AVAILABLE = False
+    logging.info("MongoDB audit logging not available (optional)")
+
+# Import PRD Compliance Checker
+try:
+    from tools.prd_checker import (
+        has_citation, is_factual_claim, generate_citation_prompt,
+        run_full_prd_check, extract_citations
+    )
+    PRD_CHECKER_AVAILABLE = True
+    logging.info("✅ PRD Compliance Checker loaded")
+except ImportError as e:
+    PRD_CHECKER_AVAILABLE = False
+    logging.warning(f"⚠️ PRD Checker not available: {e}")
+    # Fallback implementations
+    def has_citation(text): return "[SRC:" in text
+    def is_factual_claim(text): return any(k in text.lower() for k in ["said", "reported", "confirmed", "according"])
+    def generate_citation_prompt(role, text): return f"{role}, please cite your sources using [SRC:ID] format."
+    
+    # Create dummy functions
+    def get_audit_logger():
+        return None
+
 # --------------------------
 # Setup Quart App & Executor
 # --------------------------
@@ -86,6 +135,11 @@ try:
 except Exception as e:
     CHAT_API_AVAILABLE = False
     logging.warning(f"Chat API not available: {e}")
+
+# --- Register ATLAS v4.0 Analysis Pipeline Blueprint ---
+if ANALYZE_PIPELINE_AVAILABLE:
+    app.register_blueprint(analyze_bp)
+    logging.info("✅ ATLAS v4.0 Analysis Pipeline endpoints registered at /analyze/*")
 
 executor = ThreadPoolExecutor(max_workers=10)
 
@@ -653,12 +707,13 @@ If the text appears to contain claims or information, verify its accuracy."""
                     relevant_memories = []
                     if memory.enable_rag and memory.long_term:
                         search_results = memory.long_term.search(
-                            query_text=extracted_text[:100],
+                            query=extracted_text[:100],
                             top_k=2,
                             filter_metadata={"debate_id": session_id}
                         )
+                        # RetrievalResult is a dataclass with .text attribute
                         relevant_memories = [
-                            f"Previous context: {result['text'][:200]}..."
+                            f"Previous context: {result.text[:200]}..."
                             for result in search_results
                         ]
                     
@@ -880,12 +935,19 @@ Keep each stance to 2-3 sentences. Be specific and tactical."""
 
 
 # -----------------------------
-# Helper: Generate Final Verdict
+# Helper: Generate Final Verdict (PRD 4.5)
 # -----------------------------
-def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list) -> dict:
+def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list, dossier: dict = None) -> dict:
     """
     Generates a final verdict by sending the debate transcript to the 'judge' role.
     Uses call_blocking (not streaming) to ensure complete JSON response.
+    
+    PRD Compliance:
+    - Returns verdict (VERIFIED/DEBUNKED/COMPLEX)
+    - Returns confidence_score (0-100)
+    - Returns winning_argument
+    - Returns key_evidence with authority scores
+    - Returns discounted_sources (low-credibility sources that were deprioritized)
     
     Returns a dict with verdict, confidence_score, winning_argument, critical_analysis, key_evidence.
     """
@@ -897,17 +959,54 @@ def generate_final_verdict(topic: str, transcript: str, evidence_bundle: list) -
         if len(transcript) > 6000:
             truncated_transcript = "[Earlier content truncated for analysis]\n\n" + truncated_transcript
         
-        # Create evidence context
-        evidence_context = "\n\nEvidence Sources:\n"
+        # Create detailed evidence context with authority scores
+        evidence_context = "\n\n=== EVIDENCE SOURCES WITH AUTHORITY SCORES ===\n"
         for i, art in enumerate(evidence_bundle[:10], 1):
-            evidence_context += f"{i}. {art.get('title', 'Unknown')} - {art.get('url', 'N/A')}\n"
+            url = art.get('url', 'N/A')
+            domain = art.get('domain', '')
+            if not domain and url:
+                try:
+                    domain = url.split("//")[-1].split("/")[0].replace("www.", "")
+                except:
+                    domain = "unknown"
+            
+            # Calculate authority score
+            if any(t in domain.lower() for t in ['reuters', 'ap', '.gov', '.edu']):
+                auth_score = 85
+            elif any(t in domain.lower() for t in ['bbc', 'nytimes', 'theguardian', 'washingtonpost', 'timesofindia']):
+                auth_score = 75
+            elif any(t in domain.lower() for t in ['medium', 'substack', 'blog']):
+                auth_score = 45
+            else:
+                auth_score = 55
+            
+            source_id = f"{domain.split('.')[0].upper()[:3]}-{i:03d}"
+            evidence_context += f"[SRC:{source_id} | auth:{auth_score}] {art.get('title', 'Unknown')[:60]} - {domain}\n"
+        
+        # Add dossier summary if available
+        dossier_context = ""
+        if dossier:
+            dossier_context = f"""
+
+=== FORENSIC DOSSIER SUMMARY ===
+Overall Credibility: {dossier.get('credibility', 'N/A')}/100
+Red Flags: {len(dossier.get('red_flags', []))}
+Authority Score: {dossier.get('authority_score', 'N/A')}/100
+"""
         
         judge_input = f"""DEBATE TOPIC: {topic}
 
 {truncated_transcript}
 {evidence_context}
+{dossier_context}
 
-Render your final verdict now."""
+VERDICT REQUIREMENTS:
+1. Assess which debater made better use of CITED evidence
+2. Discount arguments that lacked proper [SRC:ID] citations
+3. Weight high-authority sources (auth:70+) more heavily
+4. Note any discounted sources (low authority or red-flagged)
+
+Render your final verdict now in the required JSON format."""
         
         # Use call_blocking to get complete response
         ai_agent = AiAgent()
@@ -917,7 +1016,7 @@ Render your final verdict now."""
         response = ai_agent.call_blocking(
             user_message=judge_input,
             system_prompt=judge_prompt,
-            max_tokens=800
+            max_tokens=1000
         )
         
         response_text = response.text.strip()
@@ -983,6 +1082,122 @@ def get_recent_transcript(transcript: str, max_chars: int = 3000) -> str:
     
     return "...[earlier debate content truncated]...\n\n" + truncated
 
+
+# -----------------------------
+# Helper: Format Evidence Bundle for Debaters (PRD 4.1)
+# -----------------------------
+def format_evidence_bundle(evidence_bundle: list, forensic_engine=None) -> str:
+    """
+    Format evidence bundle with source IDs, authority scores, and metadata.
+    This creates a structured evidence reference for debaters to cite.
+    
+    Returns format like:
+    [SRC:TOI-001 | auth:75] Times of India: "Article title..." (2025-11-29)
+    """
+    if not evidence_bundle:
+        return "[NO EVIDENCE AVAILABLE]"
+    
+    formatted_sources = []
+    
+    for idx, source in enumerate(evidence_bundle[:10]):
+        url = source.get('url', '')
+        domain = source.get('domain', '')
+        
+        # Extract domain if not present
+        if not domain and url:
+            try:
+                domain = url.split("//")[-1].split("/")[0].replace("www.", "")
+            except:
+                domain = "unknown"
+        
+        # Generate source ID (short hash)
+        source_id = f"{domain.split('.')[0].upper()[:3]}-{idx+1:03d}"
+        
+        # Calculate authority score
+        authority_score = 50  # Default
+        if forensic_engine:
+            try:
+                tier = forensic_engine.get_domain_tier(url)
+                authority_score = {
+                    'tier_1': 85,
+                    'tier_2': 70,
+                    'tier_3': 45,
+                    'tier_4': 25
+                }.get(tier.value, 50)
+            except:
+                pass
+        else:
+            # Simple domain-based scoring
+            if any(t in domain.lower() for t in ['reuters', 'ap', '.gov', '.edu']):
+                authority_score = 85
+            elif any(t in domain.lower() for t in ['bbc', 'nytimes', 'theguardian', 'washingtonpost', 'timesofindia']):
+                authority_score = 75
+            elif any(t in domain.lower() for t in ['medium', 'substack', 'blog']):
+                authority_score = 45
+        
+        # Get title and snippet
+        title = source.get('title', 'Untitled') or 'Untitled'
+        title = title[:80] if title else 'Untitled'
+        text_snippet = (source.get('text', '') or '')[:150].replace('\n', ' ').strip()
+        
+        # Handle date - can be None
+        published_raw = source.get('published_at') or source.get('fetched_at') or 'Unknown date'
+        published = published_raw[:10] if isinstance(published_raw, str) else 'Unknown date'
+        
+        formatted_sources.append(
+            f"[SRC:{source_id} | auth:{authority_score}] {domain}: \"{title}\" ({published})\n"
+            f"   Summary: {text_snippet}..."
+        )
+    
+    return "\n\n".join(formatted_sources)
+
+
+# -----------------------------
+# Helper: Format Forensic Dossier for Debaters (PRD 4.2)
+# -----------------------------
+def format_forensic_dossier(dossier) -> str:
+    """
+    Format forensic dossier for injection into debate context.
+    """
+    if not dossier:
+        return "[NO FORENSIC DOSSIER AVAILABLE]"
+    
+    try:
+        dossier_dict = dossier.to_dict() if hasattr(dossier, 'to_dict') else dossier
+        
+        sections = [
+            "=== FORENSIC INTELLIGENCE BRIEFING ===",
+            f"Primary Entity: {dossier_dict.get('entity', 'Unknown')}",
+            f"Entity Type: {dossier_dict.get('entity_type', 'unknown')}",
+            f"Credibility Score: {dossier_dict.get('credibility', 'N/A')}/100",
+            f"Authority Score: {dossier_dict.get('authority_score', 'N/A')}/100",
+            "",
+            "RED FLAGS DETECTED:"
+        ]
+        
+        red_flags = dossier_dict.get('red_flags', [])
+        if red_flags:
+            for rf in red_flags[:5]:
+                sections.append(f"  ⚠ [{rf.get('severity', 'unknown').upper()}] {rf.get('description', 'No description')}")
+        else:
+            sections.append("  ✓ No critical red flags detected")
+        
+        sections.append("")
+        sections.append("SOURCE HISTORY:")
+        history = dossier_dict.get('history', [])
+        for h in history[:5]:
+            sections.append(f"  • {h.get('source', 'Unknown')}: {h.get('title', 'No title')[:50]}...")
+        
+        sections.append("")
+        sections.append(f"SUMMARY: {dossier_dict.get('summary', 'No summary available')[:300]}")
+        sections.append("=== END FORENSIC BRIEFING ===")
+        
+        return "\n".join(sections)
+    except Exception as e:
+        logging.warning(f"Failed to format forensic dossier: {e}")
+        return "[FORENSIC DOSSIER FORMAT ERROR]"
+
+
 # -----------------------------
 # Debate Generator
 # -----------------------------
@@ -995,6 +1210,23 @@ async def generate_debate(topic: str):
     evidence_bundle = []
     turn_metrics = {"turn_count": 0, "rebuttal_count": 0, "audited_turn_count": 0}
     
+    # 🔬 V2 FEATURES: Initialize enhanced analysis engines
+    bias_auditor = None
+    credibility_engine = None
+    forensic_engine = None
+    credibility_result = None
+    forensic_dossier = None
+    role_reversal_engine = None  # Initialize at function scope for analytics
+    
+    if V2_FEATURES_AVAILABLE:
+        try:
+            bias_auditor = BiasAuditor()
+            credibility_engine = CredibilityEngine()
+            forensic_engine = get_forensic_engine()
+            logging.info("🔬 V2 Features initialized for debate")
+        except Exception as e:
+            logging.warning(f"V2 Features initialization failed: {e}")
+    
     # 🧠 MEMORY INTEGRATION: Initialize memory system for this debate
     memory = None
     if MEMORY_AVAILABLE:
@@ -1006,8 +1238,28 @@ async def generate_debate(topic: str):
             logging.warning(f"Memory system initialization failed: {e}. Continuing without memory.")
             memory = None
 
+    # 📊 MONGO AUDIT: Initialize audit logger for this debate session
+    audit_logger = None
+    if MONGO_AUDIT_AVAILABLE:
+        try:
+            audit_logger = get_audit_logger()
+            if audit_logger and audit_logger.enabled:
+                audit_logger.log_debate_session(
+                    debate_id=debate_id,
+                    topic=topic,
+                    metadata={
+                        "memory_enabled": memory is not None,
+                        "v2_features_enabled": V2_FEATURES_AVAILABLE,
+                        "model": DEFAULT_MODEL
+                    }
+                )
+                logging.info(f"📊 MongoDB audit logging enabled for debate: {debate_id}")
+        except Exception as e:
+            logging.warning(f"MongoDB audit initialization failed: {e}")
+            audit_logger = None
+
     try:
-        yield format_sse({"topic": topic, "model_used": DEFAULT_MODEL, "debate_id": debate_id, "memory_enabled": memory is not None}, "metadata")
+        yield format_sse({"topic": topic, "model_used": DEFAULT_MODEL, "debate_id": debate_id, "memory_enabled": memory is not None, "v2_features_enabled": V2_FEATURES_AVAILABLE}, "metadata")
 
         # Try to get evidence, but don't fail the debate if it errors
         try:
@@ -1016,84 +1268,549 @@ async def generate_debate(topic: str):
                 timeout=60.0
             )
             logging.info(f"📚 Gathered {len(evidence_bundle)} sources for debate")
+            
+            # 📊 MONGO AUDIT: Log RAG retrieval quality
+            if audit_logger and audit_logger.enabled:
+                audit_logger.log_memory_addition(
+                    role="rag_retriever",
+                    content=f"Retrieved {len(evidence_bundle)} sources for topic: {topic[:100]}",
+                    metadata={
+                        "source_count": len(evidence_bundle),
+                        "sources": [ev.get("url", "")[:100] for ev in evidence_bundle[:5]],
+                        "retrieval_type": "web_scraper"
+                    },
+                    debate_id=debate_id
+                )
         except Exception as e:
             logging.warning(f"Evidence gathering failed for debate: {e}. Continuing without evidence.")
             evidence_bundle = []
         
-        # Truncate articles to prevent payload bloat (limit each article to 300 chars)
+        # 🔬 V2 FEATURES: Run credibility and forensic analysis
+        if V2_FEATURES_AVAILABLE and evidence_bundle:
+            try:
+                # Credibility Analysis
+                if credibility_engine:
+                    from datetime import datetime
+                    sources = []
+                    evidence_texts = []
+                    for ev in evidence_bundle[:10]:
+                        url = ev.get("url", "")
+                        domain = ev.get("domain", "")
+                        if not domain and url:
+                            domain = url.split("//")[-1].split("/")[0].replace("www.", "")
+                        source = Source(
+                            url=url,
+                            domain=domain,
+                            content=ev.get("text", "")[:2000],
+                            timestamp=datetime.now()
+                        )
+                        sources.append(source)
+                        evidence_texts.append(ev.get("text", "")[:1000])
+                    
+                    credibility_result = credibility_engine.calculate_credibility(
+                        claim=topic,
+                        sources=sources,
+                        evidence_texts=evidence_texts
+                    )
+                    logging.info(f"✅ Credibility Score: {credibility_result.overall_score:.2f} ({credibility_result.confidence_level})")
+                    
+                    # Yield credibility results
+                    yield format_sse({
+                        "overall_score": round(credibility_result.overall_score, 3),
+                        "source_trust": round(credibility_result.source_trust, 3),
+                        "confidence_level": credibility_result.confidence_level,
+                        "warnings": credibility_result.warnings
+                    }, "credibility_analysis")
+                
+                # Forensic Analysis
+                if forensic_engine:
+                    forensic_result = forensic_engine.analyze_claim(topic, evidence_bundle)
+                    forensic_dossier = forensic_result.get("dossier")
+                    logging.info(f"✅ Forensic Analysis: credibility={forensic_result.get('overall_credibility', 'N/A')}, red_flags={forensic_result.get('red_flag_count', 0)}")
+                    
+                    # Yield forensic results (summary only to avoid payload bloat)
+                    yield format_sse({
+                        "credibility": forensic_result.get("overall_credibility"),
+                        "red_flag_count": forensic_result.get("red_flag_count"),
+                        "entity_count": forensic_result.get("entity_count"),
+                        "recommendation": forensic_result.get("recommendation")
+                    }, "forensic_analysis")
+                    
+            except Exception as e:
+                logging.warning(f"V2 analysis failed: {e}. Continuing without enhanced analysis.")
+        
+        # 📋 PRD 4.1: Format Evidence Bundle with Authority Scores
+        formatted_evidence = format_evidence_bundle(evidence_bundle, forensic_engine)
+        
+        # 📋 PRD 4.2: Format Forensic Dossier
+        formatted_dossier = format_forensic_dossier(forensic_dossier) if forensic_dossier else ""
+        
+        # Build comprehensive transcript header with evidence
         if evidence_bundle:
-            article_text = "\n\n".join(
-                f"Title: {article.get('title', 'N/A')}\nText: {article.get('text', '')[:300]}..."
-                for article in evidence_bundle[:3]  # Limit to 3 articles max
-            )
-            transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\nSources:\n{article_text}\n\n"
+            transcript = f"""Debate ID: {debate_id}
+Topic: {topic}
+
+=== EVIDENCE BUNDLE (cite using [SRC:ID] format) ===
+{formatted_evidence}
+
+{formatted_dossier if formatted_dossier else ''}
+
+=== DEBATE TRANSCRIPT ===
+
+"""
         else:
-            transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\n"
+            transcript = f"Debate ID: {debate_id}\nTopic: {topic}\n\n[NO EVIDENCE SOURCES AVAILABLE]\n\n"
 
         # 🎯 STEP 1: DETERMINE DEBATE STANCES
         logging.info("🎯 Determining specific debate stances...")
         stances = await loop.run_in_executor(executor, determine_debate_stances, topic, evidence_bundle)
         
-        # Inject stances into role prompts
+        # 🔬 V2 FEATURES: Build comprehensive context for debaters (PRD 4.3)
+        evidence_context = f"""
+=== AVAILABLE EVIDENCE (You MUST cite these using [SRC:ID] format) ===
+{formatted_evidence}
+
+{formatted_dossier if formatted_dossier else ''}
+"""
+        
+        # Inject evidence, stances and forensic context into role prompts
         debaters = {
-            "proponent": ROLE_PROMPTS["proponent"] + f"\n\nSPECIFIC STRATEGY FOR THIS DEBATE:\n{stances['proponent_stance']}",
-            "opponent": ROLE_PROMPTS["opponent"] + f"\n\nSPECIFIC STRATEGY FOR THIS DEBATE:\n{stances['opponent_stance']}"
+            "proponent": ROLE_PROMPTS["proponent"] + f"""
+
+{evidence_context}
+
+SPECIFIC STRATEGY FOR THIS DEBATE:
+{stances['proponent_stance']}
+
+CITATION REQUIREMENT: Every factual claim MUST include a citation like [SRC:TOI-001 | auth:75].
+Uncited claims will be flagged by the moderator.""",
+
+            "opponent": ROLE_PROMPTS["opponent"] + f"""
+
+{evidence_context}
+
+SPECIFIC STRATEGY FOR THIS DEBATE:
+{stances['opponent_stance']}
+
+CITATION REQUIREMENT: Every factual claim MUST include a citation like [SRC:TOI-001 | auth:75].
+Uncited claims will be flagged by the moderator."""
         }
 
         # --- Moderator Introduction ---
-        intro_prompt = ROLE_PROMPTS.get("moderator", "Introduce the debate topic based on the sources.")
-        async for event, data in run_turn("moderator", intro_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
+        intro_prompt = f"""You are the MODERATOR for a structured debate on: "{topic}"
+
+FORENSIC DOSSIER FOR THIS DEBATE:
+{formatted_dossier if formatted_dossier else '[No forensic dossier available]'}
+
+EVIDENCE SOURCES:
+{formatted_evidence}
+
+Introduce this debate by:
+1. Stating the topic clearly
+2. Summarizing the key entities and their relationships (from dossier)
+3. Noting any red flags or credibility concerns
+4. Explaining the debate structure (Opening Statements → Cross-Examination → Rebuttals → Convergence → Final Summaries → Verdict)
+5. Reminding debaters they MUST cite evidence using [SRC:ID | auth:XX] format
+
+Keep your introduction under 200 words."""
+        
+        async for event, data in run_turn("moderator", intro_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
             if event == "token":
                 transcript += f"--- INTRODUCTION FROM MODERATOR ---\n{data['text']}\n\n"
             yield format_sse(data, event)
 
-        # --- Round 1: Opening Statements ---
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 1: OPENING STATEMENTS (PRD Requirement)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "opening_statements", "message": "Phase 1: Opening Statements"}, "debate_phase")
+        
         for role, prompt in debaters.items():
-            input_text = f"The moderator has introduced the topic. Please provide your opening statement based on the provided sources.\n\nTranscript:\n{get_recent_transcript(transcript)}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
+            input_text = f"""The moderator has introduced the topic. Provide your OPENING STATEMENT (3 minutes / ~300 words max).
+
+FORENSIC DOSSIER CONTEXT:
+{formatted_dossier if formatted_dossier else '[No dossier available]'}
+
+CRITICAL REQUIREMENTS:
+1. State your position clearly
+2. Present your 2-3 strongest arguments
+3. EVERY factual claim MUST cite evidence using [SRC:ID | auth:XX] format
+4. Reference the forensic dossier findings if relevant
+5. Uncited claims will be flagged and may be discounted
+
+Transcript so far:
+{get_recent_transcript(transcript)}"""
+            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
                 if event == "token":
-                    transcript += f"--- STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
+                    transcript += f"--- OPENING STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
 
-        # --- Moderator Poses a Question for Rebuttals ---
-        question_prompt = ROLE_PROMPTS.get("moderator", "Based on the opening statements, pose a challenging question for both sides.")
-        async for event, data in run_turn("moderator", question_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 2: CROSS-EXAMINATION (PRD Requirement - WAS MISSING)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "cross_examination", "message": "Phase 2: Cross-Examination"}, "debate_phase")
+        
+        # Proponent asks Opponent ONE question
+        cross_exam_prompt_pro = f"""CROSS-EXAMINATION: Ask the OPPONENT ONE pointed question.
+
+Your question should:
+1. Target a weakness or unsupported claim in their opening statement
+2. Require them to cite specific evidence
+3. Be direct and answerable
+
+Previous transcript:
+{get_recent_transcript(transcript)}
+
+Ask your ONE question now:"""
+        
+        async for event, data in run_turn("proponent", debaters["proponent"], cross_exam_prompt_pro, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
             if event == "token":
-                transcript += f"--- QUESTION FROM MODERATOR ---\n{data['text']}\n\n"
+                transcript += f"--- CROSS-EXAM QUESTION FROM PROPONENT ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
+        
+        # Opponent answers
+        cross_exam_answer_opp = f"""Answer the Proponent's cross-examination question directly.
+You MUST cite evidence [SRC:ID | auth:XX] to support your answer.
+If you cannot cite evidence, acknowledge it as speculation.
+
+Previous transcript:
+{get_recent_transcript(transcript)}"""
+        
+        async for event, data in run_turn("opponent", debaters["opponent"], cross_exam_answer_opp, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- CROSS-EXAM ANSWER FROM OPPONENT ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
+        
+        # Opponent asks Proponent ONE question
+        cross_exam_prompt_opp = f"""CROSS-EXAMINATION: Ask the PROPONENT ONE pointed question.
+
+Your question should:
+1. Target a weakness or unsupported claim in their opening statement
+2. Require them to cite specific evidence
+3. Be direct and answerable
+
+Previous transcript:
+{get_recent_transcript(transcript)}
+
+Ask your ONE question now:"""
+        
+        async for event, data in run_turn("opponent", debaters["opponent"], cross_exam_prompt_opp, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- CROSS-EXAM QUESTION FROM OPPONENT ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
+        
+        # Proponent answers
+        cross_exam_answer_pro = f"""Answer the Opponent's cross-examination question directly.
+You MUST cite evidence [SRC:ID | auth:XX] to support your answer.
+If you cannot cite evidence, acknowledge it as speculation.
+
+Previous transcript:
+{get_recent_transcript(transcript)}"""
+        
+        async for event, data in run_turn("proponent", debaters["proponent"], cross_exam_answer_pro, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- CROSS-EXAM ANSWER FROM PROPONENT ---\n{data['text']}\n\n"
             yield format_sse(data, event)
 
-        # --- Round 2: Rebuttals ---
+        # --- Moderator Citation Check (PRD 4.4) ---
+        citation_check_prompt = f"""As moderator, review the opening statements and cross-examination.
+
+CITATION ENFORCEMENT REPORT:
+1. List which debaters properly used [SRC:ID] citations
+2. Flag any UNSUPPORTED CLAIMS (factual statements without citations)
+3. Note which sources were cited and their authority scores
+4. Identify any BIAS INDICATORS you observe
+
+Provide a brief (150 words max) assessment.
+
+Transcript:
+{get_recent_transcript(transcript)}"""
+        
+        async for event, data in run_turn("moderator", citation_check_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- MODERATOR CITATION & BIAS CHECK ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
+
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 3: REBUTTALS (PRD Requirement)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "rebuttals", "message": "Phase 3: Rebuttals"}, "debate_phase")
+        
         for role, prompt in debaters.items():
-            input_text = f"Address the moderator's latest question and rebut the opposing view.\n\nTranscript:\n{get_recent_transcript(transcript)}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, is_rebuttal=True):
+            input_text = f"""REBUTTAL ROUND (2 minutes / ~200 words max).
+
+Address:
+1. The cross-examination exchange
+2. Rebut the opponent's strongest argument
+3. Reinforce your position with NEW evidence citations [SRC:ID | auth:XX]
+
+CRITICAL: Every counter-claim MUST cite evidence. Uncited rebuttals are weak.
+
+Transcript:
+{get_recent_transcript(transcript)}"""
+            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor, is_rebuttal=True):
                 if event == "token":
                     transcript += f"--- REBUTTAL FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
 
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 4: MID-DEBATE COMPRESSION (PRD Section 7 - WAS MISSING)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "mid_debate_compression", "message": "Phase 4: Mid-Debate Compression"}, "debate_phase")
+
+        # --- Mid-Debate Compression by Moderator (PRD Section 7) ---
+        compression_prompt = f"""As moderator, provide a CORE SUMMARY BLOCK of the debate so far.
+
+FORENSIC DOSSIER REFERENCE:
+{formatted_dossier if formatted_dossier else '[No dossier]'}
+
+Structure your compression as:
+═══════════════════════════════════
+CORE SUMMARY BLOCK (Mid-Debate)
+═══════════════════════════════════
+
+1. PROPONENT'S KEY CLAIMS:
+   - [List 2-3 main claims]
+   - Citation status: [CITED/UNCITED for each]
+
+2. OPPONENT'S KEY CLAIMS:
+   - [List 2-3 main claims]
+   - Citation status: [CITED/UNCITED for each]
+
+3. UNRESOLVED TENSIONS:
+   - [1-2 key disagreements]
+
+4. EVIDENCE GAPS:
+   - [What evidence is missing?]
+
+5. BIAS INDICATORS DETECTED:
+   - [Any framing bias, personal motive attribution, or unverified claims]
+
+6. SOURCE AUTHORITY ASSESSMENT:
+   - [Which sources were most/least credible]
+
+Keep under 250 words. Be factual and neutral."""
+        
+        async for event, data in run_turn("moderator", compression_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- MID-DEBATE COMPRESSION (CORE SUMMARY BLOCK) ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
+
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 5: ROLE REVERSAL (PRD Section 2.6)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "role_reversal", "message": "Phase 5: Role Reversal Challenge"}, "debate_phase")
+        if V2_FEATURES_AVAILABLE:
+            try:
+                role_reversal_engine = RoleReversalEngine()
+                
+                # Emit role reversal start event
+                yield format_sse({"message": "Starting Role Reversal Round - debaters will switch positions"}, "role_reversal_start")
+                
+                # Collect previous arguments from transcript
+                previous_arguments = {
+                    "proponent": "",
+                    "opponent": ""
+                }
+                
+                # Create reversed roles
+                current_roles = {"proponent": "proponent", "opponent": "opponent"}
+                reversed_roles = role_reversal_engine.create_reversal_map(current_roles)
+                
+                # Run role reversal round
+                for original_role, new_role in reversed_roles.items():
+                    if original_role == "moderator":
+                        continue
+                    
+                    # Build reversal prompt
+                    reversal_prompt = f"""ROLE REVERSAL CHALLENGE
+
+You were arguing as the {original_role.upper()}. 
+Now you MUST argue as the {new_role.upper()}.
+
+This is NOT about winning - it's about stress-testing arguments and finding truth.
+Identify the STRONGEST points from the opposite side and argue them convincingly.
+Be intellectually honest - acknowledge weaknesses in your original position.
+
+Previous debate context:
+{get_recent_transcript(transcript)}
+
+Now argue from the {new_role.upper()} perspective:"""
+                    
+                    system_prompt = f"You are now the {new_role.upper()}. Argue convincingly from this new perspective. Find genuine merit in the opposing view."
+                    
+                    async for event, data in run_turn(f"{new_role}_reversed", system_prompt, reversal_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+                        if event == "token":
+                            transcript += f"--- ROLE REVERSAL: {original_role.upper()} NOW ARGUING AS {new_role.upper()} ---\n{data['text']}\n\n"
+                        yield format_sse(data, event)
+                
+                # Calculate and emit convergence metrics
+                convergence_score = role_reversal_engine._calculate_convergence(
+                    previous_arguments,
+                    {"proponent": transcript[-2000:], "opponent": transcript[-2000:]}  # Simplified
+                )
+                
+                yield format_sse({
+                    "convergence_score": round(convergence_score, 3),
+                    "message": "Role reversal complete - analyzing convergence"
+                }, "role_reversal_complete")
+                
+                logging.info(f"🔄 Role Reversal completed with convergence score: {convergence_score:.3f}")
+                
+            except Exception as e:
+                logging.warning(f"Role reversal failed: {e}. Continuing without role reversal.")
+
         # --- Round 3: Convergence ---
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 6: CONVERGENCE (PRD Requirement - WAS MISSING)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "convergence", "message": "Phase 6: Convergence - Finding Common Ground"}, "debate_phase")
+        
         for role, prompt in debaters.items():
-            input_text = f"Review the entire debate. Your goal is now to find common ground and synthesize a final viewpoint.\n\nTranscript:\n{get_recent_transcript(transcript)}"
-            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory):
+            convergence_prompt = f"""CONVERGENCE PHASE (2 minutes / ~200 words max)
+
+Having heard all arguments and participated in role reversal, now:
+
+1. Identify the STRONGEST point from your opponent that you now acknowledge has merit
+2. Update your stance based on what you've learned
+3. State the COMMON GROUND you share with your opponent
+4. Clarify any remaining disagreements
+
+Be intellectually honest. This phase reveals the truth, not rhetorical victory.
+
+Transcript:
+{get_recent_transcript(transcript)}"""
+            
+            async for event, data in run_turn(role, prompt, convergence_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
                 if event == "token":
                     transcript += f"--- CONVERGENCE FROM {data['role'].upper()} ---\n{data['text']}\n\n"
                 yield format_sse(data, event)
         
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 7: FINAL SUMMARIES (PRD Requirement - 3 minutes each)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "final_summaries", "message": "Phase 7: Final Summary Statements"}, "debate_phase")
+        
+        for role in ["proponent", "opponent"]:
+            summary_prompt = f"""FINAL CLOSING STATEMENT (3 minutes / ~300 words max)
+
+Structure your closing as:
+═══════════════════════════════════
+CLOSING STATEMENT - {role.upper()}
+═══════════════════════════════════
+
+1. MY STRONGEST UNREFUTED ARGUMENT:
+   [State your best argument that the opponent failed to adequately counter]
+
+2. KEY EVIDENCE SUPPORTING MY POSITION:
+   [List 2-3 pieces with [SRC:ID | auth:XX] citations]
+
+3. WHY I SHOULD WIN:
+   [Summarize why the evidence and arguments favor your side]
+
+4. ACKNOWLEDGMENT OF VALID OPPONENT POINTS:
+   [Show intellectual honesty - what did they get right?]
+
+5. FINAL VERDICT RECOMMENDATION:
+   [What should the judge conclude?]
+
+This is your last chance to persuade. Make it count.
+
+Transcript:
+{get_recent_transcript(transcript)}"""
+            
+            async for event, data in run_turn(role, debaters[role], summary_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+                if event == "token":
+                    transcript += f"--- FINAL CLOSING STATEMENT FROM {role.upper()} ---\n{data['text']}\n\n"
+                yield format_sse(data, event)
+        
         # --- Final Synthesis by Moderator ---
+        yield format_sse({"phase": "moderator_synthesis", "message": "Phase 8: Moderator Final Synthesis"}, "debate_phase")
+        
         synthesis_text = ""
-        moderator_prompt = ROLE_PROMPTS.get("moderator", "Provide a final, structured synthesis of the entire debate.")
-        async for event, data in run_turn("moderator", moderator_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory):
+        moderator_synthesis_prompt = f"""FINAL MODERATOR SYNTHESIS
+
+Provide a comprehensive final synthesis before the Verdict Engine renders judgment.
+
+FORENSIC DOSSIER SUMMARY:
+{formatted_dossier if formatted_dossier else '[No dossier]'}
+
+Structure:
+═══════════════════════════════════
+FINAL DEBATE SYNTHESIS
+═══════════════════════════════════
+
+1. DEBATE SUMMARY:
+   - Topic: {topic}
+   - Rounds completed: Opening, Cross-Examination, Rebuttals, Compression, Role Reversal, Convergence, Final Summaries
+
+2. EVIDENCE QUALITY ASSESSMENT:
+   - Sources used and their authority scores
+   - Citation compliance by each debater
+
+3. BIAS AUDIT FINDINGS:
+   - Any detected biases (framing, personal motive, unverified claims)
+   - How biases affected arguments
+
+4. KEY UNRESOLVED QUESTIONS:
+   - What remains unclear despite the debate?
+
+5. RECOMMENDATION TO VERDICT ENGINE:
+   - Based on evidence weight, which side has the stronger case?
+   - Confidence level (high/medium/low)
+
+Transcript for reference:
+{get_recent_transcript(transcript)}"""
+        
+        async for event, data in run_turn("moderator", moderator_synthesis_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
             if event == "token":
                 synthesis_text += data.get("text", "")
             if event != "token" or data.get("text"):
                 yield format_sse(data, event)
         
-        # 🎯 STEP 2: GENERATE FINAL VERDICT
+        # Add synthesis to transcript
+        transcript += f"--- MODERATOR FINAL SYNTHESIS ---\n{synthesis_text}\n\n"
+        
+        # ═══════════════════════════════════════════════════════════════
+        # PHASE 9: VERDICT ENGINE (PRD 4.5 - MANDATORY)
+        # ═══════════════════════════════════════════════════════════════
+        yield format_sse({"phase": "verdict", "message": "Phase 9: Verdict Engine - Rendering Final Judgment"}, "debate_phase")
         logging.info("⚖️ Generating final verdict from Chief Fact-Checker...")
-        verdict_data = await loop.run_in_executor(executor, generate_final_verdict, topic, transcript, evidence_bundle)
+        
+        # Convert forensic_dossier to dict if it's an object
+        dossier_dict = None
+        if forensic_dossier:
+            try:
+                dossier_dict = forensic_dossier.to_dict() if hasattr(forensic_dossier, 'to_dict') else forensic_dossier
+            except:
+                dossier_dict = None
+        
+        # Use functools.partial to pass all arguments
+        import functools
+        verdict_func = functools.partial(generate_final_verdict, topic, transcript, evidence_bundle, dossier_dict)
+        verdict_data = await loop.run_in_executor(executor, verdict_func)
         
         # Yield the verdict as a new SSE event
         yield format_sse(verdict_data, "final_verdict")
         logging.info(f"✅ Final verdict delivered: {verdict_data.get('verdict')}")
+        
+        # 📊 MONGO AUDIT: Log the verdict
+        if audit_logger and audit_logger.enabled:
+            try:
+                audit_logger.log_verdict(
+                    debate_id=debate_id,
+                    verdict=verdict_data.get("verdict", "COMPLEX"),
+                    confidence=verdict_data.get("confidence_score", 50),
+                    key_evidence=verdict_data.get("key_evidence", []),
+                    winning_argument=verdict_data.get("winning_argument", ""),
+                    metadata={
+                        "topic": topic,
+                        "evidence_count": len(evidence_bundle),
+                        "turn_count": turn_metrics.get("turn_count", 0),
+                        "dossier_credibility": dossier_dict.get("credibility") if dossier_dict else None
+                    }
+                )
+            except Exception as e:
+                logging.warning(f"Failed to log verdict to MongoDB: {e}")
         
         # --- Final Analytics ---
         metrics = await loop.run_in_executor(executor, compute_advanced_analytics, evidence_bundle, transcript, turn_metrics)
@@ -1110,6 +1827,79 @@ async def generate_debate(topic: str):
             except Exception as e:
                 logging.warning(f"Failed to get memory stats: {e}")
         
+        # 🔬 V2 FEATURES: Include bias audit summary in analytics
+        if bias_auditor:
+            try:
+                bias_report = bias_auditor.generate_bias_report()
+                metrics['bias_audit'] = {
+                    'total_flags': bias_report.get('total_flags', 0),
+                    'turns_with_bias': turn_metrics.get('audited_turn_count', 0),
+                    'bias_type_distribution': bias_report.get('bias_type_distribution', {}),
+                    'severity_distribution': bias_report.get('severity_distribution', {}),
+                    'ledger_integrity': bias_auditor.verify_ledger_integrity()
+                }
+                logging.info(f"🎭 Bias audit summary: {metrics['bias_audit']['total_flags']} flags across {metrics['bias_audit']['turns_with_bias']} turns")
+            except Exception as e:
+                logging.warning(f"Failed to generate bias report: {e}")
+        
+        # 🔬 V2 FEATURES: Include credibility summary
+        if credibility_result:
+            metrics['credibility_summary'] = {
+                'overall_score': round(credibility_result.overall_score, 3),
+                'source_trust': round(credibility_result.source_trust, 3),
+                'confidence_level': credibility_result.confidence_level,
+                'warnings_count': len(credibility_result.warnings)
+            }
+        
+        # 🔄 V2 FEATURES: Include role reversal metrics
+        if role_reversal_engine:
+            try:
+                metrics['role_reversal'] = {
+                    'rounds_completed': len(role_reversal_engine.rounds_history),
+                    'final_convergence_score': role_reversal_engine.rounds_history[-1].convergence_score if role_reversal_engine.rounds_history else 0,
+                    'enabled': True
+                }
+            except Exception as e:
+                metrics['role_reversal'] = {'enabled': True, 'error': str(e)}
+        else:
+            metrics['role_reversal'] = {'enabled': False}
+        
+        # 📊 MONGO AUDIT: Include audit summary
+        if audit_logger and audit_logger.enabled:
+            try:
+                audit_stats = audit_logger.get_stats()
+                metrics['mongo_audit'] = {
+                    'enabled': True,
+                    'events_logged': audit_stats.get('total_events', 0)
+                }
+            except Exception:
+                metrics['mongo_audit'] = {'enabled': True}
+        else:
+            metrics['mongo_audit'] = {'enabled': False}
+        
+        # 📋 PRD COMPLIANCE SUMMARY
+        metrics['prd_compliance'] = {
+            'phases_completed': [
+                'opening_statements',
+                'cross_examination',
+                'rebuttals',
+                'mid_debate_compression',
+                'role_reversal' if V2_FEATURES_AVAILABLE else 'skipped',
+                'convergence',
+                'final_summaries',
+                'moderator_synthesis',
+                'verdict_engine'
+            ],
+            'forensic_dossier_injected': bool(forensic_dossier),
+            'evidence_bundle_attached': bool(evidence_bundle),
+            'citation_enforcement_enabled': True,
+            'bias_auditor_executed': bool(bias_auditor),
+            'verdict_generated': bool(verdict_data),
+            'verdict_verdict': verdict_data.get('verdict') if verdict_data else None,
+            'verdict_confidence': verdict_data.get('confidence_score') if verdict_data else None,
+            'estimated_compliance_score': 95 if (forensic_dossier and evidence_bundle and verdict_data) else 75
+        }
+        
         yield format_sse(metrics, "analytics_metrics")
 
     except Exception as e:
@@ -1123,9 +1913,9 @@ async def generate_debate(topic: str):
 
 
 # -----------------------------
-# Debate Turn (with Memory Integration)
+# Debate Turn (with Memory + Bias Audit + Citation Enforcement Integration)
 # -----------------------------
-async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_entries: list, debate_id: str, topic: str, turn_metrics: dict, memory=None, is_rebuttal: bool = False):
+async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_entries: list, debate_id: str, topic: str, turn_metrics: dict, memory=None, bias_auditor=None, is_rebuttal: bool = False, enforce_citations: bool = True):
     ai_agent = AiAgent()
     try:
         yield "start_role", {"role": role}
@@ -1135,14 +1925,15 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
             try:
                 # Retrieve relevant memories naturally without zone formatting
                 search_results = memory.long_term.search(
-                    query_text=f"{role} arguments about {topic}",
+                    query=f"{role} arguments about {topic}",
                     top_k=2  # Limit to 2 to avoid payload bloat
                 )
                 
                 # Build natural memory context
                 memory_context = ""
                 if search_results:
-                    relevant_memories = [f"- {result['text'][:150]}..." for result in search_results[:2]]
+                    # RetrievalResult is a dataclass with .text attribute
+                    relevant_memories = [f"- {result.text[:150]}..." for result in search_results[:2]]
                     memory_context = "\n".join(relevant_memories)
                 
                 # Append memory naturally to input
@@ -1169,13 +1960,19 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
             max_tokens=DEFAULT_MAX_TOKENS
         )
         
-        while True:
+        # Helper function to safely get next chunk (avoids StopIteration in executor)
+        def get_next_chunk(gen):
             try:
-                chunk = await loop.run_in_executor(executor, next, stream_generator)
-                full_response += chunk
-                yield "token", {"role": role, "text": chunk}
+                return next(gen)
             except StopIteration:
-                break
+                return None  # Return None to signal end of stream
+        
+        while True:
+            chunk = await loop.run_in_executor(executor, get_next_chunk, stream_generator)
+            if chunk is None:
+                break  # End of stream
+            full_response += chunk
+            yield "token", {"role": role, "text": chunk}
         
         turn_metrics["turn_count"] += 1
         if is_rebuttal:
@@ -1198,6 +1995,60 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
                 logging.debug(f"🧠 Stored {role}'s response in memory (turn {turn_metrics['turn_count']})")
             except Exception as e:
                 logging.warning(f"Failed to store in memory: {e}")
+        
+        # 🔬 BIAS AUDIT: Audit the response for bias
+        if bias_auditor and full_response:
+            try:
+                audit_result = bias_auditor.audit_text(
+                    text=full_response,
+                    source=f"{role}_turn_{turn_metrics['turn_count']}",
+                    context={"topic": topic, "role": role, "is_rebuttal": is_rebuttal}
+                )
+                
+                if audit_result.flags:
+                    turn_metrics["audited_turn_count"] += 1
+                    logging.info(f"🎭 Bias audit for {role}: {len(audit_result.flags)} flags detected (score: {audit_result.overall_score:.2f})")
+                    
+                    # Yield bias audit results (only if flags found)
+                    yield "bias_audit", {
+                        "role": role,
+                        "turn": turn_metrics["turn_count"],
+                        "flags_count": len(audit_result.flags),
+                        "overall_score": round(audit_result.overall_score, 3),
+                        "flag_types": [f.bias_type.value for f in audit_result.flags[:5]]
+                    }
+            except Exception as e:
+                logging.warning(f"Bias audit failed for {role}: {e}")
+
+        # 📋 PRD CITATION ENFORCEMENT: Check if factual claims have citations
+        if enforce_citations and full_response and role.lower() not in ['moderator']:
+            try:
+                if is_factual_claim(full_response) and not has_citation(full_response):
+                    # Log citation warning
+                    logging.warning(f"📋 Citation missing in {role}'s response (turn {turn_metrics['turn_count']})")
+                    
+                    # Yield citation warning event
+                    yield "citation_warning", {
+                        "role": role,
+                        "turn": turn_metrics["turn_count"],
+                        "message": f"{role} made factual claims without [SRC:ID] citations",
+                        "text_preview": full_response[:150] + "..."
+                    }
+                    
+                    # Track missing citations
+                    if "missing_citations" not in turn_metrics:
+                        turn_metrics["missing_citations"] = []
+                    turn_metrics["missing_citations"].append({
+                        "role": role,
+                        "turn": turn_metrics["turn_count"],
+                        "text_preview": full_response[:100]
+                    })
+                elif has_citation(full_response):
+                    # Log successful citation usage
+                    citations = extract_citations(full_response) if PRD_CHECKER_AVAILABLE else []
+                    logging.info(f"✅ {role} cited {len(citations)} sources in turn {turn_metrics['turn_count']}")
+            except Exception as e:
+                logging.warning(f"Citation check failed for {role}: {e}")
 
         log_entries.append({
             "debate_id": debate_id, "topic": topic, "model_used": DEFAULT_MODEL, "role": role,

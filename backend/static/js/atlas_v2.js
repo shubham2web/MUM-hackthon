@@ -4,7 +4,7 @@
  */
 
 const ATLASv2 = {
-    baseURL: 'http://127.0.0.1:5000',
+    baseURL: window.location.origin,  // Use same origin as page (dynamic port)
     isAnalyzing: false,
 
     /**
@@ -20,6 +20,10 @@ const ATLASv2 = {
         try {
             console.log('🚀 Starting ATLAS v2.0 analysis...');
             
+            // Use AbortController for timeout (5 minutes for complex analysis)
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 300000);  // 5 min timeout
+            
             const response = await fetch(`${this.baseURL}/v2/analyze`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -28,8 +32,11 @@ const ATLASv2 = {
                     num_agents,
                     enable_reversal,
                     reversal_rounds
-                })
+                }),
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
@@ -47,6 +54,12 @@ const ATLASv2 = {
 
         } catch (error) {
             console.error('❌ v2.0 Analysis error:', error);
+            if (error.name === 'AbortError') {
+                return {
+                    success: false,
+                    error: 'Analysis timed out. The API may be rate-limited. Try again in a minute or disable v2.0 for faster results.'
+                };
+            }
             return {
                 success: false,
                 error: error.message || 'v2.0 analysis failed'

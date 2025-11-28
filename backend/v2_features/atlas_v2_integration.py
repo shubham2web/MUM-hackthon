@@ -125,9 +125,8 @@ class ATLASv2:
             for i in range(reversal_rounds):
                 reversed_roles = self.reversal_engine.create_reversal_map(current_roles)
                 
-                # Run reversal round in thread pool since it uses synchronous streaming
-                reversal_round = await asyncio.to_thread(
-                    self.reversal_engine.conduct_reversal_round,
+                # Conduct reversal round (now async)
+                reversal_round = await self.reversal_engine.conduct_reversal_round(
                     round_number=i + 1,
                     topic=claim,
                     reversed_roles=reversed_roles,

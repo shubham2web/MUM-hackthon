@@ -84,7 +84,7 @@ class RoleReversalEngine:
         
         return reversal_map
     
-    def conduct_reversal_round(
+    async def conduct_reversal_round(
         self,
         round_number: int,
         topic: str,
@@ -107,6 +107,7 @@ class RoleReversalEngine:
         Returns:
             ReversalRound object with results
         """
+        import asyncio
         self.logger.info(f"Starting Reversal Round {round_number}")
         
         new_arguments = {}
@@ -128,12 +129,16 @@ class RoleReversalEngine:
                 for chunk in ai_agent.stream(
                     user_message=prompt,
                     system_prompt=f"You are now playing the role of {new_role}. Argue from this perspective.",
-                    max_tokens=400
+                    max_tokens=300  # Reduced from 400 to speed up
                 ):
                     response_text += chunk
                 
                 new_arguments[agent_id] = response_text
                 self.logger.info(f"Generated reversal argument for {agent_id} as {new_role}")
+                
+                # Add small delay between calls to avoid rate limiting
+                await asyncio.sleep(0.5)
+                
             except Exception as e:
                 self.logger.error(f"Error generating reversal argument: {e}")
                 new_arguments[agent_id] = f"[Error: Could not generate argument for {new_role}]"

@@ -756,9 +756,15 @@ const Chat = {
 
         Messages.showLoading();
 
-        // Add timeout for the request (180 seconds / 3 minutes for OCR + AI analysis)
+        // Check v2 toggle state early to set appropriate timeout
+        const v2EnabledForTimeout = document.getElementById('v2Toggle')?.checked || false;
+        
+        // Add timeout for the request:
+        // - v2.0 analysis: 300 seconds (5 minutes) - more complex with role reversal
+        // - Standard: 180 seconds (3 minutes) for OCR + AI analysis
+        const timeoutMs = v2EnabledForTimeout ? 300000 : 180000;
         const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error('Request timed out')), 180000)
+            setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
         );
 
             try {
@@ -845,7 +851,12 @@ const Chat = {
                 Messages.hideLoading();
                 
                 if (error.message === 'Request timed out') {
-                    Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
+                    const v2On = document.getElementById('v2Toggle')?.checked || false;
+                    if (v2On) {
+                        Messages.addAIMessage('⏱️ The v2.0 enhanced analysis took too long (API rate limits may have caused delays). Try disabling v2.0 for faster results, or try again in a minute.');
+                    } else {
+                        Messages.addAIMessage('⏱️ The request took too long. Please try a simpler question.');
+                    }
                 } else {
                     Messages.addAIMessage('❌ Error: ' + error.message);
                 }
@@ -868,6 +879,8 @@ const Chat = {
         let allDebateContent = []; // Store all debate messages for persistence
 
         try {
+            let currentEventType = null;  // Track current SSE event type
+            
             while (true) {
                 const { done, value } = await reader.read();
                 if (done) break;
@@ -877,6 +890,13 @@ const Chat = {
 
                 for (const line of lines) {
                     if (!line.trim() || line.startsWith(':')) continue;
+
+                    // Track event type from SSE
+                    if (line.startsWith('event: ')) {
+                        currentEventType = line.substring(7).trim();
+                        console.log('📨 SSE Event:', currentEventType);
+                        continue;
+                    }
 
                     if (line.startsWith('data: ')) {
                         const data = line.substring(6).trim();
@@ -899,14 +919,45 @@ const Chat = {
                             }
 
                             console.log('✅ Debate stream complete');
+                            currentEventType = null;
                             return;
                         }
 
                         try {
                             const json = JSON.parse(data);
+                            
+                            // 🎯 Handle FINAL VERDICT event
+                            if (currentEventType === 'final_verdict' || json.verdict) {
+                                console.log('⚖️ Final Verdict received:', json);
+                                this.displayFinalVerdict(json);
+                                currentEventType = null;
+                                continue;
+                            }
+                            
+                            // 📊 Handle analytics metrics event
+                            if (currentEventType === 'analytics_metrics') {
+                                console.log('📊 Analytics received:', json);
+                                // Could display analytics summary here
+                                currentEventType = null;
+                                continue;
+                            }
+                            
+                            // 🔄 Handle role reversal events
+                            if (currentEventType === 'role_reversal_start') {
+                                console.log('🔄 Role Reversal started');
+                                this.displayRoleReversalNotice();
+                                currentEventType = null;
+                                continue;
+                            }
+                            
+                            if (currentEventType === 'role_reversal_complete') {
+                                console.log('🔄 Role Reversal complete:', json);
+                                currentEventType = null;
+                                continue;
+                            }
 
                             // Handle "end" event - debate complete
-                            if (json.message === "Debate complete.") {
+                            if (json.message === "Debate complete." || currentEventType === 'end') {
                                 // Ensure loading is hidden
                                 Messages.hideLoading();
 
@@ -939,6 +990,7 @@ const Chat = {
                                 Messages.container.appendChild(completionDiv);
                                 Messages.container.scrollTop = Messages.container.scrollHeight;
                                 console.log('✅ Debate completed successfully');
+                                currentEventType = null;
                                 return;
                             }
 
@@ -990,6 +1042,112 @@ const Chat = {
         Messages.container.appendChild(messageDiv);
         Messages.container.scrollTop = Messages.container.scrollHeight;
         return messageDiv;
+    },
+    
+    /**
+     * Display the final verdict from the Chief Fact-Checker
+     */
+    displayFinalVerdict(verdictData) {
+        const verdict = verdictData.verdict || 'COMPLEX';
+        const confidence = verdictData.confidence || 50;
+        const reasoning = verdictData.reasoning || 'Analysis complete.';
+        const keyEvidence = verdictData.key_evidence || [];
+        const winningArg = verdictData.winning_argument || '';
+        
+        // Determine verdict styling
+        let verdictColor, verdictIcon, verdictBg;
+        switch(verdict.toUpperCase()) {
+            case 'VERIFIED':
+                verdictColor = '#10b981';
+                verdictIcon = '✅';
+                verdictBg = 'rgba(16, 185, 129, 0.1)';
+                break;
+            case 'DEBUNKED':
+                verdictColor = '#ef4444';
+                verdictIcon = '❌';
+                verdictBg = 'rgba(239, 68, 68, 0.1)';
+                break;
+            case 'COMPLEX':
+            default:
+                verdictColor = '#f59e0b';
+                verdictIcon = '⚖️';
+                verdictBg = 'rgba(245, 158, 11, 0.1)';
+        }
+        
+        // Build key evidence HTML
+        let evidenceHtml = '';
+        if (keyEvidence.length > 0) {
+            evidenceHtml = `
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <div style="font-weight: 600; margin-bottom: 8px; color: #9ca3af;">📋 Key Evidence:</div>
+                    <ul style="margin: 0; padding-left: 20px; color: #d1d5db;">
+                        ${keyEvidence.map(e => `<li style="margin-bottom: 4px;">${e}</li>`).join('')}
+                    </ul>
+                </div>
+            `;
+        }
+        
+        // Build winning argument HTML
+        let winningArgHtml = '';
+        if (winningArg) {
+            winningArgHtml = `
+                <div style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
+                    <div style="font-weight: 600; color: #9ca3af; margin-bottom: 4px;">🏆 Strongest Argument:</div>
+                    <div style="color: #e5e7eb; font-style: italic;">"${winningArg}"</div>
+                </div>
+            `;
+        }
+        
+        const verdictDiv = document.createElement('div');
+        verdictDiv.className = 'message ai-message';
+        verdictDiv.innerHTML = `
+            <div style="padding: 20px; border: 2px solid ${verdictColor}; border-radius: 12px; background: ${verdictBg};">
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
+                    <span style="font-size: 32px;">${verdictIcon}</span>
+                    <div>
+                        <div style="font-size: 12px; text-transform: uppercase; color: #9ca3af; letter-spacing: 1px;">Final Verdict</div>
+                        <div style="font-size: 24px; font-weight: 700; color: ${verdictColor};">${verdict}</div>
+                    </div>
+                    <div style="margin-left: auto; text-align: right;">
+                        <div style="font-size: 11px; color: #9ca3af;">Confidence</div>
+                        <div style="font-size: 20px; font-weight: 600; color: ${verdictColor};">${confidence}%</div>
+                    </div>
+                </div>
+                
+                <div style="color: #e5e7eb; line-height: 1.6;">
+                    ${reasoning}
+                </div>
+                
+                ${winningArgHtml}
+                ${evidenceHtml}
+                
+                <div style="margin-top: 15px; font-size: 11px; color: #6b7280; text-align: center;">
+                    ⚖️ Verdict by Chief Fact-Checker AI
+                </div>
+            </div>
+        `;
+        
+        Messages.container.appendChild(verdictDiv);
+        Messages.container.scrollTop = Messages.container.scrollHeight;
+    },
+    
+    /**
+     * Display notice when role reversal round starts
+     */
+    displayRoleReversalNotice() {
+        const noticeDiv = document.createElement('div');
+        noticeDiv.className = 'message ai-message';
+        noticeDiv.innerHTML = `
+            <div style="text-align: center; padding: 15px; border: 1px dashed #8b5cf6; border-radius: 8px; background: rgba(139, 92, 246, 0.1);">
+                <div style="font-size: 20px; margin-bottom: 8px;">🔄</div>
+                <div style="font-weight: 600; color: #8b5cf6;">Role Reversal Round</div>
+                <div style="color: #9ca3af; font-size: 13px; margin-top: 4px;">
+                    Debaters are now switching positions to stress-test their arguments
+                </div>
+            </div>
+        `;
+        Messages.container.appendChild(noticeDiv);
+        Messages.container.scrollTop = Messages.container.scrollHeight;
     },
 
     formatDebateContent(content, role) {
