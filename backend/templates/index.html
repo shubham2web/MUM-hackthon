@@ -353,7 +353,6 @@
             padding-right: 52px !important;
             text-align: right !important;
         }
-<<<<<<< HEAD
         
         /* Debate mode styling */
         .debate-message {
@@ -637,33 +636,6 @@
         body.light-mode .sidebar .toggle-btn .arrow {
             color: #0b1220 !important;
             opacity: 1 !important;
-=======
-
-        /* v2.0 Toggle Light Mode Styles */
-        body.light-mode .v2-toggle-label {
-            color: #0f3a4b !important;
-            font-weight: 700 !important;
-        }
-        
-        body.light-mode .v2-toggle-track {
-            background-color: rgba(14, 116, 144, 0.3) !important;
-            border: 2px solid #0e7490 !important;
-        }
-        
-        body.light-mode #v2Toggle:checked + .v2-toggle-track {
-            background-color: #0891b2 !important;
-            border-color: #0e7490 !important;
-            box-shadow: 0 0 8px rgba(8, 145, 178, 0.4) !important;
-        }
-        
-        body.light-mode .v2-toggle-slider {
-            background-color: #ffffff !important;
-            box-shadow: 0 2px 6px rgba(14, 116, 144, 0.5) !important;
-        }
-        
-        body.light-mode #v2Toggle:checked + .v2-toggle-track .v2-toggle-slider {
-            background-color: #ffffff !important;
->>>>>>> f54d386d7cc816040e95f525ed1696bd5b06dc00
         }
     </style>
 </head>
@@ -707,18 +679,12 @@
                 </a>
                 <div class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="nav-text">Tasks</span>
-                </div>
-                <div class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="9"></circle>
                         <polyline points="12 7 12 12 16 14"></polyline>
                     </svg>
                     <span class="nav-text">History</span>
                 </div>
-                <div class="nav-item" id="settingsNavBtn">
+                <div class="nav-item" id="settingsBtn" role="button" tabindex="0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -876,7 +842,7 @@
     <script>
     // API Module with detailed logging
     const API = {
-        baseURL: 'http://127.0.0.1:5000', // Changed from 5000
+        baseURL: 'http://127.0.0.1:8000', // Backend server port
 
         async sendMessage(message, mode = 'analytical') {
             console.log('=== API Call ===');
@@ -887,19 +853,31 @@
                 const response = await fetch(`${this.baseURL}/analyze_topic`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ topic: message, model: 'llama3' })
+                    body: JSON.stringify({ 
+                        topic: message, 
+                        model: 'llama3',
+                        mode: mode  // Send mode parameter to backend
+                    })
                 });
                 
                 console.log('Response status:', response.status);
                 console.log('Response ok:', response.ok);
                 
-                const responseText = await response.text();
-                console.log('Response text:', responseText);
-                
                 if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}, body: ${responseText}`);
+                    const errorText = await response.text();
+                    throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
                 }
                 
+                // Check if it's an SSE stream (debate mode)
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('text/event-stream')) {
+                    // Return response for SSE streaming
+                    return { isStream: true, response: response };
+                }
+                
+                // Regular JSON response (analytical mode)
+                const responseText = await response.text();
+                console.log('Response text:', responseText);
                 const data = JSON.parse(responseText);
                 console.log('Parsed data:', data);
                 return data;
@@ -962,174 +940,67 @@
             const card = document.createElement('div');
             card.className = 'v2-response-card';
             card.style.cssText = `
-                background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(168, 85, 247, 0.15) 50%, rgba(236, 72, 153, 0.15) 100%);
-                border: 2px solid transparent;
-                border-image: linear-gradient(135deg, #3b82f6, #a855f7, #ec4899) 1;
-                border-radius: 16px;
-                padding: 24px;
-                margin: 16px 0;
-                box-shadow: 0 8px 32px rgba(59, 130, 246, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.05);
-                position: relative;
-                overflow: hidden;
+                background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(168, 85, 247, 0.1) 100%);
+                border: 1px solid rgba(59, 130, 246, 0.3);
+                border-radius: 12px;
+                padding: 20px;
+                margin: 10px 0;
             `;
 
-            let html = `
-                <div style="position: absolute; top: 0; right: 0; width: 200px; height: 200px; background: radial-gradient(circle, rgba(168, 85, 247, 0.3) 0%, transparent 70%); pointer-events: none;"></div>
-                <div style="position: relative; z-index: 1;">
-                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 20px;">
-                        <div style="width: 40px; height: 40px; background: linear-gradient(135deg, #3b82f6, #a855f7); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);">
-                            🔬
-                        </div>
-                        <div>
-                            <h3 style="color: #fff; margin: 0; font-size: 18px; font-weight: 700; letter-spacing: 0.5px;">Enhanced Analysis</h3>
-                            <div style="color: rgba(255, 255, 255, 0.6); font-size: 12px; margin-top: 2px;">Powered by ATLAS v2.0</div>
-                        </div>
-                    </div>
-            `;
+            let html = '<div style="margin-bottom: 15px;">';
+            html += '<h3 style="color: #3b82f6; margin: 0 0 10px 0; font-size: 16px;">🔬 Enhanced Analysis (v2.0)</h3>';
             
-            // Credibility Score Section
+            // Credibility Score
             if (data.credibility) {
                 const score = data.credibility.overall_score;
                 const percentage = (score * 100).toFixed(0);
                 const color = score >= 0.75 ? '#10b981' : score >= 0.5 ? '#f59e0b' : '#ef4444';
-                const emoji = score >= 0.75 ? '✅' : score >= 0.5 ? '⚠️' : '❌';
                 
-                html += `
-                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-                            <div style="display: flex; align-items: center; gap: 8px;">
-                                <span style="font-size: 24px;">${emoji}</span>
-                                <span style="font-weight: 700; font-size: 16px; color: #fff;">Credibility Score</span>
-                            </div>
-                            <div style="background: ${color}; color: #fff; padding: 6px 16px; border-radius: 20px; font-weight: 800; font-size: 20px; box-shadow: 0 4px 12px ${color}40;">
-                                ${percentage}%
-                            </div>
-                        </div>
-                        <div style="background: rgba(255,255,255,0.1); height: 12px; border-radius: 6px; overflow: hidden; position: relative;">
-                            <div style="position: absolute; top: 0; left: 0; height: 100%; width: ${percentage}%; background: linear-gradient(90deg, ${color}, ${color}dd); transition: width 1s ease-out; box-shadow: 0 0 10px ${color}80;"></div>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 16px; font-size: 13px;">
-                            <div style="background: rgba(59, 130, 246, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #3b82f6;">
-                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Source Trust</div>
-                                <div style="color: #3b82f6; font-weight: 700; font-size: 16px;">${(data.credibility.source_trust * 100).toFixed(0)}%</div>
-                            </div>
-                            <div style="background: rgba(168, 85, 247, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #a855f7;">
-                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Evidence Alignment</div>
-                                <div style="color: #a855f7; font-weight: 700; font-size: 16px;">${(data.credibility.semantic_alignment * 100).toFixed(0)}%</div>
-                            </div>
-                            <div style="background: rgba(236, 72, 153, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #ec4899;">
-                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Temporal Consistency</div>
-                                <div style="color: #ec4899; font-weight: 700; font-size: 16px;">${(data.credibility.temporal_consistency * 100).toFixed(0)}%</div>
-                            </div>
-                            <div style="background: rgba(16, 185, 129, 0.2); padding: 10px; border-radius: 8px; border-left: 3px solid #10b981;">
-                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Source Diversity</div>
-                                <div style="color: #10b981; font-weight: 700; font-size: 16px;">${(data.credibility.evidence_diversity * 100).toFixed(0)}%</div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 12px; color: rgba(255,255,255,0.8); border-left: 3px solid ${color};">
-                            <strong style="color: ${color};">Confidence Level:</strong> ${data.credibility.confidence_level}
-                        </div>
-                    </div>
-                `;
+                html += `<div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 12px;">`;
+                html += `<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">`;
+                html += `<span style="font-weight: 600;">Credibility Score</span>`;
+                html += `<span style="color: ${color}; font-weight: bold; font-size: 18px;">${percentage}%</span>`;
+                html += `</div>`;
+                html += `<div style="background: rgba(255,255,255,0.1); height: 8px; border-radius: 4px; overflow: hidden;">`;
+                html += `<div style="background: ${color}; height: 100%; width: ${percentage}%; transition: width 0.5s;"></div>`;
+                html += `</div>`;
+                html += `<div style="font-size: 12px; color: rgba(255,255,255,0.6); margin-top: 6px;">`;
+                html += `Confidence: ${data.credibility.confidence_level}`;
+                html += `</div>`;
+                html += `</div>`;
             }
 
-            // Synthesis Section
+            // Synthesis
             if (data.synthesis) {
-                html += `
-                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="font-size: 24px;">💡</span>
-                            <span style="font-weight: 700; font-size: 16px; color: #fff;">Analysis Synthesis</span>
-                        </div>
-                        <div style="color: rgba(255,255,255,0.95); line-height: 1.8; font-size: 14px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px; border-left: 4px solid #3b82f6;">
-                            ${this.markdownToHtml(data.synthesis)}
-                        </div>
-                    </div>
-                `;
+                html += `<div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; margin-bottom: 12px;">`;
+                html += `<div style="font-weight: 600; margin-bottom: 8px;">💡 Synthesis</div>`;
+                html += `<div style="color: rgba(255,255,255,0.9); line-height: 1.6;">${this.markdownToHtml(data.synthesis)}</div>`;
+                html += `</div>`;
             }
 
-            // Debate Insights
-            if (data.debate && data.debate.agents) {
-                html += `
-                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="font-size: 24px;">🎭</span>
-                            <span style="font-weight: 700; font-size: 16px; color: #fff;">Multi-Agent Debate</span>
-                        </div>
-                        <div style="display: flex; flex-wrap: wrap; gap: 8px;">
-                            ${data.debate.agents.map(agent => `
-                                <div style="background: rgba(59, 130, 246, 0.2); padding: 8px 14px; border-radius: 20px; font-size: 12px; color: #3b82f6; font-weight: 600; border: 1px solid rgba(59, 130, 246, 0.3);">
-                                    ${agent.name}
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Role Reversal Section
+            // Role Reversal Results
             if (data.role_reversal && data.role_reversal.rounds && data.role_reversal.rounds.length > 0) {
-                html += `
-                    <div style="background: linear-gradient(135deg, rgba(0,0,0,0.3), rgba(0,0,0,0.2)); padding: 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="font-size: 24px;">🔄</span>
-                            <span style="font-weight: 700; font-size: 16px; color: #fff;">Role Reversal Analysis</span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">
-                            <div style="background: rgba(168, 85, 247, 0.2); padding: 12px; border-radius: 8px; border-left: 3px solid #a855f7;">
-                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Reversal Rounds</div>
-                                <div style="color: #a855f7; font-weight: 700; font-size: 18px;">${data.role_reversal.rounds.length}</div>
-                            </div>
-                            <div style="background: rgba(236, 72, 153, 0.2); padding: 12px; border-radius: 8px; border-left: 3px solid #ec4899;">
-                                <div style="color: rgba(255,255,255,0.6); font-size: 11px; margin-bottom: 4px;">Convergence Rate</div>
-                                <div style="color: #ec4899; font-weight: 700; font-size: 18px;">
-                                    ${data.role_reversal.convergence ? (data.role_reversal.convergence.convergence_rate * 100).toFixed(1) + '%' : 'N/A'}
-                                </div>
-                            </div>
-                        </div>
-                        <div style="margin-top: 12px; padding: 10px; background: rgba(0,0,0,0.2); border-radius: 6px; font-size: 12px; color: rgba(255,255,255,0.8);">
-                            <div style="display: flex; align-items: center; gap: 6px;">
-                                <span>${data.role_reversal.convergence && data.role_reversal.convergence.stable_consensus ? '✅' : '⚠️'}</span>
-                                <span>
-                                    ${data.role_reversal.convergence && data.role_reversal.convergence.stable_consensus 
-                                        ? 'Stable consensus reached through perspective reversal' 
-                                        : 'Multiple perspectives examined for bias reduction'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                `;
+                html += `<div style="background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px;">`;
+                html += `<div style="font-weight: 600; margin-bottom: 8px;">🔄 Role Reversal Insights</div>`;
+                html += `<div style="font-size: 13px; color: rgba(255,255,255,0.8);">`;
+                html += `Conducted ${data.role_reversal.rounds.length} reversal round(s) for bias reduction<br>`;
+                if (data.role_reversal.convergence) {
+                    html += `Convergence: ${(data.role_reversal.convergence.convergence_rate * 100).toFixed(1)}%`;
+                }
+                html += `</div>`;
+                html += `</div>`;
             }
 
-            // Bias Audit
-            if (data.bias_report && data.bias_report.total_flags > 0) {
-                html += `
-                    <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(220, 38, 38, 0.1)); padding: 20px; border-radius: 12px; margin-top: 16px; border: 1px solid rgba(239, 68, 68, 0.3);">
-                        <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
-                            <span style="font-size: 24px;">⚠️</span>
-                            <span style="font-weight: 700; font-size: 16px; color: #ef4444;">Bias Detection</span>
-                        </div>
-                        <div style="font-size: 13px; color: rgba(255,255,255,0.8);">
-                            ${data.bias_report.total_flags} potential bias instance(s) detected and flagged for transparency
-                        </div>
-                    </div>
-                `;
-            }
-
-            html += '</div></div>';
+            html += '</div>';
             card.innerHTML = html;
             return card;
         },
 
         markdownToHtml(text) {
-            // Enhanced markdown conversion
+            // Simple markdown conversion
             return text
-                .replace(/### (.*?)(\n|$)/g, '<h3 style="color: #3b82f6; font-size: 15px; margin: 12px 0 8px 0; font-weight: 700;">$1</h3>')
-                .replace(/## (.*?)(\n|$)/g, '<h2 style="color: #3b82f6; font-size: 16px; margin: 16px 0 10px 0; font-weight: 700;">$1</h2>')
-                .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #fff; font-weight: 600;">$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em style="color: rgba(255,255,255,0.9);">$1</em>')
-                .replace(/- (.*?)(\n|$)/g, '<div style="margin: 6px 0; padding-left: 12px; border-left: 2px solid rgba(59, 130, 246, 0.5);">• $1</div>')
-                .replace(/\n\n/g, '</p><p style="margin: 10px 0;">')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
                 .replace(/\n/g, '<br>');
         }
     };
@@ -1288,7 +1159,13 @@
             // Update page title based on mode
             const chatTitle = document.getElementById('chatTitle');
             if (chatTitle) {
-                chatTitle.textContent = this.currentMode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
+                if (this.currentMode === 'debate') {
+                    chatTitle.textContent = '🎭 Atlas Debate Mode';
+                    chatTitle.style.color = '#ef4444'; // Red accent for debate
+                } else {
+                    chatTitle.textContent = '💬 Chat with Atlas';
+                    chatTitle.style.color = '#60a5fa'; // Blue accent for chat
+                }
             }
 
             // Clear messages container and add single welcome message
@@ -1415,7 +1292,13 @@
             
             const chatTitle = document.getElementById('chatTitle');
             if (chatTitle) {
-                chatTitle.textContent = mode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
+                if (mode === 'debate') {
+                    chatTitle.textContent = '🎭 Atlas Debate Mode';
+                    chatTitle.style.color = '#ef4444'; // Red accent for debate
+                } else {
+                    chatTitle.textContent = '💬 Chat with Atlas';
+                    chatTitle.style.color = '#60a5fa'; // Blue accent for chat
+                }
             }
             
             // Update URL without reloading
@@ -1433,6 +1316,8 @@
                 messages.innerHTML = '';
                 this.addWelcomeMessage();
             }
+            
+            console.log(`✅ Switched to ${mode} mode`);
         },
 
         setupEventListeners() {
@@ -1505,35 +1390,26 @@
             );
 
             try {
-<<<<<<< HEAD
                 // Check v2 toggle state
                 const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
                 console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
-=======
-                console.log('Sending message:', message, 'V2 enabled:', v2Enabled);
->>>>>>> f54d386d7cc816040e95f525ed1696bd5b06dc00
                 
                 let response;
-                if (v2Enabled && typeof ATLASv2 !== 'undefined') {
-                    // Use v2.0 enhanced analysis
+                
+                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+                if (this.currentMode === 'debate') {
+                    console.log('🎭 Running debate mode...');
                     response = await Promise.race([
-                        ATLASv2.analyzeWithV2(message, {
-                            num_agents: 6,
-                            enable_reversal: true,
-                            reversal_rounds: 2
-                        }),
+                        API.sendMessage(message, 'debate'),
                         timeoutPromise
                     ]);
                     
-                    console.log('Received v2.0 response:', response);
                     Messages.hideLoading();
                     
-                    if (response.success && response.data) {
-                        // Use V2UI to render enhanced response
-                        const v2Card = V2UI.createV2ResponseCard(response.data);
-                        Messages.addAIMessageHTML(v2Card);
+                    // Should be SSE stream
+                    if (response && response.isStream) {
+                        await this.handleDebateStream(response.response, message);
                     } else {
-<<<<<<< HEAD
                         Messages.addAIMessage('Error: Expected debate stream but got regular response.');
                     }
                 }
@@ -1579,26 +1455,7 @@
                                         'No response received.';
                                         
                         Messages.addAIMessage(aiMessage);
-=======
-                        Messages.addAIMessage(response.error || 'v2.0 analysis failed');
->>>>>>> f54d386d7cc816040e95f525ed1696bd5b06dc00
                     }
-                } else {
-                    // Use standard v1.0 analysis
-                    response = await Promise.race([
-                        API.sendMessage(message, this.currentMode),
-                        timeoutPromise
-                    ]);
-                    
-                    console.log('Received response:', response);
-                    Messages.hideLoading();
-                    
-                    const aiMessage = response.analysis || 
-                                    response.result || 
-                                    response.answer ||
-                                    'No response received.';
-                                    
-                    Messages.addAIMessage(aiMessage);
                 }
                 
             } catch (error) {
@@ -1616,10 +1473,153 @@
             }
         },
 
+        async handleDebateStream(response, originalTopic) {
+            console.log('📡 Handling debate stream...');
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            
+            let currentRole = null;
+            let currentContent = '';
+            let messageDiv = null;
+            
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    
+                    const chunk = decoder.decode(value, { stream: true });
+                    const lines = chunk.split('\n');
+                    
+                    for (const line of lines) {
+                        if (!line.trim() || line.startsWith(':')) continue;
+                        
+                        if (line.startsWith('data: ')) {
+                            const data = line.substring(6).trim();
+                            
+                            if (data === '[DONE]') {
+                                // Flush any remaining content
+                                if (currentContent && messageDiv) {
+                                    messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                }
+                                console.log('✅ Debate stream complete');
+                                return;
+                            }
+                            
+                            try {
+                                const json = JSON.parse(data);
+                                
+                                // Handle "end" event - debate complete
+                                if (json.message === "Debate complete.") {
+                                    // Flush any remaining content
+                                    if (currentContent && messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                    
+                                    // Add completion message
+                                    const completionDiv = document.createElement('div');
+                                    completionDiv.className = 'message ai-message';
+                                    completionDiv.innerHTML = `
+                                        <div style="text-align: center; padding: 20px; border: 2px solid #10b981; border-radius: 8px; background: rgba(16, 185, 129, 0.1);">
+                                            <div style="font-size: 24px; margin-bottom: 10px;">✅</div>
+                                            <div style="font-weight: 600; color: #10b981; margin-bottom: 5px;">Debate Complete</div>
+                                            <div style="color: #6b7280; font-size: 14px;">The moderator has provided the final synthesis above.</div>
+                                        </div>
+                                    `;
+                                    Messages.container.appendChild(completionDiv);
+                                    Messages.container.scrollTop = Messages.container.scrollHeight;
+                                    console.log('✅ Debate completed successfully');
+                                    return;
+                                }
+                                
+                                // Check for role change
+                                if (json.role && json.role !== currentRole) {
+                                    // Flush previous content
+                                    if (currentContent && messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                    
+                                    // Start new message
+                                    currentRole = json.role;
+                                    currentContent = '';
+                                    messageDiv = this.createDebateMessage(currentRole);
+                                }
+                                
+                                // Append content (backend sends "text" not "content")
+                                if (json.text || json.content) {
+                                    currentContent += (json.text || json.content);
+                                    if (messageDiv) {
+                                        messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                    }
+                                }
+                                
+                            } catch (e) {
+                                console.error('Error parsing SSE data:', e, data);
+                            }
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('Error in debate stream:', error);
+                Messages.addAIMessage('❌ Error streaming debate: ' + error.message);
+            }
+        },
+
+        createDebateMessage(role) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message ai-message';
+            Messages.container.appendChild(messageDiv);
+            Messages.container.scrollTop = Messages.container.scrollHeight;
+            return messageDiv;
+        },
+
+        formatDebateContent(content, role) {
+            let icon, label, colorClass;
+            
+            if (role === 'proponent') {
+                icon = '🔵';
+                label = 'PROPONENT';
+                colorClass = 'proponent';
+            } else if (role === 'opponent') {
+                icon = '🔴';
+                label = 'OPPONENT';
+                colorClass = 'opponent';
+            } else if (role === 'moderator') {
+                icon = '🎙️';
+                label = 'MODERATOR';
+                colorClass = 'moderator';
+            } else {
+                icon = '💬';
+                label = role.toUpperCase();
+                colorClass = 'default';
+            }
+            
+            return `
+                <div class="debate-message ${colorClass}">
+                    <div class="debate-header">
+                        <span class="debate-icon">${icon}</span>
+                        <strong>${label}</strong>
+                    </div>
+                    <div class="debate-content">${this.markdownToHtml(content)}</div>
+                </div>
+            `;
+        },
+
+        markdownToHtml(text) {
+            // Basic markdown conversion
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/\n\n/g, '</p><p>')
+                .replace(/\n/g, '<br>');
+        },
+
         addWelcomeMessage() {
-            const message = this.currentMode === 'debate' 
-                ? "Welcome to **Debate Mode**! I'll analyze topics from multiple perspectives and provide evidence-based insights."
-                : "Hello! I'm **Atlas**, your misinformation fighter. Ask me anything!";
+            let message;
+            if (this.currentMode === 'debate') {
+                message = "🎭 **Welcome to Debate Mode!**\n\nI'll analyze your topic by presenting arguments from both sides:\n• 🔵 **Proponent** - Arguments in favor\n• 🔴 **Opponent** - Counter-arguments\n• 🎙️ **Moderator** - Synthesis and balance\n\nAsk me to debate any topic!";
+            } else {
+                message = "👋 Hello! I'm **Atlas**, your misinformation fighter.\n\n💬 **Chat Mode**: I'll provide clear, factual analysis of your questions.\n\n💡 **Tip**: Toggle v2.0 for enhanced multi-perspective analysis, or switch to Debate mode for structured debates!";
+            }
             Messages.addAIMessage(message);
         },
 
@@ -2207,7 +2207,7 @@
                 // Optionally clear a chat history item in localStorage
                 try { localStorage.removeItem('chatHistory'); } catch (e) {}
                 // Show a small confirmation message
-                alert('Local chat history cleared.');
+                alert('Locals chat history cleared.');
             }
 
             // Attach listeners
