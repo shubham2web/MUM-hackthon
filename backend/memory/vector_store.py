@@ -812,13 +812,16 @@ class VectorStore:
                     self.logger.info(f"Chunked long text ({len(text)} chars) into {len(chunks)} semantic chunks")
                     
                     # Store each chunk with parent reference
-                    for i, chunk_text in enumerate(chunks):
+                    for i, chunk_obj in enumerate(chunks):
                         chunk_id = f"{parent_id}_chunk_{i}"
                         chunk_metadata = (metadata or {}).copy()
                         chunk_metadata['parent_id'] = parent_id
                         chunk_metadata['chunk_index'] = i
                         chunk_metadata['total_chunks'] = len(chunks)
                         chunk_metadata['is_chunk'] = True
+                        
+                        # Extract text from SemanticChunk object
+                        chunk_text = chunk_obj.text if hasattr(chunk_obj, 'text') else str(chunk_obj)
                         
                         # Recursively add each chunk (with chunking disabled to avoid infinite loop)
                         self.add_memory(chunk_text, chunk_metadata, chunk_id, enable_chunking=False)
