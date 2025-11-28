@@ -191,6 +191,29 @@ async def add_header(response):
         response.headers['Content-Type'] = 'application/javascript'
     elif request.path.endswith('.css'):
         response.headers['Content-Type'] = 'text/css'
+        # Force no caching for CSS files to fix styling issues
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    return response
+
+# Explicit static file serving route with cache busting
+@app.route('/static/<path:filename>')
+async def serve_static(filename):
+    """Serve static files with proper cache control headers"""
+    import mimetypes
+    mime_type, _ = mimetypes.guess_type(filename)
+    response = await send_from_directory('static', filename)
+    
+    if filename.endswith('.css'):
+        response.headers['Content-Type'] = 'text/css; charset=utf-8'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+    elif filename.endswith('.js'):
+        response.headers['Content-Type'] = 'application/javascript; charset=utf-8'
+        response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate, max-age=0'
+    
     return response
 
 # -----------------------------
