@@ -141,6 +141,8 @@ body {
     padding: 20px;
     width: 100%;
     max-width: 620px;
+    margin-top: 40px; /* Shift everything down for better spacing */
+    overflow: visible; /* Allow magnifying glass to be visible */
 }
 
 /* ATLAS title - REMOVED */
@@ -155,15 +157,17 @@ body {
 /* AI tagline - ANIMATED VERSION */
 .ai-tagline {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1rem;
-    letter-spacing: 3px;
+    font-size: 1.4rem; /* Increased from 1rem */
+    letter-spacing: 4px; /* Increased from 3px */
     text-transform: uppercase;
     margin-top: 6px;
-    min-height: 30px; /* Fixed height to prevent layout shift */
+    min-height: 45px; /* Increased to accommodate larger text */
     display: flex;
     align-items: center;
     justify-content: center;
     overflow: visible;
+    position: relative;
+    padding: 40px 0; /* Increased padding */
 }
 
 .ai-tagline .letter {
@@ -176,6 +180,128 @@ body {
         0 0 15px rgba(66, 181, 235, 0.3);
     animation: letterAppear 0.3s forwards, letterGlow 2s ease-in-out infinite;
     transform: translateY(20px);
+    position: relative;
+    z-index: 1;
+}
+
+/* Magnifying glass effect for EVIDENCE letters */
+.ai-tagline .letter.magnify-target {
+    transition: all 0.3s ease-in-out;
+}
+
+.ai-tagline .letter.magnified {
+    transform: translateY(0) scale(2.2) !important; /* Increased from 1.8 */
+    color: #00ffff !important;
+    text-shadow: 
+        0 0 20px rgba(0, 255, 255, 1),
+        0 0 40px rgba(0, 255, 255, 0.9),
+        0 0 60px rgba(0, 255, 255, 0.7),
+        0 0 80px rgba(0, 217, 255, 0.5) !important;
+    filter: brightness(2) !important; /* Increased from 1.5 */
+    z-index: 50 !important;
+    position: relative !important;
+    transition: all 0.3s ease-in-out !important;
+}
+
+/* Magnifying glass element - More realistic design */
+.magnifying-glass {
+    position: absolute;
+    width: 60px; /* Increased from 45px */
+    height: 60px;
+    border: 5px solid #ffffff; /* Slightly thicker border */
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 1000;
+    opacity: 0;
+    /* Realistic glass effect with shine and reflection */
+    background: 
+        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.8) 0%, transparent 10%),
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 25%),
+        radial-gradient(circle at center, rgba(100, 200, 255, 0.15) 0%, transparent 60%),
+        linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+    box-shadow: 
+        0 0 25px rgba(0, 255, 255, 0.6),
+        inset 0 0 20px rgba(255, 255, 255, 0.2),
+        inset -8px -8px 15px rgba(0, 0, 0, 0.2),
+        inset 6px 6px 12px rgba(255, 255, 255, 0.4);
+    animation: magnifyGlassRoam 6.313s ease-in-out 1.5s 1; /* Increased speed from 7.5s to 6.5s */
+    left: 0; /* Start at the beginning of EVIDENCE */
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+/* Realistic magnifying glass handle */
+.magnifying-glass::before {
+    content: '';
+    position: absolute;
+    width: 8px; /* Slightly thicker handle */
+    height: 45px; /* Longer handle */
+    background: linear-gradient(135deg, 
+        #e0e0e0 0%, 
+        #a0a0a0 25%, 
+        #707070 50%, 
+        #a0a0a0 75%, 
+        #e0e0e0 100%);
+    bottom: -38px; /* Adjusted for longer handle */
+    right: -15px;
+    transform: rotate(-45deg);
+    border-radius: 3px;
+    box-shadow: 
+        2px 2px 8px rgba(0, 0, 0, 0.6),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.3),
+        inset -1px -1px 2px rgba(0, 0, 0, 0.3);
+}
+
+/* Magnifying glass handle grip/end */
+.magnifying-glass::after {
+    content: '';
+    position: absolute;
+    width: 12px; /* Slightly bigger grip */
+    height: 12px;
+    background: radial-gradient(circle, #d0d0d0, #808080);
+    bottom: -54px; /* Adjusted for longer handle */
+    right: -21px;
+    border-radius: 50%;
+    box-shadow: 
+        0 0 8px rgba(0, 255, 255, 0.5),
+        2px 2px 6px rgba(0, 0, 0, 0.7),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.4);
+}
+
+/* Magnifying glass roaming animation - Only over EVIDENCE word (forward only, then fade out) */
+@keyframes magnifyGlassRoam {
+    0% {
+        opacity: 0;
+        left: 14%;
+    }
+    5% {
+        opacity: 1;
+        left: 14%;
+    }
+    15% {
+        left: 18%;
+    }
+    30% {
+        left: 22%;
+    }
+    45% {
+        left: 28%;
+    }
+    60% {
+        left: 34%;
+    }
+    75% {
+        left: 38%;
+        opacity: 1;
+    }
+    88% {
+        left: 38%;
+        opacity: 1;
+    }
+    100% {
+        opacity: 0;
+        left: 38%;
+    }
 }
 
 .ai-tagline .space {
@@ -235,18 +361,19 @@ body {
     }
 }
 
-/* Search box container */
+/* Search box container - Professional spacing */
 .search-box-container {
     background: rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 20px;
-    padding: 20px;
+    padding: 24px; /* Increased from 20px for better spacing */
     backdrop-filter: blur(5px) saturate(150%);
     -webkit-backdrop-filter: blur(5px) saturate(150%);
     width: 100%;
     box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
     position: relative;
     overflow: hidden;
+    margin-top: 15px; /* Add space between tagline and search box */
 }
 
 .search-box-container::before {
@@ -730,18 +857,18 @@ body::before {
     opacity: 0.6;
 }
 
-/* CTA Button */
+/* CTA Button - Smaller and more professional */
 .cta-button {
     display: inline-block;
-    padding: 16px 40px;
-    margin-top: 30px;
+    padding: 12px 32px; /* Reduced from 16px 40px */
+    margin-top: 20px; /* Reduced from 30px for tighter spacing */
     font-family: 'Orbitron', sans-serif;
-    font-size: 18px;
+    font-size: 15px; /* Reduced from 18px */
     font-weight: 600;
     color: #ffffff;
     background: linear-gradient(135deg, #42b5eb, #1f58f5);
     border: 2px solid transparent;
-    border-radius: 12px;
+    border-radius: 10px; /* Slightly smaller radius */
     text-decoration: none;
     cursor: pointer;
     transition: all 0.3s ease;
@@ -754,15 +881,6 @@ body::before {
 
 .cta-button:hover {
     transform: translateY(-3px) scale(1.05);
-    box-shadow: 0 0 30px rgba(66,181,235,0.8), 0 0 60px rgba(31,88,245,0.6);
-    border-color: #42b5eb;
-}
-
-.cta-button:active {
-    transform: translateY(0);
-}
-
-.cta-button:hover {
     box-shadow: 0 0 30px rgba(66,181,235,0.8), 0 0 60px rgba(31,88,245,0.6);
     border-color: #42b5eb;
 }
