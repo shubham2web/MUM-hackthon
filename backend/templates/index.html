@@ -94,7 +94,7 @@
             <div class="history-header">
                 <div class="history-title">Recent Chats</div>
                 <div style="display: flex; gap: 10px; align-items: center;">
-                    <button class="history-clear-btn" id="clearHistoryBtn" title="Clear all history" style="background: none; border: none; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 12px; padding: 4px 8px; border-radius: 4px; transition: all 0.2s;">Clear All</button>
+                    <button class="history-clear-btn" id="clearHistoryBtn" title="Clear all history">Clear All</button>
                     <button class="history-close" id="historyCloseBtn" aria-label="Close history">✕</button>
                 </div>
             </div>
@@ -226,9 +226,6 @@
                             </div>
                             <div class="dropdown-item active" data-theme="dark" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s; background: rgba(255,255,255,0.08); position: relative;">
                                 Dark
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);">
-                                    <polyline points="20 6 9 17 4 12"></polyline>
-                                </svg>
                             </div>
                             <div class="dropdown-item" data-theme="light" style="padding: 10px 16px; cursor: pointer; color: #f8fafc; font-size: 14px; transition: background 0.2s;">
                                 Light
@@ -290,6 +287,12 @@
             </div>
         </div>
     </div>
+
+    <!-- Expose API_KEY to client (development only) -->
+    <script>
+        // Injected by server when `API_KEY` environment variable is set.
+        window.API_KEY = "{{ API_KEY | default('') }}";
+    </script>
 
     <!-- JavaScript Modules -->
     <script src="{{ url_for('static', filename='js/settings.js') }}?v={{ range(1, 10000) | random }}"></script>

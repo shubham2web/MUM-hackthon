@@ -26,7 +26,10 @@ const ChatStore = {
         }
         chats.forEach(c => {
             const li = document.createElement('li');
-            li.innerHTML = `<div class="h-title">${this.escapeHtml(c.title || 'Untitled')}</div><div class="h-meta">${this.formatTimestamp(c.created_at)}</div>`;
+            // store original timestamp on element for live-refresh
+            const ts = c.created_at || c.createdAt || Date.now();
+            li.innerHTML = `<div class="h-title">${this.escapeHtml(c.title || 'Untitled')}</div><div class="h-meta">${this.formatTimestamp(ts)}</div>`;
+            li.setAttribute('data-ts', ts);
             li.style.position = 'relative';
             li.addEventListener('click', async () => {
                 await this.openChat(c.id);
@@ -39,13 +42,41 @@ const ChatStore = {
 
     formatTimestamp(ts) {
         try {
-            const date = new Date(ts);
+            // Normalise timestamp formats:
+            // - If timestamp looks like ISO without timezone (e.g. 2025-11-22T21:52:20.317146),
+            //   JavaScript may interpret it as local; server emits naive UTC isoformat(),
+            //   so treat naive ISO strings as UTC by appending 'Z'.
+            let raw = ts;
+            if (typeof raw === 'number') {
+                // assume milliseconds
+                raw = Number(raw);
+            }
+            let date;
+            if (typeof raw === 'string') {
+                // ISO-like without timezone: YYYY-MM-DDTHH:MM:SS
+                const isoLike = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+\-]\d{2}:?\d{2})?$/;
+                if (isoLike.test(raw)) {
+                    // If it doesn't end with Z or timezone offset, append Z to treat as UTC
+                    if (!/[Z+\-]\d{2}:?\d{2}$/.test(raw) && !raw.endsWith('Z')) {
+                        raw = raw + 'Z';
+                    }
+                }
+                date = new Date(raw);
+            } else {
+                date = new Date(raw);
+            }
+
+            if (isNaN(date.getTime())) return String(ts);
+
             const now = new Date();
-            const diff = now - date;
-            const mins = Math.floor(diff / 60000);
-            const hours = Math.floor(diff / 3600000);
-            const days = Math.floor(diff / 86400000);
-            if (mins < 1) return 'Just now';
+            const diffMs = now - date;
+            const secs = Math.floor(diffMs / 1000);
+            const mins = Math.floor(diffMs / 60000);
+            const hours = Math.floor(diffMs / 3600000);
+            const days = Math.floor(diffMs / 86400000);
+
+            if (secs < 5) return 'Just now';
+            if (secs < 60) return `${secs}s ago`;
             if (mins < 60) return `${mins}m ago`;
             if (hours < 24) return `${hours}h ago`;
             if (days === 1) return 'Yesterday';
@@ -163,6 +194,44 @@ const ChatStore = {
         if (!panel) return;
         const chats = await this.listChats();
         await this.renderList(chats);
+        // clear any existing refresh interval
+        if (this._historyRefreshInterval) {
+            clearInterval(this._historyRefreshInterval);
+            this._historyRefreshInterval = null;
+        }
+
+        // Refresh displayed timestamps every 10 seconds while history panel is open
+        const refreshFn = () => {
+            const list = document.getElementById('historyList');
+            if (!list) return;
+            const items = list.querySelectorAll('li[data-ts]');
+            items.forEach(li => {
+                const ts = li.getAttribute('data-ts');
+                const meta = li.querySelector('.h-meta');
+                if (meta) meta.textContent = this.formatTimestamp(ts);
+            });
+        };
+
+        // run immediately and then every 10s
+        refreshFn();
+        this._historyRefreshInterval = setInterval(refreshFn, 10000);
+
+        // Observe panel so we can clear interval when panel is closed (class 'active' removed)
+        const observer = new MutationObserver((mutations) => {
+            for (const m of mutations) {
+                if (m.attributeName === 'class') {
+                    if (!panel.classList.contains('active')) {
+                        if (this._historyRefreshInterval) {
+                            clearInterval(this._historyRefreshInterval);
+                            this._historyRefreshInterval = null;
+                        }
+                        observer.disconnect();
+                    }
+                }
+            }
+        });
+        observer.observe(panel, { attributes: true });
+
         panel.classList.add('active');
     },
 

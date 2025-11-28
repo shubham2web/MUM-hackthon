@@ -144,3 +144,6 @@ charset-normalizer==3.4.4
 
 # Additional utilities (Optional)
 # pillow==12.0.0
+
+# Speech-to-text client (optional - used when OPENAI_API_KEY is configured)
+openai>=1.0.0
