@@ -211,6 +211,7 @@ async def analyze_topic():
         model = data.get("model", "llama3")
         session_id = data.get("session_id")  # Optional: maintain conversation context
         mode = data.get("mode", "analytical")  # Get mode parameter
+        conversation_history = data.get("conversation_history", [])  # Get conversation history from frontend
         
         if not topic:
             return jsonify({"error": "No topic provided"}), 400
@@ -225,7 +226,7 @@ async def analyze_topic():
             
             return Response(stream(), mimetype="text/event-stream")
         
-        logging.info(f"Analyzing topic: {topic} (session: {session_id or 'new'})")
+        logging.info(f"Analyzing topic: {topic} (session: {session_id or 'new'}, history: {len(conversation_history)} messages)")
         
         # 🧠 MEMORY INTEGRATION: Initialize or retrieve memory session
         memory = None
@@ -274,8 +275,22 @@ async def analyze_topic():
         else:
             user_message = f"Question: {topic}"
         
+        # Add conversation history to provide context
+        if conversation_history and len(conversation_history) > 0:
+            history_text = "\n".join([
+                f"{msg['role'].title()}: {msg['content'][:500]}"  # Limit each message to 500 chars
+                for msg in conversation_history[-6:]  # Only last 6 messages to save tokens
+            ])
+            user_message = f"Previous conversation:\n{history_text}\n\n{user_message}"
+            logging.info(f"🔗 Added {len(conversation_history[-6:])} messages to context")
+        
         system_prompt = """You are Atlas, an AI misinformation fighter.
         Today's date is November 12, 2025. You have knowledge up to 2025 and can discuss current events, trends, and updates from 2025.
+
+        IMPORTANT CONTEXT AWARENESS: 
+        - You are in a continuous conversation. If the user refers to previous messages (like "this link", "that article", "as I mentioned"), look for that information in the conversation history provided.
+        - DO NOT ask for information that was already provided in the conversation history.
+        - If the user provides a link or specific information, use it directly without asking them to provide it again.
 
         IMPORTANT: Use the provided Evidence block that follows the user's question. Do NOT rely solely on your internal knowledge cutoff. Instead:
         - Primarily base your answer on the Evidence provided (do not hallucinate new facts).
