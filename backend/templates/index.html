@@ -294,6 +294,9 @@
         window.API_KEY = "{{ API_KEY | default('') }}";
     </script>
 
+    <!-- Marked.js for Markdown Rendering -->
+    <script src="{{ url_for('static', filename='js/marked.min.js') }}"></script>
+
     <!-- JavaScript Modules -->
     <script src="{{ url_for('static', filename='js/settings.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/api.js') }}?v={{ range(1, 10000) | random }}"></script>

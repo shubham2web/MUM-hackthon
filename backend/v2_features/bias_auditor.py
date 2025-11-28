@@ -381,6 +381,7 @@ class BiasAuditor:
         
         self.logger.info("Bias ledger integrity verified")
         return True
+<<<<<<< HEAD
     
     def audit_text(self, text: str, source: str, context: Optional[Dict] = None) -> 'BiasAuditResult':
         """
@@ -440,6 +441,8 @@ class BiasAuditResult:
             "source": self.source,
             "flag_count": len(self.flags)
         }
+=======
+>>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
 
 
 # Global instance

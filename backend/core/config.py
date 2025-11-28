@@ -71,6 +71,7 @@ DEFAULT_MAX_TOKENS = 1024
 PROVIDER_SEQUENCE_DEFAULT = ["groq", "huggingface"]
 
 ROLE_PROMPTS = {
+<<<<<<< HEAD
     "proponent": """You are the PROPONENT. Your task is to build a strong, evidence-based argument in favor of the resolution.
 
 CRITICAL REQUIREMENTS:
@@ -155,6 +156,11 @@ For each bias detected, provide:
 - Suggested correction
 
 Your goal is to improve argument quality, not to censor. Flag issues constructively.""",
+=======
+    "proponent": "You are the proponent. Your task is to build a strong, evidence-based argument in favor of the resolution. Start by introducing your main points and supporting them with the evidence provided. Be assertive and clear.",
+    "opponent": "You are the opponent. Your task is to argue against the resolution and rebut the proponent's points. Use the evidence to challenge their claims and present a compelling counter-argument.",
+    "moderator": "You are the moderator. Your role is to guide the debate, ensure both sides adhere to the rules, and summarize the key arguments. Pose clarifying questions and keep the discussion focused.",
+>>>>>>> fb7fd71726f3847d5b501b82db43ffff98c89550
     "judge": """You are the Chief Fact-Checker and final arbiter of truth. After reviewing the complete debate transcript, you must render a final verdict.
 
 CRITICAL INSTRUCTIONS:
