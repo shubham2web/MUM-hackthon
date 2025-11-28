@@ -112,9 +112,10 @@ async def home():
     return await render_template("homepage.html")
 
 @app.route('/chat')
-async def chat():  # ← ADD 'async' here!
-    """Render the chat interface - NO LOGIN REQUIRED"""
-    return await render_template('index.html')  # ← ADD 'await' here!
+async def chat():
+    """Render the chat interface with optional mode parameter"""
+    mode = request.args.get('mode', 'analytical')
+    return await render_template('index.html', mode=mode)
 
 @app.route("/healthz")
 async def healthz():

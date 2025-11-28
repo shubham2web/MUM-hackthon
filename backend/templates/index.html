@@ -142,18 +142,18 @@
             </div>
 
             <nav class="nav-section">
-                <div class="nav-item active" data-mode="chat">
+                <a href="/chat" class="nav-item active" data-mode="chat">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
                     <span class="nav-text">Chat</span>
-                </div>
-                <div class="nav-item" data-mode="debate">
+                </a>
+                <a href="/chat?mode=debate" class="nav-item" data-mode="debate">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                     </svg>
                     <span class="nav-text">Debate</span>
-                </div>
+                </a>
                 <div class="nav-item">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
@@ -404,46 +404,50 @@
 
         init() {
             Messages.init('#chatMessages');
+            this.setupEventListeners();
             
-            // Check for initial prompt FIRST, before setupEventListeners
-            const initialPrompt = sessionStorage.getItem('initialPrompt');
-            const chatMode = sessionStorage.getItem('chatMode');
+            // Check URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            const modeParam = urlParams.get('mode');
             
-            console.log('🔍 Checking for initial prompt:', initialPrompt);
-            console.log('🔍 Chat mode:', chatMode);
-            
-            if (initialPrompt) {
-                // Clear storage immediately
-                sessionStorage.removeItem('initialPrompt');
-                sessionStorage.removeItem('chatMode');
-                
-                // Set mode if provided
-                if (chatMode === 'debate') {
-                    this.currentMode = 'debate';
-                    // Update UI to show debate mode selected
-                    const debateNavItem = document.querySelector('[data-mode="debate"]');
-                    if (debateNavItem) {
-                        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-                        debateNavItem.classList.add('active');
-                    }
-                }
-                
-                // Set up event listeners first
-                this.setupEventListeners();
-                
-                // IMMEDIATELY send the message (no timeout needed)
-                const input = document.getElementById('messageInput');
-                if (input) {
-                    console.log('✅ Found input, setting value and sending...');
-                    input.value = initialPrompt;
-                    // Force send immediately
-                    this.handleSend();
+            if (modeParam === 'debate') {
+                this.switchMode('debate');
+            }
+
+            // Initialize based on mode
+            this.addWelcomeMessage();
+
+            // Update navigation active state
+            document.querySelectorAll('.nav-item').forEach(nav => {
+                const navMode = nav.getAttribute('data-mode');
+                if (navMode === this.currentMode) {
+                    nav.classList.add('active');
                 } else {
-                    console.error('❌ Input field not found!');
+                    nav.classList.remove('active');
                 }
+            });
+        },
+
+        switchMode(mode) {
+            this.currentMode = mode;
+            const chatTitle = document.getElementById('chatTitle');
+            if (chatTitle) {
+                chatTitle.textContent = mode === 'debate' ? 'Atlas Debate Mode' : 'Chat with Atlas';
+            }
+            
+            // Update URL without reloading
+            const url = new URL(window.location);
+            if (mode === 'debate') {
+                url.searchParams.set('mode', 'debate');
             } else {
-                // Normal flow - setup listeners and show welcome
-                this.setupEventListeners();
+                url.searchParams.delete('mode');
+            }
+            window.history.pushState({}, '', url);
+
+            // Clear and show appropriate welcome message
+            const messages = document.getElementById('chatMessages');
+            if (messages) {
+                messages.innerHTML = '';
                 this.addWelcomeMessage();
             }
         },
@@ -514,7 +518,10 @@
         },
 
         addWelcomeMessage() {
-            Messages.addAIMessage('Hello! I\'m **Atlas**, your misinformation fighter. Ask me anything!');
+            const message = this.currentMode === 'debate' 
+                ? "Welcome to **Debate Mode**! I'll analyze topics from multiple perspectives and provide evidence-based insights."
+                : "Hello! I'm **Atlas**, your misinformation fighter. Ask me anything!";
+            Messages.addAIMessage(message);
         }
     };
 
