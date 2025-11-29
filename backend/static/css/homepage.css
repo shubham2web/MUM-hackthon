@@ -352,106 +352,68 @@ body {
     transition: all 0.3s ease-in-out !important;
 }
 
-/* Magnifying glass element - More realistic design */
+/* Magnifying glass element - Positioned by JavaScript for perfect accuracy */
 .magnifying-glass {
     position: absolute;
-    width: 60px; /* Increased from 45px */
+    width: 60px;
     height: 60px;
-    border: 5px solid #ffffff; /* Slightly thicker border */
+    border: 4px solid rgba(255, 255, 255, 0.9);
     border-radius: 50%;
     pointer-events: none;
     z-index: 1000;
     opacity: 0;
     /* Realistic glass effect with shine and reflection */
     background: 
-        radial-gradient(circle at 25% 25%, rgba(255, 255, 255, 0.8) 0%, transparent 10%),
-        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.4) 0%, transparent 25%),
-        radial-gradient(circle at center, rgba(100, 200, 255, 0.15) 0%, transparent 60%),
-        linear-gradient(135deg, rgba(255, 255, 255, 0.1), transparent);
+        radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.6) 0%, transparent 15%),
+        radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.3) 0%, transparent 25%),
+        radial-gradient(circle at center, rgba(100, 200, 255, 0.08) 0%, transparent 60%);
     box-shadow: 
-        0 0 25px rgba(0, 255, 255, 0.6),
-        inset 0 0 20px rgba(255, 255, 255, 0.2),
-        inset -8px -8px 15px rgba(0, 0, 0, 0.2),
-        inset 6px 6px 12px rgba(255, 255, 255, 0.4);
-    animation: magnifyGlassRoam 6.313s ease-in-out 1.5s 1; /* Increased speed from 7.5s to 6.5s */
-    left: 0; /* Start at the beginning of EVIDENCE */
-    top: 50%;
-    transform: translateY(-50%);
+        0 0 20px rgba(0, 255, 255, 0.5),
+        0 0 40px rgba(0, 255, 255, 0.3),
+        inset 0 0 15px rgba(255, 255, 255, 0.15),
+        inset -5px -5px 10px rgba(0, 0, 0, 0.15),
+        inset 4px 4px 8px rgba(255, 255, 255, 0.3);
+    /* Remove CSS animation - now controlled by JavaScript */
+    transform-origin: center center;
 }
 
 /* Realistic magnifying glass handle */
 .magnifying-glass::before {
     content: '';
     position: absolute;
-    width: 8px; /* Slightly thicker handle */
-    height: 45px; /* Longer handle */
+    width: 6px;
+    height: 35px;
     background: linear-gradient(135deg, 
-        #e0e0e0 0%, 
-        #a0a0a0 25%, 
-        #707070 50%, 
-        #a0a0a0 75%, 
-        #e0e0e0 100%);
-    bottom: -38px; /* Adjusted for longer handle */
-    right: -15px;
+        #d0d0d0 0%, 
+        #909090 25%, 
+        #606060 50%, 
+        #909090 75%, 
+        #d0d0d0 100%);
+    bottom: -30px;
+    right: -8px;
     transform: rotate(-45deg);
     border-radius: 3px;
     box-shadow: 
-        2px 2px 8px rgba(0, 0, 0, 0.6),
-        inset 1px 1px 2px rgba(255, 255, 255, 0.3),
-        inset -1px -1px 2px rgba(0, 0, 0, 0.3);
+        2px 2px 6px rgba(0, 0, 0, 0.5),
+        inset 1px 1px 2px rgba(255, 255, 255, 0.3);
 }
 
 /* Magnifying glass handle grip/end */
 .magnifying-glass::after {
     content: '';
     position: absolute;
-    width: 12px; /* Slightly bigger grip */
-    height: 12px;
-    background: radial-gradient(circle, #d0d0d0, #808080);
-    bottom: -54px; /* Adjusted for longer handle */
-    right: -21px;
+    width: 10px;
+    height: 10px;
+    background: radial-gradient(circle, #c0c0c0, #707070);
+    bottom: -42px;
+    right: -13px;
     border-radius: 50%;
     box-shadow: 
-        0 0 8px rgba(0, 255, 255, 0.5),
-        2px 2px 6px rgba(0, 0, 0, 0.7),
-        inset 1px 1px 2px rgba(255, 255, 255, 0.4);
+        0 0 6px rgba(0, 255, 255, 0.4),
+        2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
-/* Magnifying glass roaming animation - Only over EVIDENCE word (forward only, then fade out) */
-@keyframes magnifyGlassRoam {
-    0% {
-        opacity: 0;
-        left: 14%;
-    }
-    5% {
-        opacity: 1;
-        left: 14%;
-    }
-    15% {
-        left: 18%;
-    }
-    30% {
-        left: 22%;
-    }
-    45% {
-        left: 28%;
-    }
-    60% {
-        left: 34%;
-    }
-    75% {
-        left: 38%;
-        opacity: 1;
-    }
-    88% {
-        left: 38%;
-        opacity: 1;
-    }
-    100% {
-        opacity: 0;
-        left: 38%;
-    }
-}
+/* Magnifying glass animation is now controlled by JavaScript for perfect sync */
 
 .ai-tagline .space {
     display: inline-block;

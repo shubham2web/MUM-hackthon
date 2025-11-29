@@ -8,6 +8,21 @@
     <meta http-equiv="Expires" content="0">
     <title>Atlas Chat Interface</title>
     
+    <!-- CRITICAL: Clear chat mappings if coming from homepage with new query -->
+    <!-- This MUST run before any external scripts load -->
+    <script>
+        (function() {
+            var forceNewChat = sessionStorage.getItem('forceNewChat');
+            var initialPrompt = sessionStorage.getItem('initialPrompt');
+            var needsNewChat = (forceNewChat === 'true') || (initialPrompt && initialPrompt.length > 0);
+            
+            if (needsNewChat) {
+                console.log('🆕 [EARLY INLINE] Homepage query detected - clearing localStorage');
+                localStorage.removeItem('chatIdsByMode');
+            }
+        })();
+    </script>
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Audiowide&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -171,7 +186,9 @@
                             </svg>
                         </button>
                         <button class="input-btn stop-btn" id="stopBtn" style="display: none;" title="Stop generating">
-                            <div class="loading-spinner"></div>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            </svg>
                         </button>
                     </div>
                 </div>

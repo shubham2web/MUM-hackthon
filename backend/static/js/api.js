@@ -2,11 +2,12 @@
 const API = {
     baseURL: 'http://127.0.0.1:8000', // Backend server port
 
-    async sendMessage(message, mode = 'analytical', conversationHistory = []) {
+    async sendMessage(message, mode = 'analytical', conversationHistory = [], signal = null) {
         console.log('=== API Call (ATLAS v4.1 Verdict Engine) ===');
         console.log('Message:', message);
         console.log('Mode:', mode);
         console.log('Conversation History:', conversationHistory);
+        console.log('Abort Signal provided:', !!signal);
         
         // Get or create session_id from localStorage for conversation continuity
         let sessionId = localStorage.getItem('atlas-session-id');
@@ -33,11 +34,18 @@ const API = {
                 conversation_history: conversationHistory
             };
             
-            const response = await fetch(endpoint, {
+            const fetchOptions = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
-            });
+            };
+            
+            // Add abort signal if provided
+            if (signal) {
+                fetchOptions.signal = signal;
+            }
+            
+            const response = await fetch(endpoint, fetchOptions);
             
             console.log('Response status:', response.status);
             console.log('Response ok:', response.ok);

@@ -473,9 +473,12 @@ async function handleSubmit() {
 
     sessionStorage.setItem('initialPrompt', finalPrompt || '');
     sessionStorage.setItem('chatMode', currentMode);
+    // Flag to tell chat page to create a brand new chat session
+    sessionStorage.setItem('forceNewChat', 'true');
 
     console.log('✅ Stored in sessionStorage');
     console.log('✅ Redirecting to /chat with mode:', currentMode);
+    console.log('✅ forceNewChat flag set - will create brand new chat');
 
     loader.style.display = 'flex';
     setTimeout(() => loader.style.opacity = '1', 10);
