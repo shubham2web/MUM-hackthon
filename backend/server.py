@@ -204,6 +204,8 @@ async def check_api_key():
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         request.path.startswith('/analyze') or  # Allow analyze endpoints (v4.1 verdict engine)
+        request.path.startswith('/rag/') or  # Allow RAG integration endpoints
+        request.path.startswith('/admin/') or  # Allow admin endpoints
         request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
         not API_KEY or 
         request.method == 'OPTIONS'):

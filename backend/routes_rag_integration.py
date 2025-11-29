@@ -7,6 +7,7 @@ Provides /rag/analyze and /rag/debate endpoints that integrate:
 - RAG adapter for evidence processing
 - Deterministic verdict engine
 - LLM evidence-constrained reply generation
+- Safe background reasoning reports (PRD-compliant)
 
 These routes are designed to work alongside existing /analyze routes.
 """
@@ -14,9 +15,18 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import time
 from typing import Dict, List, Any, Optional
 
 from quart import Blueprint, request, jsonify
+
+# Import background report generator
+try:
+    from background_report import make_background_report, TimingTracker, extract_agent_summary
+    BACKGROUND_REPORT_AVAILABLE = True
+except ImportError:
+    BACKGROUND_REPORT_AVAILABLE = False
+    logging.warning("Background report module not available")
 
 # Import scraper
 try:
@@ -71,7 +81,7 @@ logger = logging.getLogger(__name__)
 rag_bp = Blueprint('rag', __name__, url_prefix='/rag')
 
 
-async def scrape_for_query(query: str, max_results: int = 10) -> List[Dict]:
+async def scrape_for_query(query: str, num_results: int = 10) -> List[Dict]:
     """
     Scrape web for evidence related to query.
     Returns list of {url, domain, text, score, snippet} dicts.
@@ -82,7 +92,7 @@ async def scrape_for_query(query: str, max_results: int = 10) -> List[Dict]:
     
     try:
         evidence = await asyncio.wait_for(
-            get_diversified_evidence(query, max_results=max_results),
+            get_diversified_evidence(query, num_results=num_results),
             timeout=60.0
         )
         return evidence or []
@@ -95,73 +105,137 @@ async def scrape_for_query(query: str, max_results: int = 10) -> List[Dict]:
 
 
 def run_agent_proponent(claim: str, evidence_bundle: List[Dict]) -> Dict:
-    """Run proponent agent that argues FOR the claim."""
+    """Run proponent agent that argues FOR the claim with thinking trace."""
     if not AGENTS_AVAILABLE:
-        return {"role": "proponent", "arguments": [], "summary": "Agent unavailable"}
+        return {"role": "proponent", "arguments": [], "summary": "Agent unavailable", "thinking": ""}
     
     try:
-        agent = AiAgent(
-            name="Proponent",
-            role_prompt=(
-                "You are a proponent arguing that the claim is TRUE. "
-                "Use ONLY the provided evidence to support your arguments. "
-                "Cite evidence by number like [1], [2]."
-            ),
-            provider="groq"
-        )
+        agent = AiAgent()
         
         evidence_text = "\n".join([
             f"[{i+1}] {ev.get('domain', '')}: {ev.get('snippet', ev.get('text', '')[:200])}"
             for i, ev in enumerate(evidence_bundle[:5])
         ])
         
-        prompt = f"Claim: {claim}\n\nEvidence:\n{evidence_text}\n\nProvide 2-3 concise arguments supporting this claim using the evidence."
+        system_prompt = (
+            "You are a proponent arguing that the claim is TRUE. "
+            "Use ONLY the provided evidence to support your arguments. "
+            "Cite evidence by number like [1], [2]."
+        )
         
-        response = agent.generate_response_sync(prompt, temperature=0.1)
+        # Enhanced prompt to capture thinking
+        user_message = f"""Claim: {claim}
+
+Evidence:
+{evidence_text}
+
+First, in <thinking> tags, explain your step-by-step reasoning process:
+- What evidence is most relevant?
+- How does each piece connect to the claim?
+- What's the strongest argument strategy?
+
+Then provide 2-3 concise arguments supporting this claim using the evidence.
+
+Format:
+<thinking>
+[Your reasoning process here]
+</thinking>
+
+Arguments:
+[Your arguments here with citations]"""
+        
+        response = agent.call_blocking(user_message=user_message, system_prompt=system_prompt, max_tokens=1024)
+        response_text = response.text if response else ""
+        
+        # Parse thinking from response
+        thinking = ""
+        arguments = response_text
+        if response_text and "<thinking>" in response_text and "</thinking>" in response_text:
+            start = response_text.find("<thinking>") + len("<thinking>")
+            end = response_text.find("</thinking>")
+            thinking = response_text[start:end].strip()
+            # Get arguments part (after </thinking>)
+            arguments = response_text[end + len("</thinking>"):].strip()
+            # Remove "Arguments:" prefix if present
+            if arguments.lower().startswith("arguments:"):
+                arguments = arguments[len("arguments:"):].strip()
         
         return {
             "role": "proponent",
-            "arguments": [response] if response else [],
-            "summary": response[:200] if response else "No arguments generated"
+            "arguments": [arguments] if arguments else [],
+            "summary": arguments[:200] if arguments else "No arguments generated",
+            "thinking": thinking
         }
     except Exception as e:
         logger.error(f"Proponent agent failed: {e}")
-        return {"role": "proponent", "arguments": [], "summary": f"Error: {e}"}
+        return {"role": "proponent", "arguments": [], "summary": f"Error: {e}", "thinking": ""}
 
 
 def run_agent_opponent(claim: str, evidence_bundle: List[Dict]) -> Dict:
-    """Run opponent agent that argues AGAINST the claim."""
+    """Run opponent agent that argues AGAINST the claim with thinking trace."""
     if not AGENTS_AVAILABLE:
-        return {"role": "opponent", "arguments": [], "summary": "Agent unavailable"}
+        return {"role": "opponent", "arguments": [], "summary": "Agent unavailable", "thinking": ""}
     
     try:
-        agent = AiAgent(
-            name="Opponent",
-            role_prompt=(
-                "You are an opponent arguing that the claim is FALSE or MISLEADING. "
-                "Use ONLY the provided evidence to support your counter-arguments. "
-                "Cite evidence by number like [1], [2]."
-            ),
-            provider="groq"
-        )
+        agent = AiAgent()
         
         evidence_text = "\n".join([
             f"[{i+1}] {ev.get('domain', '')}: {ev.get('snippet', ev.get('text', '')[:200])}"
             for i, ev in enumerate(evidence_bundle[:5])
         ])
         
-        prompt = f"Claim: {claim}\n\nEvidence:\n{evidence_text}\n\nProvide 2-3 concise arguments against this claim using the evidence."
+        system_prompt = (
+            "You are an opponent arguing that the claim is FALSE or MISLEADING. "
+            "Use ONLY the provided evidence to support your counter-arguments. "
+            "Cite evidence by number like [1], [2]."
+        )
         
-        response = agent.generate_response_sync(prompt, temperature=0.1)
+        # Enhanced prompt to capture thinking
+        user_message = f"""Claim: {claim}
+
+Evidence:
+{evidence_text}
+
+First, in <thinking> tags, explain your step-by-step reasoning process:
+- What evidence contradicts the claim?
+- What weaknesses or gaps exist?
+- What's the strongest counter-argument strategy?
+
+Then provide 2-3 concise arguments against this claim using the evidence.
+
+Format:
+<thinking>
+[Your reasoning process here]
+</thinking>
+
+Arguments:
+[Your arguments here with citations]"""
+        
+        response = agent.call_blocking(user_message=user_message, system_prompt=system_prompt, max_tokens=1024)
+        response_text = response.text if response else ""
+        
+        # Parse thinking from response
+        thinking = ""
+        arguments = response_text
+        if response_text and "<thinking>" in response_text and "</thinking>" in response_text:
+            start = response_text.find("<thinking>") + len("<thinking>")
+            end = response_text.find("</thinking>")
+            thinking = response_text[start:end].strip()
+            # Get arguments part (after </thinking>)
+            arguments = response_text[end + len("</thinking>"):].strip()
+            # Remove "Arguments:" prefix if present
+            if arguments.lower().startswith("arguments:"):
+                arguments = arguments[len("arguments:"):].strip()
         
         return {
             "role": "opponent",
-            "arguments": [response] if response else [],
-            "summary": response[:200] if response else "No arguments generated"
+            "arguments": [arguments] if arguments else [],
+            "summary": arguments[:200] if arguments else "No arguments generated",
+            "thinking": thinking
         }
     except Exception as e:
         logger.error(f"Opponent agent failed: {e}")
-        return {"role": "opponent", "arguments": [], "summary": f"Error: {e}"}
+        return {"role": "opponent", "arguments": [], "summary": f"Error: {e}", "thinking": ""}
 
 
 @rag_bp.route("/analyze", methods=["POST"])
@@ -248,17 +322,19 @@ async def analyze():
 @rag_bp.route("/debate", methods=["POST"])
 async def debate():
     """
-    RAG-powered debate endpoint with pro/opponent agents.
+    RAG-powered debate endpoint with pro/opponent agents, process trace, and background report.
     
     Request body:
         {"claim": "claim text"}
     
     Response:
         {
+            "trace": [...process steps for thinking animation...],
             "pro": {...proponent output...},
             "opp": {...opponent output...},
             "verdict": {...verdict engine output...},
-            "evidence": [...evidence bundle...]
+            "evidence": [...evidence bundle...],
+            "background": {...safe background reasoning report...}
         }
     """
     try:
@@ -270,25 +346,47 @@ async def debate():
         
         logger.info(f"RAG debate: {claim[:100]}...")
         
-        # 1) Gather evidence
-        scraped = await scrape_for_query(claim)
+        # Initialize timing tracker for background report
+        timing = {}
         
-        # 2) Process through RAG adapter
+        # Process trace for "thinking" visualization (high-level steps only, PRD-safe)
+        process_trace = [
+            {"step": "scraping", "message": "🔍 Collecting relevant sources and evidence..."},
+            {"step": "evaluating_evidence", "message": "📊 Evaluating credibility and summarizing evidence..."},
+            {"step": "constructing_pro", "message": "✅ Constructing the proponent's argument from evidence..."},
+            {"step": "constructing_opp", "message": "❌ Constructing the opponent's argument from evidence..."},
+            {"step": "finalizing", "message": "⚖️ Comparing arguments and computing neutral verdict..."}
+        ]
+        
+        # 1) Gather evidence with timing
+        t0 = time.time()
+        scraped = await scrape_for_query(claim)
+        timing["scraping"] = {"msg": f"fetched {len(scraped)} sources", "ms": int((time.time() - t0) * 1000)}
+        
+        # 2) Process through RAG adapter with timing
+        t0 = time.time()
         if RAG_ADAPTER_AVAILABLE and process_scraper_results:
             evidence_bundle = process_scraper_results(scraped)
         else:
             evidence_bundle = scraped
+        timing["normalize"] = {"msg": f"processed {len(evidence_bundle)} evidence items", "ms": int((time.time() - t0) * 1000)}
         
-        # 3) Run debate agents
+        # 3) Run debate agents with timing
+        t0 = time.time()
         pro = run_agent_proponent(claim, evidence_bundle)
-        opp = run_agent_opponent(claim, evidence_bundle)
+        timing["proponent"] = {"msg": "constructed proponent arguments", "ms": int((time.time() - t0) * 1000)}
         
-        # 4) Run verdict engine with agent outputs
+        t0 = time.time()
+        opp = run_agent_opponent(claim, evidence_bundle)
+        timing["opponent"] = {"msg": "constructed opponent arguments", "ms": int((time.time() - t0) * 1000)}
+        
+        # 4) Run verdict engine with agent outputs and timing
+        t0 = time.time()
         verdict = {}
         if VERDICT_ENGINE_AVAILABLE and decide_verdict:
             try:
                 verdict = decide_verdict(
-                    claim=claim,
+                    claims=[claim],  # claims is a list
                     evidence_bundle=evidence_bundle,
                     bias_report=None,
                     forensic_dossier=None
@@ -309,12 +407,49 @@ async def debate():
                 "confidence_pct": 50,
                 "summary": "Verdict engine not available"
             }
+        timing["verdict"] = {"msg": f"computed verdict: {verdict.get('verdict', 'UNKNOWN')}", "ms": int((time.time() - t0) * 1000)}
+        
+        # 5) Generate safe background report (PRD-compliant, no chain-of-thought)
+        background = None
+        if BACKGROUND_REPORT_AVAILABLE:
+            try:
+                # Build agent outputs for background report
+                agents_outputs = {
+                    "proponent": {
+                        "summary": pro.get("summary", ""),
+                        "claims": pro.get("arguments", pro.get("points", [])),
+                        "used_evidence": [f"e{i+1}" for i in range(min(3, len(evidence_bundle)))]
+                    },
+                    "opponent": {
+                        "summary": opp.get("summary", ""),
+                        "claims": opp.get("arguments", opp.get("points", [])),
+                        "used_evidence": [f"e{i+1}" for i in range(min(3, len(evidence_bundle)))]
+                    }
+                }
+                
+                # Score values from verdict
+                score_values = {
+                    "combined_confidence": verdict.get("confidence_pct", 50) / 100.0
+                }
+                
+                background = make_background_report(
+                    claim=claim,
+                    evidence_bundle=evidence_bundle,
+                    agents_outputs=agents_outputs,
+                    timing_stats=timing,
+                    score_values=score_values
+                )
+            except Exception as e:
+                logger.error(f"Background report generation failed: {e}")
+                background = None
         
         return jsonify({
+            "trace": process_trace,
             "pro": pro,
             "opp": opp,
             "verdict": verdict,
-            "evidence": evidence_bundle
+            "evidence": evidence_bundle,
+            "background": background
         })
         
     except Exception as e:

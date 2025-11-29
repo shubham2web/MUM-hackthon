@@ -284,6 +284,367 @@ const Chat = {
         Messages.addAIMessage('⏹️ Generation stopped by user.');
     },
 
+    // ==================== THINKING UI HELPERS (Debate Mode) ====================
+    
+    /**
+     * Create and show a thinking bubble for a single step.
+     * Returns a Promise that resolves when the bubble times out.
+     */
+    showReasoningStep(stepData, container, duration = 1200) {
+        return new Promise(resolve => {
+            const bubble = document.createElement('div');
+            bubble.className = 'thinking-bubble';
+
+            bubble.innerHTML = `
+                <div class="thinking-dots">
+                    <span class="thinking-dot"></span>
+                    <span class="thinking-dot"></span>
+                    <span class="thinking-dot"></span>
+                </div>
+                <div class="thinking-text">${this.escapeHtmlForThinking(stepData.message)}</div>
+            `;
+
+            container.appendChild(bubble);
+            container.scrollTop = container.scrollHeight;
+
+            // Animate then fade
+            setTimeout(() => {
+                bubble.classList.add('fade-out');
+                // Remove after fade completes
+                setTimeout(() => {
+                    bubble.remove();
+                    resolve();
+                }, 350);
+            }, duration);
+        });
+    },
+
+    /**
+     * Play a full trace sequence one step after another.
+     */
+    async playDebateReasoning(trace, container, perStepMs = 1200) {
+        if (!Array.isArray(trace) || trace.length === 0) return;
+        for (const step of trace) {
+            await this.showReasoningStep(step, container, perStepMs);
+        }
+    },
+
+    /**
+     * Safe HTML escape for thinking bubbles
+     */
+    escapeHtmlForThinking(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    /**
+     * Main entry point for debate flow with Gemini-style thinking.
+     * Shows "Show thinking" dropdown first (with pro/opp/moderator scripts),
+     * then the verdict OUTSIDE/AFTER the thinking block.
+     */
+    async startDebateFlow(apiResponse) {
+        const container = document.getElementById('chatMessages') || document.getElementById('debate-output');
+        if (!container) {
+            console.error('No container found for debate flow');
+            return;
+        }
+
+        console.log('🧠 startDebateFlow received:', apiResponse);
+
+        // Create the AI response container (like Gemini's response bubble)
+        const responseContainer = document.createElement('div');
+        responseContainer.className = 'message ai-message debate-response';
+        container.appendChild(responseContainer);
+
+        // 1. First show the "Show thinking" collapsible with pro/opp/moderator scripts INSIDE
+        const hasThinking = (apiResponse.pro) || (apiResponse.opp) || (apiResponse.trace && apiResponse.trace.length > 0);
+        
+        if (hasThinking) {
+            const thinkingPanel = document.createElement('div');
+            thinkingPanel.className = 'gemini-show-thinking';
+            
+            // Build thinking content with pro/opp/moderator scripts
+            let thinkingContent = '';
+            
+            // Proponent script/reasoning
+            if (apiResponse.pro) {
+                const proSummary = apiResponse.pro.summary || (apiResponse.pro.arguments && apiResponse.pro.arguments.join(' ')) || 'Analyzing supporting evidence...';
+                const proThinking = apiResponse.pro.thinking || '';
+                thinkingContent += `
+                    <div class="thinking-agent-block pro-agent">
+                        <div class="agent-header">
+                            <span class="agent-icon">✅</span>
+                            <span class="agent-name">Proponent</span>
+                        </div>
+                        <div class="agent-script">${this.escapeHtmlForThinking(proSummary)}</div>
+                        ${proThinking ? `<div class="agent-reasoning"><em>Internal reasoning:</em> ${this.escapeHtmlForThinking(proThinking)}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            // Opponent script/reasoning
+            if (apiResponse.opp) {
+                const oppSummary = apiResponse.opp.summary || (apiResponse.opp.arguments && apiResponse.opp.arguments.join(' ')) || 'Analyzing counter-evidence...';
+                const oppThinking = apiResponse.opp.thinking || '';
+                thinkingContent += `
+                    <div class="thinking-agent-block opp-agent">
+                        <div class="agent-header">
+                            <span class="agent-icon">❌</span>
+                            <span class="agent-name">Opponent</span>
+                        </div>
+                        <div class="agent-script">${this.escapeHtmlForThinking(oppSummary)}</div>
+                        ${oppThinking ? `<div class="agent-reasoning"><em>Internal reasoning:</em> ${this.escapeHtmlForThinking(oppThinking)}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            // Moderator/Judge reasoning (from verdict)
+            if (apiResponse.verdict) {
+                const verdictSummary = apiResponse.verdict.summary || 'Weighing arguments from both sides...';
+                thinkingContent += `
+                    <div class="thinking-agent-block moderator-agent">
+                        <div class="agent-header">
+                            <span class="agent-icon">⚖️</span>
+                            <span class="agent-name">Moderator</span>
+                        </div>
+                        <div class="agent-script">${this.escapeHtmlForThinking(verdictSummary)}</div>
+                        <div class="agent-reasoning"><em>Analyzing both arguments to reach a balanced verdict...</em></div>
+                    </div>
+                `;
+            }
+            
+            thinkingPanel.innerHTML = `
+                <button class="show-thinking-btn" onclick="this.nextElementSibling.classList.toggle('show'); this.classList.toggle('expanded');">
+                    <span class="thinking-sparkle">✦</span>
+                    <span class="btn-text">Show thinking</span>
+                    <span class="thinking-chevron">▼</span>
+                </button>
+                <div class="thinking-dropdown">
+                    ${thinkingContent}
+                </div>
+            `;
+            
+            responseContainer.appendChild(thinkingPanel);
+        }
+
+        // 2. NOW show the VERDICT OUTSIDE the thinking block (this is the main output)
+        if (apiResponse.verdict) {
+            const verdictBox = document.createElement('div');
+            verdictBox.className = 'verdict-result-box';
+            
+            const verdict = apiResponse.verdict;
+            const verdictText = verdict.verdict || 'INCONCLUSIVE';
+            const confidence = verdict.confidence_pct || 50;
+            const recommendation = verdict.recommendation || '';
+            
+            // Determine verdict color
+            let verdictColor = '#FBBF24'; // yellow for complex/inconclusive
+            if (verdictText === 'VERIFIED' || verdictText === 'TRUE') {
+                verdictColor = '#10B981'; // green
+            } else if (verdictText === 'DEBUNKED' || verdictText === 'FALSE') {
+                verdictColor = '#EF4444'; // red
+            }
+            
+            verdictBox.innerHTML = `
+                <div class="verdict-header">
+                    <span class="verdict-icon">⚖️</span>
+                    <span class="verdict-label">Final Verdict</span>
+                </div>
+                <div class="verdict-main" style="color: ${verdictColor}">
+                    ${verdictText}
+                    <span class="verdict-confidence">${confidence}% confidence</span>
+                </div>
+                ${recommendation ? `<div class="verdict-recommendation">💡 ${this.escapeHtmlForThinking(recommendation)}</div>` : ''}
+            `;
+            
+            responseContainer.appendChild(verdictBox);
+        }
+
+        // 3. Show evidence tiles if available
+        if (apiResponse.evidence && apiResponse.evidence.length > 0) {
+            this.renderEvidenceTiles(apiResponse.evidence, responseContainer);
+        }
+
+        container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Render Gemini-style "Show thinking" panel (kept for backwards compatibility)
+     */
+    renderThinkingPanel(apiResponse, container) {
+        // This is now integrated into startDebateFlow
+    },
+
+    /**
+     * Render proponent arguments box (clean, no inline thinking)
+     */
+    renderProponentBox(pro, container) {
+        if (!pro) return;
+        const box = document.createElement('div');
+        box.className = 'message ai-message pro-box';
+        
+        const summary = pro.summary || (pro.arguments && pro.arguments.join(' • ')) || (pro.points && pro.points.join(' • ')) || 'No arguments available';
+        
+        box.innerHTML = `
+            <div class="box-title pro-title">✅ Proponent</div>
+            <div class="box-summary">${this.escapeHtmlForThinking(summary)}</div>
+            ${pro.citations ? `<div class="box-citations">Citations: ${pro.citations.map(c => `[${c}]`).join(', ')}</div>` : ''}
+        `;
+        container.appendChild(box);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Render opponent arguments box (clean, no inline thinking)
+     */
+    renderOpponentBox(opp, container) {
+        if (!opp) return;
+        const box = document.createElement('div');
+        box.className = 'message ai-message opp-box';
+        
+        const summary = opp.summary || (opp.arguments && opp.arguments.join(' • ')) || (opp.points && opp.points.join(' • ')) || 'No arguments available';
+        
+        box.innerHTML = `
+            <div class="box-title opp-title">❌ Opponent</div>
+            <div class="box-summary">${this.escapeHtmlForThinking(summary)}</div>
+            ${opp.citations ? `<div class="box-citations">Citations: ${opp.citations.map(c => `[${c}]`).join(', ')}</div>` : ''}
+        `;
+        container.appendChild(box);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Render safe background reasoning panel (PRD-compliant, no chain-of-thought)
+     * Shows: pipeline trace, evidence provenance, agent summaries, score breakdown, audit fingerprint
+     */
+    renderBackgroundPanel(background, container) {
+        if (!background) return;
+        
+        const panel = document.createElement('div');
+        panel.className = 'bg-panel';
+
+        const toggle = document.createElement('button');
+        toggle.className = 'bg-toggle';
+        toggle.innerHTML = '🔍 Show background reasoning';
+        panel.appendChild(toggle);
+
+        const inner = document.createElement('div');
+        inner.className = 'bg-inner';
+        inner.style.display = 'none';
+
+        // Pipeline timeline
+        if (background.trace && background.trace.length > 0) {
+            const traceTitle = document.createElement('h4');
+            traceTitle.textContent = '⏱️ Pipeline Timeline';
+            inner.appendChild(traceTitle);
+            
+            background.trace.forEach(t => {
+                const li = document.createElement('div');
+                li.className = 'bg-trace';
+                li.innerHTML = `<span class="trace-step">${this.escapeHtmlForThinking(t.step)}</span> — ${this.escapeHtmlForThinking(t.msg)} <span class="trace-time">(${t.took_ms} ms)</span>`;
+                inner.appendChild(li);
+            });
+        }
+
+        // Evidence provenance
+        if (background.evidence_provenance && background.evidence_provenance.length > 0) {
+            const evTitle = document.createElement('h4');
+            evTitle.textContent = '📚 Evidence Provenance';
+            inner.appendChild(evTitle);
+            
+            background.evidence_provenance.forEach(e => {
+                const ev = document.createElement('div');
+                ev.className = 'bg-evidence';
+                const authorityPct = Math.round((e.authority || 0) * 100);
+                const cacheIcon = e.cache_hit ? '💾' : '🌐';
+                ev.innerHTML = `
+                    <div class="bg-ev-header">
+                        <span class="bg-ev-id">[${this.escapeHtmlForThinking(e.id)}]</span>
+                        <strong>${this.escapeHtmlForThinking(e.title || e.domain)}</strong>
+                        <span class="bg-ev-authority">Authority: ${authorityPct}%</span>
+                        <span class="bg-ev-cache">${cacheIcon}</span>
+                    </div>
+                    <div class="bg-ev-meta">${this.escapeHtmlForThinking(e.domain)} · Method: ${this.escapeHtmlForThinking(e.method)}</div>
+                    <div class="bg-ev-snippet">${this.escapeHtmlForThinking(e.snippet)}</div>
+                `;
+                inner.appendChild(ev);
+            });
+        }
+
+        // Agent summaries
+        if (background.agents && Object.keys(background.agents).length > 0) {
+            const agTitle = document.createElement('h4');
+            agTitle.textContent = '🤖 Agent Summaries';
+            inner.appendChild(agTitle);
+            
+            Object.keys(background.agents).forEach(agentName => {
+                const a = background.agents[agentName];
+                const el = document.createElement('div');
+                el.className = 'bg-agent';
+                const usedEv = (a.used_evidence || []).join(', ') || 'none';
+                el.innerHTML = `
+                    <div class="bg-agent-name">${this.escapeHtmlForThinking(agentName)}</div>
+                    <div class="bg-agent-summary">${this.escapeHtmlForThinking(a.summary || 'No summary')}</div>
+                    <div class="bg-agent-evidence">Used evidence: ${usedEv}</div>
+                `;
+                inner.appendChild(el);
+            });
+        }
+
+        // Score breakdown
+        if (background.score_breakdown) {
+            const scTitle = document.createElement('h4');
+            scTitle.textContent = '📊 Score Breakdown';
+            inner.appendChild(scTitle);
+            
+            const sb = background.score_breakdown;
+            const sbEl = document.createElement('div');
+            sbEl.className = 'bg-score';
+            sbEl.innerHTML = `
+                <div class="bg-score-row"><span>Combined Confidence:</span> <strong>${Math.round((sb.combined_confidence || 0) * 100)}%</strong></div>
+                <div class="bg-score-row"><span>Authority Average:</span> <strong>${Math.round((sb.authority_avg || 0) * 100)}%</strong></div>
+                <div class="bg-score-row"><span>Evidence Count:</span> <strong>${sb.evidence_count || 0}</strong></div>
+                <div class="bg-score-formula">Formula: ${this.escapeHtmlForThinking(sb.calculation || 'N/A')}</div>
+            `;
+            inner.appendChild(sbEl);
+        }
+
+        // Audit fingerprint
+        if (background.audit) {
+            const audit = document.createElement('div');
+            audit.className = 'bg-audit';
+            const hash = (background.audit.deterministic_hash || '').slice(0, 12);
+            audit.innerHTML = `
+                <span class="bg-audit-label">🔐 Audit:</span>
+                <span class="bg-audit-hash">fingerprint: ${hash}...</span>
+                <span class="bg-audit-version">version: ${this.escapeHtmlForThinking(background.audit.version || 'unknown')}</span>
+            `;
+            inner.appendChild(audit);
+        }
+
+        // Toggle functionality
+        toggle.onclick = () => {
+            if (inner.style.display === 'none') {
+                inner.style.display = 'block';
+                toggle.innerHTML = '🔍 Hide background reasoning';
+            } else {
+                inner.style.display = 'none';
+                toggle.innerHTML = '🔍 Show background reasoning';
+            }
+        };
+
+        panel.appendChild(inner);
+        container.appendChild(panel);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    // ==================== END THINKING UI HELPERS ====================
+
     setupEventListeners() {
         const sendBtn = document.getElementById('sendBtn');
         const stopBtn = document.getElementById('stopBtn');
@@ -847,9 +1208,9 @@ const Chat = {
                 
                 let response;
                 
-                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+                // DEBATE MODE: Use /rag/debate with thinking animation
                 if (this.currentMode === 'debate') {
-                    console.log('🎭 Running debate mode...');
+                    console.log('🎭 Running debate mode with thinking animation...');
                     response = await Promise.race([
                         API.sendMessage(message, 'debate', conversationHistory),
                         timeoutPromise
@@ -857,8 +1218,19 @@ const Chat = {
                     
                     Messages.hideLoading();
                     
-                    // Handle new verdict response (v4.1)
-                    if (response && response.isVerdict && response.verdict) {
+                    // Handle new debate response with trace (thinking animation)
+                    if (response && response.isDebate) {
+                        console.log('🧠 Starting debate flow with trace animation...', response);
+                        await this.startDebateFlow(response);
+                        
+                        // Persist verdict summary
+                        if (ChatStore.currentChatId && response.verdict) {
+                            const summary = `Verdict: ${response.verdict.verdict} (${response.verdict.confidence_pct}%) - ${response.verdict.summary}`;
+                            ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', summary);
+                        }
+                    }
+                    // Handle legacy verdict response (v4.1 without trace)
+                    else if (response && response.isVerdict && response.verdict) {
                         console.log('📊 Displaying neutral verdict (v4.1)...', response.verdict);
                         this.displayFinalVerdict(response.verdict);
                         
