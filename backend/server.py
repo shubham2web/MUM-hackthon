@@ -1582,18 +1582,10 @@ Introduce this debate by:
 
 Keep your introduction under 200 words."""
         
-        try:
-            async for event, data in run_turn("moderator", intro_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    transcript += f"--- INTRODUCTION FROM MODERATOR ---\n{data['text']}\n\n"
-                elif event == "turn_error":
-                    logging.error(f"Turn error in moderator intro: {data.get('message', 'Unknown error')}")
-                    transcript += f"--- ERROR IN MODERATOR INTRO ---\n{data.get('message', 'An error occurred')}\n\n"
-                yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in moderator introduction: {e}", exc_info=True)
-            transcript += f"--- ERROR: Moderator intro failed: {str(e)} ---\n\n"
-            yield format_sse({"role": "moderator", "text": f"[Error: Unable to generate introduction. Continuing...]"}, "token")
+        async for event, data in run_turn("moderator", intro_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- INTRODUCTION FROM MODERATOR ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
 
         # ═══════════════════════════════════════════════════════════════
         # PHASE 1: OPENING STATEMENTS (PRD Requirement)
@@ -1615,18 +1607,10 @@ CRITICAL REQUIREMENTS:
 
 Transcript so far:
 {get_recent_transcript(transcript)}"""
-            try:
-                async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                    if event == "token":
-                        transcript += f"--- OPENING STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
-                    elif event == "turn_error":
-                        logging.error(f"Turn error in {role} opening statement: {data.get('message', 'Unknown error')}")
-                        transcript += f"--- ERROR IN {role.upper()} OPENING ---\n{data.get('message', 'An error occurred')}\n\n"
-                    yield format_sse(data, event)
-            except Exception as e:
-                logging.error(f"Error in {role} opening statement: {e}", exc_info=True)
-                transcript += f"--- ERROR: {role.capitalize()} opening failed: {str(e)} ---\n\n"
-                yield format_sse({"role": role, "text": f"[Error: Unable to generate opening statement. Continuing...]"}, "token")
+            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+                if event == "token":
+                    transcript += f"--- OPENING STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
+                yield format_sse(data, event)
 
         # ═══════════════════════════════════════════════════════════════
         # PHASE 2: CROSS-EXAMINATION (PRD Requirement - WAS MISSING)
@@ -1644,44 +1628,25 @@ Your question should:
 Previous transcript:
 {get_recent_transcript(transcript)}
 
-IMPORTANT: Respond with ONLY your question. Do not include any explanation or preamble. Just ask the question directly.
-
 Ask your ONE question now:"""
         
-        # Proponent asks Opponent ONE question
-        try:
-            async for event, data in run_turn("proponent", debaters["proponent"], cross_exam_prompt_pro, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    transcript += f"--- CROSS-EXAM QUESTION FROM PROPONENT ---\n{data['text']}\n\n"
-                elif event == "turn_error":
-                    logging.error(f"Turn error in proponent cross-exam question: {data.get('message', 'Unknown error')}")
-                    transcript += f"--- ERROR IN PROPONENT QUESTION ---\n{data.get('message', 'An error occurred')}\n\n"
-                yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in proponent cross-exam question: {e}", exc_info=True)
-            transcript += f"--- ERROR: Proponent question failed: {str(e)} ---\n\n"
-            yield format_sse({"role": "proponent", "text": f"[Error: Unable to generate question. Continuing...]"}, "token")
+        async for event, data in run_turn("proponent", debaters["proponent"], cross_exam_prompt_pro, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- CROSS-EXAM QUESTION FROM PROPONENT ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
         
         # Opponent answers
         cross_exam_answer_opp = f"""Answer the Proponent's cross-examination question directly.
-        You MUST cite evidence [SRC:ID | auth:XX] to support your answer.
-        If you cannot cite evidence, acknowledge it as speculation.
+You MUST cite evidence [SRC:ID | auth:XX] to support your answer.
+If you cannot cite evidence, acknowledge it as speculation.
+
+Previous transcript:
+{get_recent_transcript(transcript)}"""
         
-        Previous transcript:
-        {get_recent_transcript(transcript)}"""
-        
-        try:
-            async for event, data in run_turn("opponent", debaters["opponent"], cross_exam_answer_opp, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    transcript += f"--- CROSS-EXAM ANSWER FROM OPPONENT ---\n{data['text']}\n\n"
-                elif event == "turn_error":
-                    logging.error(f"Turn error in opponent cross-exam answer: {data.get('message', 'Unknown error')}")
-                    transcript += f"--- ERROR IN OPPONENT ANSWER ---\n{data.get('message', 'An error occurred')}\n\n"
-                yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in opponent cross-exam answer: {e}", exc_info=True)
-            transcript += f"--- ERROR: Opponent answer failed: {str(e)} ---\n\n"
-            yield format_sse({"role": "opponent", "text": f"[Error: Unable to generate answer. Continuing...]"}, "token")
+        async for event, data in run_turn("opponent", debaters["opponent"], cross_exam_answer_opp, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- CROSS-EXAM ANSWER FROM OPPONENT ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
         
         # Opponent asks Proponent ONE question
         cross_exam_prompt_opp = f"""CROSS-EXAMINATION: Ask the PROPONENT ONE pointed question.
@@ -1694,43 +1659,25 @@ Your question should:
 Previous transcript:
 {get_recent_transcript(transcript)}
 
-IMPORTANT: Respond with ONLY your question. Do not include any explanation or preamble. Just ask the question directly.
-
 Ask your ONE question now:"""
         
-        try:
-            async for event, data in run_turn("opponent", debaters["opponent"], cross_exam_prompt_opp, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    transcript += f"--- CROSS-EXAM QUESTION FROM OPPONENT ---\n{data['text']}\n\n"
-                elif event == "turn_error":
-                    logging.error(f"Turn error in opponent cross-exam question: {data.get('message', 'Unknown error')}")
-                    transcript += f"--- ERROR IN OPPONENT QUESTION ---\n{data.get('message', 'An error occurred')}\n\n"
-                yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in opponent cross-exam question: {e}", exc_info=True)
-            transcript += f"--- ERROR: Opponent question failed: {str(e)} ---\n\n"
-            yield format_sse({"role": "opponent", "text": f"[Error: Unable to generate question. Continuing...]"}, "token")
+        async for event, data in run_turn("opponent", debaters["opponent"], cross_exam_prompt_opp, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- CROSS-EXAM QUESTION FROM OPPONENT ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
         
         # Proponent answers
         cross_exam_answer_pro = f"""Answer the Opponent's cross-examination question directly.
-        You MUST cite evidence [SRC:ID | auth:XX] to support your answer.
-        If you cannot cite evidence, acknowledge it as speculation.
+You MUST cite evidence [SRC:ID | auth:XX] to support your answer.
+If you cannot cite evidence, acknowledge it as speculation.
+
+Previous transcript:
+{get_recent_transcript(transcript)}"""
         
-        Previous transcript:
-        {get_recent_transcript(transcript)}"""
-        
-        try:
-            async for event, data in run_turn("proponent", debaters["proponent"], cross_exam_answer_pro, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    transcript += f"--- CROSS-EXAM ANSWER FROM PROPONENT ---\n{data['text']}\n\n"
-                elif event == "turn_error":
-                    logging.error(f"Turn error in proponent cross-exam answer: {data.get('message', 'Unknown error')}")
-                    transcript += f"--- ERROR IN PROPONENT ANSWER ---\n{data.get('message', 'An error occurred')}\n\n"
-                yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in proponent cross-exam answer: {e}", exc_info=True)
-            transcript += f"--- ERROR: Proponent answer failed: {str(e)} ---\n\n"
-            yield format_sse({"role": "proponent", "text": f"[Error: Unable to generate answer. Continuing...]"}, "token")
+        async for event, data in run_turn("proponent", debaters["proponent"], cross_exam_answer_pro, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- CROSS-EXAM ANSWER FROM PROPONENT ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
 
         # --- Moderator Citation Check (PRD 4.4) ---
         citation_check_prompt = f"""As moderator, review the opening statements and cross-examination.
@@ -1746,18 +1693,10 @@ Provide a brief (150 words max) assessment.
 Transcript:
 {get_recent_transcript(transcript)}"""
         
-        try:
-            async for event, data in run_turn("moderator", citation_check_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    transcript += f"--- MODERATOR CITATION & BIAS CHECK ---\n{data['text']}\n\n"
-                elif event == "turn_error":
-                    logging.error(f"Turn error in moderator citation check: {data.get('message', 'Unknown error')}")
-                    transcript += f"--- ERROR IN MODERATOR CHECK ---\n{data.get('message', 'An error occurred')}\n\n"
-                yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in moderator citation check: {e}", exc_info=True)
-            transcript += f"--- ERROR: Citation check failed: {str(e)} ---\n\n"
-            yield format_sse({"role": "moderator", "text": f"[Error: Unable to perform citation check. Continuing...]"}, "token")
+        async for event, data in run_turn("moderator", citation_check_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- MODERATOR CITATION & BIAS CHECK ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
 
         # ═══════════════════════════════════════════════════════════════
         # PHASE 3: REBUTTALS (PRD Requirement)
@@ -1776,18 +1715,10 @@ CRITICAL: Every counter-claim MUST cite evidence. Uncited rebuttals are weak.
 
 Transcript:
 {get_recent_transcript(transcript)}"""
-            try:
-                async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor, is_rebuttal=True):
-                    if event == "token":
-                        transcript += f"--- REBUTTAL FROM {data['role'].upper()} ---\n{data['text']}\n\n"
-                    elif event == "turn_error":
-                        logging.error(f"Turn error in {role} rebuttal: {data.get('message', 'Unknown error')}")
-                        transcript += f"--- ERROR IN {role.upper()} REBUTTAL ---\n{data.get('message', 'An error occurred')}\n\n"
-                    yield format_sse(data, event)
-            except Exception as e:
-                logging.error(f"Error in {role} rebuttal: {e}", exc_info=True)
-                transcript += f"--- ERROR: {role.capitalize()} rebuttal failed: {str(e)} ---\n\n"
-                yield format_sse({"role": role, "text": f"[Error: Unable to generate rebuttal. Continuing...]"}, "token")
+            async for event, data in run_turn(role, prompt, input_text, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor, is_rebuttal=True):
+                if event == "token":
+                    transcript += f"--- REBUTTAL FROM {data['role'].upper()} ---\n{data['text']}\n\n"
+                yield format_sse(data, event)
 
         # ═══════════════════════════════════════════════════════════════
         # PHASE 4: MID-DEBATE COMPRESSION (PRD Section 7 - WAS MISSING)
@@ -1827,18 +1758,10 @@ CORE SUMMARY BLOCK (Mid-Debate)
 
 Keep under 250 words. Be factual and neutral."""
         
-        try:
-            async for event, data in run_turn("moderator", compression_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    transcript += f"--- MID-DEBATE COMPRESSION (CORE SUMMARY BLOCK) ---\n{data['text']}\n\n"
-                elif event == "turn_error":
-                    logging.error(f"Turn error in moderator compression: {data.get('message', 'Unknown error')}")
-                    transcript += f"--- ERROR IN COMPRESSION ---\n{data.get('message', 'An error occurred')}\n\n"
-                yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in moderator compression: {e}", exc_info=True)
-            transcript += f"--- ERROR: Compression failed: {str(e)} ---\n\n"
-            yield format_sse({"role": "moderator", "text": f"[Error: Unable to generate compression. Continuing...]"}, "token")
+        async for event, data in run_turn("moderator", compression_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                transcript += f"--- MID-DEBATE COMPRESSION (CORE SUMMARY BLOCK) ---\n{data['text']}\n\n"
+            yield format_sse(data, event)
 
         # ═══════════════════════════════════════════════════════════════
         # PHASE 5: ROLE REVERSAL (PRD Section 2.6)
@@ -1883,18 +1806,10 @@ Now argue from the {new_role.upper()} perspective:"""
                     
                     system_prompt = f"You are now the {new_role.upper()}. Argue convincingly from this new perspective. Find genuine merit in the opposing view."
                     
-                    try:
-                        async for event, data in run_turn(f"{new_role}_reversed", system_prompt, reversal_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                            if event == "token":
-                                transcript += f"--- ROLE REVERSAL: {original_role.upper()} NOW ARGUING AS {new_role.upper()} ---\n{data['text']}\n\n"
-                            elif event == "turn_error":
-                                logging.error(f"Turn error in role reversal: {data.get('message', 'Unknown error')}")
-                                transcript += f"--- ERROR IN ROLE REVERSAL ---\n{data.get('message', 'An error occurred')}\n\n"
-                            yield format_sse(data, event)
-                    except Exception as e:
-                        logging.error(f"Error in role reversal turn: {e}", exc_info=True)
-                        transcript += f"--- ERROR: Role reversal turn failed: {str(e)} ---\n\n"
-                        yield format_sse({"role": f"{new_role}_reversed", "text": f"[Error: Unable to generate role reversal response. Continuing...]"}, "token")
+                    async for event, data in run_turn(f"{new_role}_reversed", system_prompt, reversal_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+                        if event == "token":
+                            transcript += f"--- ROLE REVERSAL: {original_role.upper()} NOW ARGUING AS {new_role.upper()} ---\n{data['text']}\n\n"
+                        yield format_sse(data, event)
                 
                 # Calculate and emit convergence metrics
                 convergence_score = role_reversal_engine._calculate_convergence(
@@ -1933,18 +1848,10 @@ Be intellectually honest. This phase reveals the truth, not rhetorical victory.
 Transcript:
 {get_recent_transcript(transcript)}"""
             
-            try:
-                async for event, data in run_turn(role, prompt, convergence_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                    if event == "token":
-                        transcript += f"--- CONVERGENCE FROM {data['role'].upper()} ---\n{data['text']}\n\n"
-                    elif event == "turn_error":
-                        logging.error(f"Turn error in {role} convergence: {data.get('message', 'Unknown error')}")
-                        transcript += f"--- ERROR IN {role.upper()} CONVERGENCE ---\n{data.get('message', 'An error occurred')}\n\n"
-                    yield format_sse(data, event)
-            except Exception as e:
-                logging.error(f"Error in {role} convergence: {e}", exc_info=True)
-                transcript += f"--- ERROR: {role.capitalize()} convergence failed: {str(e)} ---\n\n"
-                yield format_sse({"role": role, "text": f"[Error: Unable to generate convergence. Continuing...]"}, "token")
+            async for event, data in run_turn(role, prompt, convergence_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+                if event == "token":
+                    transcript += f"--- CONVERGENCE FROM {data['role'].upper()} ---\n{data['text']}\n\n"
+                yield format_sse(data, event)
         
         # ═══════════════════════════════════════════════════════════════
         # PHASE 7: FINAL SUMMARIES (PRD Requirement - 3 minutes each)
@@ -1979,18 +1886,10 @@ This is your last chance to persuade. Make it count.
 Transcript:
 {get_recent_transcript(transcript)}"""
             
-            try:
-                async for event, data in run_turn(role, debaters[role], summary_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                    if event == "token":
-                        transcript += f"--- FINAL CLOSING STATEMENT FROM {data['role'].upper()} ---\n{data['text']}\n\n"
-                    elif event == "turn_error":
-                        logging.error(f"Turn error in {role} final summary: {data.get('message', 'Unknown error')}")
-                        transcript += f"--- ERROR IN {role.upper()} FINAL SUMMARY ---\n{data.get('message', 'An error occurred')}\n\n"
-                    yield format_sse(data, event)
-            except Exception as e:
-                logging.error(f"Error in {role} final summary: {e}", exc_info=True)
-                transcript += f"--- ERROR: {role.capitalize()} final summary failed: {str(e)} ---\n\n"
-                yield format_sse({"role": role, "text": f"[Error: Unable to generate final summary. Continuing...]"}, "token")
+            async for event, data in run_turn(role, debaters[role], summary_prompt, loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+                if event == "token":
+                    transcript += f"--- FINAL CLOSING STATEMENT FROM {role.upper()} ---\n{data['text']}\n\n"
+                yield format_sse(data, event)
         
         # --- Final Synthesis by Moderator ---
         yield format_sse({"phase": "moderator_synthesis", "message": "Phase 8: Moderator Final Synthesis"}, "debate_phase")
@@ -2030,19 +1929,11 @@ FINAL DEBATE SYNTHESIS
 Transcript for reference:
 {get_recent_transcript(transcript)}"""
         
-        try:
-            async for event, data in run_turn("moderator", moderator_synthesis_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
-                if event == "token":
-                    synthesis_text += data.get("text", "")
-                elif event == "turn_error":
-                    logging.error(f"Turn error in moderator synthesis: {data.get('message', 'Unknown error')}")
-                    synthesis_text += f"\n[Error: {data.get('message', 'An error occurred')}]"
-                if event != "token" or data.get("text"):
-                    yield format_sse(data, event)
-        except Exception as e:
-            logging.error(f"Error in moderator synthesis: {e}", exc_info=True)
-            synthesis_text += f"\n[Error: Unable to generate synthesis: {str(e)}]"
-            yield format_sse({"role": "moderator", "text": f"[Error: Unable to generate synthesis. Continuing...]"}, "token")
+        async for event, data in run_turn("moderator", moderator_synthesis_prompt, get_recent_transcript(transcript), loop, log_entries, debate_id, topic, turn_metrics, memory, bias_auditor):
+            if event == "token":
+                synthesis_text += data.get("text", "")
+            if event != "token" or data.get("text"):
+                yield format_sse(data, event)
         
         # Add synthesis to transcript
         transcript += f"--- MODERATOR FINAL SYNTHESIS ---\n{synthesis_text}\n\n"
@@ -2243,28 +2134,13 @@ async def run_turn(role: str, system_prompt: str, input_text: str, loop, log_ent
                 return next(gen)
             except StopIteration:
                 return None  # Return None to signal end of stream
-            except Exception as e:
-                logging.error(f"Error getting chunk from stream for {role}: {e}", exc_info=True)
-                return None  # Return None on error to break loop gracefully
         
-        try:
-            while True:
-                try:
-                    chunk = await loop.run_in_executor(executor, get_next_chunk, stream_generator)
-                    if chunk is None:
-                        break  # End of stream
-                    full_response += chunk
-                    yield "token", {"role": role, "text": chunk}
-                except Exception as e:
-                    logging.error(f"Error in stream loop for {role}: {e}", exc_info=True)
-                    # Try to continue, but if we can't get chunks, break
-                    break
-        except Exception as e:
-            logging.error(f"Fatal error in streaming for {role}: {e}", exc_info=True)
-            # If streaming completely fails, at least yield an error message
-            if not full_response:
-                full_response = f"[Error: Streaming failed for {role}: {str(e)}]"
-                yield "token", {"role": role, "text": full_response}
+        while True:
+            chunk = await loop.run_in_executor(executor, get_next_chunk, stream_generator)
+            if chunk is None:
+                break  # End of stream
+            full_response += chunk
+            yield "token", {"role": role, "text": chunk}
         
         turn_metrics["turn_count"] += 1
         if is_rebuttal:
