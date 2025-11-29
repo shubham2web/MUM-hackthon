@@ -1131,11 +1131,20 @@ class StealthRequestsScraper:
                 )
                 
                 if response.status_code == 200:
-                    soup = BeautifulSoup(response.text, 'html.parser')
+                    # Fix encoding issues
+                    response.encoding = response.apparent_encoding or 'utf-8'
+                    
+                    soup = BeautifulSoup(response.text, 'html.parser', from_encoding='utf-8')
                     for tag in soup(["script", "style", "nav", "footer", "header"]):
                         tag.decompose()
                     
                     text = soup.get_text(separator='\n', strip=True)
+                    
+                    # Ensure clean UTF-8 text
+                    try:
+                        text = text.encode('utf-8', errors='ignore').decode('utf-8')
+                    except:
+                        pass
                     
                     if len(text) > 100:
                         logger.info(f"✅ Stealth requests succeeded for {url}")
@@ -1540,11 +1549,20 @@ class StealthRequestsScraper:
                 )
                 
                 if response.status_code == 200:
-                    soup = BeautifulSoup(response.text, 'html.parser')
+                    # Fix encoding issues
+                    response.encoding = response.apparent_encoding or 'utf-8'
+                    
+                    soup = BeautifulSoup(response.text, 'html.parser', from_encoding='utf-8')
                     for tag in soup(["script", "style", "nav", "footer", "header"]):
                         tag.decompose()
                     
                     text = soup.get_text(separator='\n', strip=True)
+                    
+                    # Ensure clean UTF-8 text
+                    try:
+                        text = text.encode('utf-8', errors='ignore').decode('utf-8')
+                    except:
+                        pass
                     
                     if len(text) > 100:
                         logger.info(f"✅ Stealth requests succeeded for {url}")

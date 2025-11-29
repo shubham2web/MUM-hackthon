@@ -1351,6 +1351,35 @@ body.light-mode .theme-btn.active {
     border-radius: 16px 16px 16px 2px !important;
 }
 
+/* Clickable links in messages */
+.message-text a.message-link {
+    color: #60a5fa;
+    text-decoration: none;
+    border-bottom: 1px solid rgba(96, 165, 250, 0.3);
+    transition: all 0.2s ease;
+    word-break: break-all;
+}
+
+.message-text a.message-link:hover {
+    color: #93c5fd;
+    border-bottom-color: #93c5fd;
+    background: rgba(96, 165, 250, 0.1);
+    padding: 2px 4px;
+    margin: -2px -4px;
+    border-radius: 4px;
+}
+
+.user-message .message-text a.message-link {
+    color: #bfdbfe;
+    border-bottom-color: rgba(191, 219, 254, 0.5);
+}
+
+.user-message .message-text a.message-link:hover {
+    color: #ffffff;
+    border-bottom-color: #ffffff;
+    background: rgba(255, 255, 255, 0.15);
+}
+
 .message-time {
     display: block !important;
     font-size: 10px !important;
@@ -1713,6 +1742,29 @@ body.light-mode .message-text {
     background: #f3f4f6 !important;
     color: #0f172a !important;
     border-color: rgba(0,0,0,0.06) !important;
+}
+
+/* Light mode link colors */
+body.light-mode .message-text a.message-link {
+    color: #2563eb !important;
+    border-bottom-color: rgba(37, 99, 235, 0.3) !important;
+}
+
+body.light-mode .message-text a.message-link:hover {
+    color: #1d4ed8 !important;
+    border-bottom-color: #1d4ed8 !important;
+    background: rgba(37, 99, 235, 0.1) !important;
+}
+
+body.light-mode .user-message .message-text a.message-link {
+    color: #e0f2fe !important;
+    border-bottom-color: rgba(224, 242, 254, 0.5) !important;
+}
+
+body.light-mode .user-message .message-text a.message-link:hover {
+    color: #ffffff !important;
+    border-bottom-color: #ffffff !important;
+    background: rgba(255, 255, 255, 0.2) !important;
 }
 
 body.light-mode .nav-item .nav-text {
