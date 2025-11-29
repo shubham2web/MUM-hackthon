@@ -1,0 +1,258 @@
+/* 
+ * ATLAS v4.1 Verdict Card Styles
+ * Neutral verdict display styling (no debate UI)
+ */
+
+/* Verdict card container */
+.verdict-card {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Verdict badge */
+.verdict-badge {
+    color: #fff;
+    padding: 10px 16px;
+    border-radius: 8px;
+    display: inline-block;
+    font-weight: 700;
+    margin-bottom: 10px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.verdict-badge.verified {
+    background: #1FB65B;
+}
+
+.verdict-badge.debunked {
+    background: #FF4D4F;
+}
+
+.verdict-badge.complex {
+    background: #F2B705;
+}
+
+/* Verdict summary section */
+.verdict-summary {
+    margin: 12px 0;
+    font-size: 14px;
+    color: #e6eef3;
+    line-height: 1.6;
+}
+
+/* Evidence section */
+.verdict-evidence {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.verdict-evidence h4 {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #e5e7eb;
+}
+
+.verdict-evidence ul {
+    margin: 0;
+    padding-left: 20px;
+    list-style-type: disc;
+}
+
+.verdict-evidence li {
+    margin-bottom: 8px;
+    color: #d1d5db;
+}
+
+.verdict-evidence a {
+    color: #60a5fa;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.verdict-evidence a:hover {
+    color: #93c5fd;
+    text-decoration: underline;
+}
+
+/* Forensic dossier section */
+.verdict-forensic {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.verdict-forensic h4 {
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #e5e7eb;
+}
+
+.verdict-forensic .entity {
+    margin: 8px 0;
+    padding: 8px;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 6px;
+    transition: background 0.2s ease;
+}
+
+.verdict-forensic .entity:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.verdict-forensic .entity strong {
+    color: #e5e7eb;
+}
+
+.verdict-forensic .flags {
+    color: #fca5a5;
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+/* Recommendation section */
+.verdict-recommendation {
+    margin-top: 15px;
+    padding: 10px;
+    background: rgba(96, 165, 250, 0.1);
+    border-left: 3px solid #60a5fa;
+    border-radius: 4px;
+    color: #e5e7eb;
+    font-size: 14px;
+}
+
+.verdict-recommendation::before {
+    content: "💡 ";
+    font-size: 16px;
+    margin-right: 4px;
+}
+
+/* Confidence indicator */
+.confidence-meter {
+    width: 100%;
+    height: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 8px;
+}
+
+.confidence-fill {
+    height: 100%;
+    transition: width 1s ease-out;
+    border-radius: 4px;
+}
+
+.confidence-fill.high {
+    background: linear-gradient(90deg, #1FB65B, #10b981);
+}
+
+.confidence-fill.medium {
+    background: linear-gradient(90deg, #F2B705, #f59e0b);
+}
+
+.confidence-fill.low {
+    background: linear-gradient(90deg, #FF4D4F, #ef4444);
+}
+
+/* Authority score badge */
+.authority-badge {
+    display: inline-block;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    margin-left: 6px;
+}
+
+.authority-badge.tier-1 {
+    background: rgba(31, 182, 91, 0.2);
+    color: #1FB65B;
+}
+
+.authority-badge.tier-2 {
+    background: rgba(96, 165, 250, 0.2);
+    color: #60a5fa;
+}
+
+.authority-badge.tier-3 {
+    background: rgba(242, 183, 5, 0.2);
+    color: #F2B705;
+}
+
+.authority-badge.tier-4 {
+    background: rgba(255, 77, 79, 0.2);
+    color: #FF4D4F;
+}
+
+/* Bias signal indicator */
+.bias-signal {
+    display: inline-block;
+    padding: 4px 8px;
+    margin: 4px;
+    border-radius: 4px;
+    font-size: 12px;
+    background: rgba(251, 191, 36, 0.1);
+    border: 1px solid rgba(251, 191, 36, 0.3);
+    color: #fbbf24;
+}
+
+.bias-signal.high {
+    background: rgba(255, 77, 79, 0.1);
+    border-color: rgba(255, 77, 79, 0.3);
+    color: #FF4D4F;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .verdict-card {
+        padding: 12px !important;
+    }
+    
+    .verdict-badge {
+        font-size: 18px;
+    }
+    
+    .verdict-summary {
+        font-size: 13px;
+    }
+    
+    .verdict-evidence li,
+    .verdict-forensic .entity {
+        font-size: 12px;
+    }
+}
+
+/* Dark mode compatibility */
+@media (prefers-color-scheme: dark) {
+    .verdict-card {
+        color: #e5e7eb;
+    }
+    
+    .verdict-evidence a {
+        color: #60a5fa;
+    }
+    
+    .verdict-forensic .entity {
+        background: rgba(255, 255, 255, 0.03);
+    }
+}
+
+/* Print styles */
+@media print {
+    .verdict-card {
+        page-break-inside: avoid;
+        border: 1px solid #ccc !important;
+        background: white !important;
+        color: black !important;
+    }
+    
+    .verdict-evidence a {
+        color: blue !important;
+        text-decoration: underline !important;
+    }
+}

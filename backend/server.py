@@ -267,6 +267,174 @@ async def healthz():
     """Provides a simple health check endpoint."""
     return jsonify({"status": "ok"})
 
+# =====================================================
+# TEXT ACTION ENDPOINT WITH FALLBACK STRATEGY
+# Priority: 1. Grok (Groq) -> 2. HuggingFace -> 3. Gemini
+# =====================================================
+
+async def call_groq_api(prompt: str) -> str:
+    """Call Groq API (Grok models)"""
+    import aiohttp
+    groq_key = os.getenv("GROQ_API_KEY")
+    if not groq_key:
+        raise Exception("GROQ_API_KEY not configured")
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            "https://api.groq.com/openai/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {groq_key}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "llama-3.3-70b-versatile",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 1024,
+                "temperature": 0.7
+            },
+            timeout=aiohttp.ClientTimeout(total=30)
+        ) as resp:
+            if resp.status != 200:
+                error_text = await resp.text()
+                raise Exception(f"Groq API error: {resp.status} - {error_text}")
+            data = await resp.json()
+            return data["choices"][0]["message"]["content"]
+
+async def call_huggingface_api(prompt: str) -> str:
+    """Call HuggingFace Inference API"""
+    import aiohttp
+    hf_token = os.getenv("HF_TOKEN_1") or os.getenv("HF_TOKEN_2")
+    if not hf_token:
+        raise Exception("HuggingFace token not configured")
+    
+    async with aiohttp.ClientSession() as session:
+        # Using Qwen model via router endpoint
+        async with session.post(
+            "https://router.huggingface.co/novita/v3/openai/chat/completions",
+            headers={
+                "Authorization": f"Bearer {hf_token}",
+                "Content-Type": "application/json"
+            },
+            json={
+                "model": "Qwen/Qwen2.5-72B-Instruct",
+                "messages": [{"role": "user", "content": prompt}],
+                "max_tokens": 1024,
+                "temperature": 0.7
+            },
+            timeout=aiohttp.ClientTimeout(total=60)
+        ) as resp:
+            if resp.status != 200:
+                error_text = await resp.text()
+                raise Exception(f"HuggingFace API error: {resp.status} - {error_text}")
+            data = await resp.json()
+            return data["choices"][0]["message"]["content"]
+
+async def call_gemini_api(prompt: str) -> str:
+    """Call Google Gemini API"""
+    import aiohttp
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if not gemini_key:
+        raise Exception("GEMINI_API_KEY not configured")
+    
+    async with aiohttp.ClientSession() as session:
+        async with session.post(
+            f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key={gemini_key}",
+            headers={"Content-Type": "application/json"},
+            json={
+                "contents": [{"parts": [{"text": prompt}]}],
+                "generationConfig": {
+                    "temperature": 0.7,
+                    "maxOutputTokens": 1024
+                }
+            },
+            timeout=aiohttp.ClientTimeout(total=30)
+        ) as resp:
+            if resp.status != 200:
+                error_text = await resp.text()
+                raise Exception(f"Gemini API error: {resp.status} - {error_text}")
+            data = await resp.json()
+            candidates = data.get("candidates", [])
+            if candidates and candidates[0].get("content", {}).get("parts"):
+                return candidates[0]["content"]["parts"][0]["text"]
+            raise Exception("Unexpected Gemini response format")
+
+@app.route("/text_action", methods=["POST"])
+@limit("20/minute")
+async def text_action():
+    """
+    Handle text actions (summarize, explain) with fallback strategy.
+    Priority: 1. Grok (Groq) -> 2. HuggingFace -> 3. Gemini
+    """
+    try:
+        data = await request.get_json()
+        action = data.get("action", "")
+        text = data.get("text", "")
+        
+        if not text:
+            return jsonify({"error": "No text provided"}), 400
+        
+        if action not in ["summarize", "explain"]:
+            return jsonify({"error": "Invalid action. Use 'summarize' or 'explain'"}), 400
+        
+        # Build the prompt based on action
+        if action == "summarize":
+            prompt = f"Please provide a concise summary of the following text. Be brief and capture the key points:\n\n{text}"
+        else:  # explain
+            prompt = f"Please explain the following text in simple, easy-to-understand terms:\n\n{text}"
+        
+        result = None
+        provider_used = None
+        errors = []
+        
+        # Try Groq first
+        try:
+            logging.info("Attempting Groq API for text action...")
+            result = await call_groq_api(prompt)
+            provider_used = "groq"
+            logging.info("✅ Groq API succeeded")
+        except Exception as e:
+            errors.append(f"Groq: {str(e)}")
+            logging.warning(f"Groq API failed: {e}")
+        
+        # Try HuggingFace if Groq failed
+        if result is None:
+            try:
+                logging.info("Attempting HuggingFace API for text action...")
+                result = await call_huggingface_api(prompt)
+                provider_used = "huggingface"
+                logging.info("✅ HuggingFace API succeeded")
+            except Exception as e:
+                errors.append(f"HuggingFace: {str(e)}")
+                logging.warning(f"HuggingFace API failed: {e}")
+        
+        # Try Gemini as final fallback
+        if result is None:
+            try:
+                logging.info("Attempting Gemini API for text action...")
+                result = await call_gemini_api(prompt)
+                provider_used = "gemini"
+                logging.info("✅ Gemini API succeeded")
+            except Exception as e:
+                errors.append(f"Gemini: {str(e)}")
+                logging.warning(f"Gemini API failed: {e}")
+        
+        if result is None:
+            return jsonify({
+                "error": "All AI providers failed",
+                "details": errors
+            }), 503
+        
+        return jsonify({
+            "success": True,
+            "result": result,
+            "provider": provider_used,
+            "action": action
+        })
+        
+    except Exception as e:
+        logging.error(f"Text action error: {e}", exc_info=True)
+        return jsonify({"error": str(e)}), 500
+
 @app.route("/run_debate", methods=["POST"])
 @limit("5/minute")
 async def run_debate_route():

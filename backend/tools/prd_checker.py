@@ -344,6 +344,37 @@ If no evidence supports this claim, please acknowledge it as inference or opinio
 """
 
 
+def check_no_transcript_leak(response_json: dict) -> Tuple[bool, str]:
+    """
+    Validate that the public response does not contain debate transcripts,
+    and does not contain "proponent" / "opponent" tokens.
+    
+    ATLAS v4.1 Requirement: No debate transcripts or adversarial role names
+    should be exposed in public API responses.
+    
+    Args:
+        response_json: API response dictionary to validate
+        
+    Returns:
+        Tuple of (is_compliant: bool, message: str)
+    """
+    # Check for forbidden keys
+    forbidden_keys = ["debate", "transcript", "proponent", "opponent", "debate_transcript"]
+    for key in forbidden_keys:
+        if key in response_json:
+            return False, f"Response contains forbidden field '{key}' - prohibited in v4.1"
+    
+    # Check for forbidden tokens in serialized response
+    text = str(response_json).lower()
+    if "proponent" in text or "opponent" in text:
+        return False, "Response contains 'proponent' or 'opponent' tokens - sanitize and re-run"
+    
+    if "debate" in text and "transcript" in text:
+        return False, "Response appears to contain debate transcript content - prohibited in v4.1"
+    
+    return True, "OK - No transcript leakage detected"
+
+
 # Export for easy import
 __all__ = [
     'run_full_prd_check',
@@ -351,6 +382,7 @@ __all__ = [
     'check_dossier_compliance',
     'check_evidence_bundle_compliance',
     'check_verdict_compliance',
+    'check_no_transcript_leak',
     'has_citation',
     'is_factual_claim',
     'generate_citation_prompt',
