@@ -3,7 +3,7 @@ const API = {
     baseURL: 'http://127.0.0.1:8000', // Backend server port
 
     async sendMessage(message, mode = 'analytical', conversationHistory = []) {
-        console.log('=== API Call ===');
+        console.log('=== API Call (ATLAS v4.1 Verdict Engine) ===');
         console.log('Message:', message);
         console.log('Mode:', mode);
         console.log('Conversation History:', conversationHistory);
@@ -16,16 +16,25 @@ const API = {
         }
         
         try {
-            const response = await fetch(`${this.baseURL}/analyze_topic`, {
+            // Use new /analyze endpoint with verdict engine (v4.1)
+            const endpoint = mode === 'debate' ? `${this.baseURL}/analyze` : `${this.baseURL}/analyze_topic`;
+            
+            const requestBody = mode === 'debate' ? {
+                query: message,
+                session_id: sessionId,
+                enable_forensics: true
+            } : {
+                topic: message,
+                model: 'llama3',
+                mode: mode,
+                session_id: sessionId,
+                conversation_history: conversationHistory
+            };
+            
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    topic: message, 
-                    model: 'llama3',
-                    mode: mode,  // Send mode parameter to backend
-                    session_id: sessionId,  // Send session ID for memory context
-                    conversation_history: conversationHistory  // Send full conversation
-                })
+                body: JSON.stringify(requestBody)
             });
             
             console.log('Response status:', response.status);
@@ -36,18 +45,23 @@ const API = {
                 throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
             }
             
-            // Check if it's an SSE stream (debate mode)
+            // Check if it's an SSE stream (old debate mode - shouldn't happen with v4.1)
             const contentType = response.headers.get('content-type');
             if (contentType && contentType.includes('text/event-stream')) {
-                // Return response for SSE streaming
                 return { isStream: true, response: response };
             }
             
-            // Regular JSON response (analytical mode)
+            // Regular JSON response - includes verdict for debate mode
             const responseText = await response.text();
             console.log('Response text:', responseText);
             const data = JSON.parse(responseText);
             console.log('Parsed data:', data);
+            
+            // For debate mode, return structured verdict response
+            if (mode === 'debate') {
+                return { isVerdict: true, verdict: data };
+            }
+            
             return data;
             
         } catch (error) {

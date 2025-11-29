@@ -832,14 +832,24 @@ const Chat = {
                         timeoutPromise
                     ]);
                     
-                    // DON'T hide loading yet - let it continue until first debate message arrives
+                    Messages.hideLoading();
                     
-                    // Should be SSE stream
-                    if (response && response.isStream) {
+                    // Handle new verdict response (v4.1)
+                    if (response && response.isVerdict && response.verdict) {
+                        console.log('📊 Displaying neutral verdict (v4.1)...', response.verdict);
+                        this.displayFinalVerdict(response.verdict);
+                        
+                        // Persist verdict summary
+                        if (ChatStore.currentChatId) {
+                            const summary = `Verdict: ${response.verdict.verdict} (${response.verdict.confidence_pct}%) - ${response.verdict.summary}`;
+                            ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', summary);
+                        }
+                    }
+                    // Legacy: Handle old SSE stream (backwards compatibility)
+                    else if (response && response.isStream) {
                         await this.handleDebateStream(response.response, message);
                     } else {
-                        Messages.hideLoading();
-                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                        Messages.addAIMessage('Error: Unexpected response format from analysis.');
                     }
                 }
                 // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
