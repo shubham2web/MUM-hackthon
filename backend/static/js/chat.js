@@ -697,6 +697,22 @@ const Chat = {
 
         if (!message || this.isProcessing) return;
 
+        // Check if V2 enhanced analysis is enabled
+        const v2Toggle = document.getElementById('v2Toggle');
+        const isV2Enabled = v2Toggle?.checked || false;
+
+        // If V2 is enabled, validate that message contains a URL
+        if (isV2Enabled) {
+            const urlPattern = /https?:\/\/[^\s]+/i;
+            const hasLink = urlPattern.test(message);
+            
+            if (!hasLink) {
+                // Show animated error message in chat
+                this.showV2LinkRequiredMessage();
+                return;
+            }
+        }
+
         this.isProcessing = true;
         input.value = '';
         // Ensure we have a chat to append to. Create one if necessary.
@@ -1201,12 +1217,23 @@ const Chat = {
         Messages.addAIMessage(message);
     },
 
-    addV2Card(cardElement) {
-        // Add v2.0 response card to messages
+    addV2Card(cardContent) {
+        // Add v2.0/v2.5 response card to messages
         const messageDiv = document.createElement('div');
-        messageDiv.className = 'message ai-message';
+        messageDiv.className = 'message ai-message v2-message';
         messageDiv.style.background = 'transparent';
-        messageDiv.appendChild(cardElement);
+        messageDiv.style.padding = '0';
+        messageDiv.style.margin = '8px 0';
+        
+        // Handle both DOM elements and HTML strings
+        if (typeof cardContent === 'string') {
+            messageDiv.innerHTML = cardContent;
+        } else if (cardContent instanceof HTMLElement) {
+            messageDiv.appendChild(cardContent);
+        } else {
+            messageDiv.innerHTML = String(cardContent);
+        }
+        
         Messages.container.appendChild(messageDiv);
         Messages.scrollToBottom();
     },
@@ -1236,5 +1263,50 @@ const Chat = {
 
         // Limit history to last 10 messages to avoid token limits
         return history.slice(-10);
+    },
+
+    /**
+     * Show animated message when V2 is enabled but no link is provided
+     */
+    showV2LinkRequiredMessage() {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message ai-message v2-link-required-message';
+        messageDiv.innerHTML = `
+            <div class="v2-link-error-card">
+                <div class="v2-link-error-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 8v4M12 16h.01"/>
+                    </svg>
+                </div>
+                <div class="v2-link-error-content">
+                    <div class="v2-link-error-title">🔗 Link Required for V2 Analysis</div>
+                    <div class="v2-link-error-text">
+                        <strong>ATLAS v2.5 Enhanced Analysis</strong> is designed to analyze web content and articles.
+                    </div>
+                    <div class="v2-link-error-details">
+                        <div class="v2-link-error-item">
+                            <span class="v2-error-icon">❌</span>
+                            <span>Plain text cannot be processed in V2 mode</span>
+                        </div>
+                        <div class="v2-link-error-item">
+                            <span class="v2-error-icon">✅</span>
+                            <span>Paste a URL to analyze (e.g., news articles, blog posts)</span>
+                        </div>
+                    </div>
+                    <div class="v2-link-error-hint">
+                        💡 <em>Tip: Disable V2 Enhanced Analysis to chat with regular text queries</em>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        Messages.container.appendChild(messageDiv);
+        Messages.scrollToBottom();
+        
+        // Add entrance animation
+        requestAnimationFrame(() => {
+            messageDiv.classList.add('v2-error-animate-in');
+        });
     }
 };

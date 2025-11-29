@@ -280,9 +280,15 @@ const V2UI = {
     },
 
     /**
-     * Create complete v2.0 response card
+     * Create complete v2.0 response card - NOW USES v2.5 DASHBOARD
      */
     createV2ResponseCard(result) {
+        // Use the new v2.5 professional dashboard if available
+        if (window.ATLASv25 && typeof window.ATLASv25.renderDashboard === 'function') {
+            return window.ATLASv25.renderDashboard(result);
+        }
+        
+        // Fallback to basic v2.0 card
         const { credibility_score, evidence, bias_audit, role_reversal, synthesis } = result;
 
         return `
