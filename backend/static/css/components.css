@@ -333,6 +333,8 @@ body.light-mode .typing-indicator span {
     font-size: 15px; /* Reduced from 16px */
     font-family: 'Space Grotesk', sans-serif;
     line-height: 1.4; /* Compact line height */
+    position: relative;
+    z-index: 2;
 }
 
 .message-input::placeholder {

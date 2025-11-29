@@ -141,6 +141,22 @@ if ANALYZE_PIPELINE_AVAILABLE:
     app.register_blueprint(analyze_bp)
     logging.info("✅ ATLAS v4.0 Analysis Pipeline endpoints registered at /analyze/*")
 
+# --- Register RAG Integration Blueprint ---
+try:
+    from routes_rag_integration import rag_bp
+    app.register_blueprint(rag_bp)
+    logging.info("✅ RAG Integration endpoints registered at /rag/*")
+except Exception as e:
+    logging.warning(f"RAG Integration routes not available: {e}")
+
+# --- Register Admin Blueprint ---
+try:
+    from routes_admin import admin_bp
+    app.register_blueprint(admin_bp)
+    logging.info("✅ Admin endpoints registered at /admin/*")
+except Exception as e:
+    logging.warning(f"Admin routes not available: {e}")
+
 executor = ThreadPoolExecutor(max_workers=10)
 
 # --- JSON logging (production-ready) ---
@@ -187,6 +203,9 @@ async def check_api_key():
     if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
+        request.path.startswith('/analyze') or  # Allow analyze endpoints (v4.1 verdict engine)
+        request.path.startswith('/rag/') or  # Allow RAG integration endpoints
+        request.path.startswith('/admin/') or  # Allow admin endpoints
         request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
         not API_KEY or 
         request.method == 'OPTIONS'):

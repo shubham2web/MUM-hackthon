@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Domain Authority Admin - ATLAS</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #e8e8e8;
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(30, 30, 50, 0.9);
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: #7dd3fc;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        h1::before {
+            content: '⚙️';
+        }
+        .subtitle {
+            color: rgba(255, 255, 255, 0.6);
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .tier-section {
+            margin-bottom: 30px;
+        }
+        .tier-header {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .tier-1 .tier-header {
+            background: rgba(34, 197, 94, 0.2);
+            color: #22c55e;
+            border-left: 3px solid #22c55e;
+        }
+        .tier-2 .tier-header {
+            background: rgba(234, 179, 8, 0.2);
+            color: #eab308;
+            border-left: 3px solid #eab308;
+        }
+        .tier-3 .tier-header {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+            border-left: 3px solid #ef4444;
+        }
+        .row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            margin-bottom: 12px;
+            padding: 12px 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            transition: background 0.2s;
+        }
+        .row:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .domain-label {
+            width: 200px;
+            font-size: 14px;
+            color: #cbd5e1;
+            font-family: 'Consolas', monospace;
+        }
+        input[type=range] {
+            flex: 1;
+            height: 6px;
+            -webkit-appearance: none;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #7dd3fc;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(125, 211, 252, 0.4);
+        }
+        input[type=range]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #7dd3fc;
+            cursor: pointer;
+            border: none;
+        }
+        .value-display {
+            width: 60px;
+            text-align: right;
+            font-weight: 600;
+            font-size: 14px;
+        }
+        .value-high { color: #22c55e; }
+        .value-medium { color: #eab308; }
+        .value-low { color: #ef4444; }
+        
+        .add-domain {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 8px;
+            border: 1px dashed rgba(255, 255, 255, 0.2);
+        }
+        .add-domain h3 {
+            font-size: 14px;
+            margin-bottom: 12px;
+            color: rgba(255, 255, 255, 0.7);
+        }
+        .add-domain-form {
+            display: flex;
+            gap: 10px;
+        }
+        .add-domain-form input[type=text] {
+            flex: 1;
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+        }
+        .add-domain-form input[type=text]::placeholder {
+            color: rgba(255, 255, 255, 0.4);
+        }
+        .add-domain-form select {
+            padding: 10px 15px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 6px;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: white;
+        }
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            color: white;
+        }
+        .btn-success:hover {
+            background: linear-gradient(135deg, #16a34a, #15803d);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.1);
+            color: #cbd5e1;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+        
+        .actions {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+            justify-content: flex-end;
+            padding-top: 20px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        
+        .toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            padding: 15px 25px;
+            background: #22c55e;
+            color: white;
+            border-radius: 8px;
+            font-weight: 600;
+            box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .toast.error {
+            background: #ef4444;
+            box-shadow: 0 4px 20px rgba(239, 68, 68, 0.4);
+        }
+        
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #7dd3fc;
+            text-decoration: none;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Back to ATLAS</a>
+        
+        <h1>Domain Authority Tuner</h1>
+        <p class="subtitle">Adjust authority scores for source domains. Higher authority = more weight in verdicts.</p>
+        
+        <div id="domainList"></div>
+        
+        <div class="add-domain">
+            <h3>➕ Add New Domain</h3>
+            <div class="add-domain-form">
+                <input type="text" id="newDomain" placeholder="example.com">
+                <select id="newTier">
+                    <option value="1">Tier 1 (High)</option>
+                    <option value="2" selected>Tier 2 (Medium)</option>
+                    <option value="3">Tier 3 (Low)</option>
+                </select>
+                <button class="btn btn-primary" onclick="addDomain()">Add</button>
+            </div>
+        </div>
+        
+        <div class="actions">
+            <button class="btn btn-secondary" onclick="resetDefaults()">Reset to Defaults</button>
+            <button class="btn btn-success" id="saveBtn" onclick="saveChanges()">💾 Save Changes</button>
+        </div>
+    </div>
+    
+    <div class="toast" id="toast"></div>
+
+    <script>
+        // Default domain authority map
+        const DEFAULT_DOMAINS = {
+            // Tier 1 - High authority (0.85-0.95)
+            "reuters.com": 0.95,
+            "apnews.com": 0.95,
+            "bbc.com": 0.90,
+            "nytimes.com": 0.88,
+            "washingtonpost.com": 0.88,
+            "theguardian.com": 0.87,
+            "wsj.com": 0.90,
+            "economist.com": 0.88,
+            "nature.com": 0.95,
+            "science.org": 0.95,
+            "gov": 0.92,
+            "edu": 0.88,
+            // Tier 2 - Medium authority (0.50-0.70)
+            "cnn.com": 0.70,
+            "foxnews.com": 0.60,
+            "msnbc.com": 0.65,
+            "ndtv.com": 0.65,
+            "hindustantimes.com": 0.60,
+            "timesofindia.com": 0.55,
+            "wikipedia.org": 0.70,
+            // Tier 3 - Low authority (0.20-0.40)
+            "medium.com": 0.40,
+            "substack.com": 0.35,
+            "blogspot.com": 0.25,
+            "wordpress.com": 0.25,
+            "twitter.com": 0.30,
+            "facebook.com": 0.20,
+            "reddit.com": 0.35
+        };
+        
+        let domainMap = {};
+        
+        // Load domains from server or use defaults
+        async function loadDomains() {
+            try {
+                const resp = await fetch('/admin/api/get-domain-authority');
+                if (resp.ok) {
+                    const data = await resp.json();
+                    domainMap = data.domains || DEFAULT_DOMAINS;
+                } else {
+                    domainMap = { ...DEFAULT_DOMAINS };
+                }
+            } catch (e) {
+                console.warn('Could not load from server, using defaults');
+                domainMap = { ...DEFAULT_DOMAINS };
+            }
+            renderDomains();
+        }
+        
+        function getTier(authority) {
+            if (authority >= 0.75) return 1;
+            if (authority >= 0.45) return 2;
+            return 3;
+        }
+        
+        function getValueClass(authority) {
+            if (authority >= 0.75) return 'value-high';
+            if (authority >= 0.45) return 'value-medium';
+            return 'value-low';
+        }
+        
+        function renderDomains() {
+            const list = document.getElementById('domainList');
+            list.innerHTML = '';
+            
+            // Group by tier
+            const tiers = { 1: [], 2: [], 3: [] };
+            for (const [domain, authority] of Object.entries(domainMap)) {
+                tiers[getTier(authority)].push({ domain, authority });
+            }
+            
+            // Sort each tier by authority descending
+            for (const tier of [1, 2, 3]) {
+                tiers[tier].sort((a, b) => b.authority - a.authority);
+            }
+            
+            // Render each tier
+            const tierNames = { 1: 'Tier 1 - High Authority', 2: 'Tier 2 - Medium Authority', 3: 'Tier 3 - Low Authority' };
+            const tierIcons = { 1: '🟢', 2: '🟡', 3: '🔴' };
+            
+            for (const tier of [1, 2, 3]) {
+                if (tiers[tier].length === 0) continue;
+                
+                const section = document.createElement('div');
+                section.className = `tier-section tier-${tier}`;
+                section.innerHTML = `<div class="tier-header">${tierIcons[tier]} ${tierNames[tier]} (${tiers[tier].length} domains)</div>`;
+                
+                for (const { domain, authority } of tiers[tier]) {
+                    const row = document.createElement('div');
+                    row.className = 'row';
+                    const pct = Math.round(authority * 100);
+                    row.innerHTML = `
+                        <div class="domain-label">${domain}</div>
+                        <input type="range" min="0" max="100" value="${pct}" 
+                               oninput="updateDomain('${domain}', this.value)">
+                        <span class="value-display ${getValueClass(authority)}">${pct}%</span>
+                    `;
+                    section.appendChild(row);
+                }
+                
+                list.appendChild(section);
+            }
+        }
+        
+        function updateDomain(domain, value) {
+            const authority = parseInt(value) / 100;
+            domainMap[domain] = authority;
+            renderDomains();
+        }
+        
+        function addDomain() {
+            const domainInput = document.getElementById('newDomain');
+            const tierSelect = document.getElementById('newTier');
+            
+            let domain = domainInput.value.trim().toLowerCase();
+            if (!domain) {
+                showToast('Please enter a domain', true);
+                return;
+            }
+            
+            // Clean domain
+            domain = domain.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0];
+            
+            if (domainMap[domain] !== undefined) {
+                showToast('Domain already exists', true);
+                return;
+            }
+            
+            const tier = parseInt(tierSelect.value);
+            let authority;
+            if (tier === 1) authority = 0.85;
+            else if (tier === 2) authority = 0.55;
+            else authority = 0.30;
+            
+            domainMap[domain] = authority;
+            domainInput.value = '';
+            renderDomains();
+            showToast(`Added ${domain}`);
+        }
+        
+        function resetDefaults() {
+            if (confirm('Reset all domains to default values?')) {
+                domainMap = { ...DEFAULT_DOMAINS };
+                renderDomains();
+                showToast('Reset to defaults');
+            }
+        }
+        
+        async function saveChanges() {
+            const saveBtn = document.getElementById('saveBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+            
+            try {
+                const resp = await fetch('/admin/api/set-domain-authority', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(domainMap)
+                });
+                
+                if (resp.ok) {
+                    showToast('✓ Saved successfully!');
+                } else {
+                    const err = await resp.text();
+                    showToast(`Save failed: ${err}`, true);
+                }
+            } catch (e) {
+                showToast(`Save failed: ${e.message}`, true);
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = '💾 Save Changes';
+            }
+        }
+        
+        function showToast(message, isError = false) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast' + (isError ? ' error' : '');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+        
+        // Initialize
+        loadDomains();
+    </script>
+</body>
+</html>

@@ -98,6 +98,253 @@ try:
     from colorama import Fore, Style, init as colorama_init
 except ImportError:
     Fore = Style = None
+
+# ==================================================================================
+# EVIDENCE HELPERS - Deduplication, Normalization, Probabilistic Combining
+# ==================================================================================
+
+# Domain authority baseline map - treat .gov, .edu, major outlets as higher authority
+DOMAIN_AUTHORITY_MAP = {
+    # Government domains
+    '.gov': 0.85, '.gov.uk': 0.85, '.gov.au': 0.85,
+    # Educational domains
+    '.edu': 0.80, '.ac.uk': 0.80,
+    # Major news outlets
+    'reuters.com': 0.85, 'apnews.com': 0.85, 'bbc.com': 0.80, 'bbc.co.uk': 0.80,
+    'nytimes.com': 0.75, 'washingtonpost.com': 0.75, 'theguardian.com': 0.75,
+    'wsj.com': 0.75, 'economist.com': 0.75, 'nature.com': 0.90, 'science.org': 0.90,
+    'pubmed.ncbi.nlm.nih.gov': 0.90, 'who.int': 0.85, 'cdc.gov': 0.85,
+    # Fact-checkers
+    'snopes.com': 0.80, 'factcheck.org': 0.80, 'politifact.com': 0.80,
+}
+
+def get_domain_authority(domain: str) -> Optional[float]:
+    """Get baseline authority from domain authority map."""
+    if not domain:
+        return None
+    domain = domain.lower()
+    # Check exact match first
+    if domain in DOMAIN_AUTHORITY_MAP:
+        return DOMAIN_AUTHORITY_MAP[domain]
+    # Check suffix matches (.gov, .edu, etc.)
+    for suffix, auth in DOMAIN_AUTHORITY_MAP.items():
+        if suffix.startswith('.') and domain.endswith(suffix):
+            return auth
+    return None
+
+def normalize_authority(raw_score: Optional[float]) -> float:
+    """
+    Turn various raw authority signals into a 0.0-1.0 normalized authority score.
+    If no signal, give a safe default (0.3).
+    """
+    try:
+        if raw_score is None:
+            return 0.3
+        s = float(raw_score)
+        # If it's a percentage between 0-100, map down
+        if s > 1.5:
+            s = max(0.0, min(100.0, s)) / 100.0
+        return max(0.0, min(1.0, s))
+    except Exception:
+        return 0.3
+
+def dedupe_articles_by_url(articles: List[dict]) -> List[dict]:
+    """Keep first-highest-quality instance for each url_hash, preserve order."""
+    seen = {}
+    out = []
+    for a in articles:
+        uh = a.get("url_hash") or hashlib.sha256(a.get("url","").encode()).hexdigest()
+        if uh not in seen:
+            seen[uh] = a
+            out.append(a)
+        else:
+            # If duplicate and this one has higher authority replace
+            old = seen[uh]
+            new_auth = a.get("authority", 0)
+            old_auth = old.get("authority", 0)
+            if new_auth > old_auth:
+                # replace in mapping and in out list
+                seen[uh] = a
+                for i, x in enumerate(out):
+                    if (x.get("url_hash") or hashlib.sha256(x.get("url","").encode()).hexdigest()) == uh:
+                        out[i] = a
+                        break
+    return out
+
+def combine_confidences_probabilistic(confidences: List[float], weights: List[float] = None) -> float:
+    """
+    Probabilistic confidence combining - models diminishing returns.
+    
+    confidences: list of floats in [0,1]
+    weights: optional list of [0,1] same length, used to scale each evidence's contribution.
+    Returns combined probability in [0,1] using: 1 - product(1 - w_i * c_i)
+    This avoids linear runaway sums and models diminishing returns.
+    """
+    if not confidences:
+        return 0.0
+    prod = 1.0
+    if weights is None:
+        weights = [1.0] * len(confidences)
+    for c, w in zip(confidences, weights):
+        c_ = max(0.0, min(1.0, c))
+        w_ = max(0.0, min(1.0, w))
+        prod *= (1.0 - (c_ * w_))
+    return 1.0 - prod
+
+# ==================================================================================
+# ROBUST EXTRACTION & CLEANING HELPERS
+# ==================================================================================
+
+# Optional: pip install readability-lxml for better article extraction
+try:
+    from readability import Document as ReadabilityDocument
+except ImportError:
+    ReadabilityDocument = None
+
+def normalize_url_for_dedupe(url: str) -> str:
+    """Return normalized URL without query params for deterministic dedupe."""
+    try:
+        p = up.urlparse(url)
+        norm = up.urlunparse((p.scheme or "https", p.netloc.lower().replace("www.", ""), p.path.rstrip('/'), "", "", ""))
+        return norm
+    except Exception:
+        return url
+
+def extract_title_from_html(html: Optional[str], fallback: str = "") -> str:
+    """Best-effort title extraction from HTML."""
+    if not html:
+        return fallback or "No Title"
+    try:
+        soup = BeautifulSoup(html, "html.parser")
+        title_tag = soup.find("h1") or soup.find("title")
+        if title_tag and title_tag.get_text(strip=True):
+            return title_tag.get_text(strip=True)[:200]
+    except Exception:
+        pass
+    # Try readability
+    if ReadabilityDocument:
+        try:
+            doc = ReadabilityDocument(html)
+            title = doc.short_title()
+            if title:
+                return title.strip()[:200]
+        except Exception:
+            pass
+    return fallback or "No Title"
+
+def strip_boilerplate(text: str) -> str:
+    """Heuristically remove common nav/footer/subscribe phrases and compress whitespace."""
+    if not text:
+        return ""
+    # Remove common UI strings and ends of pages
+    ui_patterns = [
+        r'(Subscribe( now)?|Sign in|Log in|LOGIN|SUBSCRIBE|Register|Create Account).*?(?=\.|$)',
+        r'(View Market Dashboard|Latest News|Breaking News|Top Stories).*?(?=\.|$)',
+        r'(Premium|Paywall|Unlock this article|Already a member).*?(?=\.|$)',
+    ]
+    for pattern in ui_patterns:
+        text = re.sub(pattern, ' ', text, flags=re.I)
+    # Remove repeated words from header scraps like 'English SubscribeSign in View'
+    text = re.sub(r'((?:[A-Z][a-z]{1,10}\s?){6,})', lambda m: ' ', text)
+    # Remove common junk patterns
+    text = re.sub(r'\b(Advertisement|Sponsored|Read More|Share this|Follow us|See Also)\b', ' ', text, flags=re.I)
+    # Remove social media
+    text = re.sub(r'\b(Facebook|Twitter|LinkedIn|Instagram|Share on|Follow @)\b', ' ', text, flags=re.I)
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
+
+def fetch_and_clean(url: str, html: Optional[str] = None, max_chars: int = 10000) -> dict:
+    """
+    Return {'text': clean_text, 'title':title, 'method':'trafilatura|readability|bs4', 'raw_html': html}
+    Uses available extractors in order: trafilatura -> readability -> bs4 paragraph join.
+    """
+    raw_html = html
+    text = ""
+    method = "none"
+
+    # If trafilatura is available and we don't have HTML, fetch it
+    if trafilatura and not html:
+        try:
+            r = requests.get(url, headers={"User-Agent": DEFAULT_UA}, timeout=TIMEOUT)
+            r.raise_for_status()
+            raw_html = r.text
+        except Exception:
+            raw_html = html
+
+    # Try trafilatura first (handles boilerplate well)
+    if trafilatura and raw_html:
+        try:
+            data = trafilatura.extract(raw_html, output_format='text')
+            if data and len(data) > 50:
+                text = data
+                method = "trafilatura"
+        except Exception:
+            pass
+
+    # Fallback to readability (cleaner article extraction)
+    if not text and raw_html and ReadabilityDocument:
+        try:
+            doc = ReadabilityDocument(raw_html)
+            summary = doc.summary()  # returns HTML snippet
+            soup = BeautifulSoup(summary, "html.parser")
+            text = soup.get_text(" ", strip=True)
+            if len(text) > 50:
+                method = "readability"
+        except Exception:
+            text = ""
+
+    # Last resort: plain paragraph join from provided html
+    if not text and raw_html:
+        soup = BeautifulSoup(raw_html, "html.parser")
+        # Remove noisy tags first
+        for tag in soup(["script", "style", "nav", "footer", "header", "aside", "form"]):
+            tag.decompose()
+        ps = [p.get_text(" ", strip=True) for p in soup.find_all("p") if p.get_text(strip=True)]
+        text = " ".join(ps)
+        method = "bs4" if text else method
+
+    # If still empty and caller provided pre-scraped text (not HTML), use it
+    if not text and html and not html.strip().startswith('<'):
+        text = html
+        method = "passthrough"
+
+    # Clean boilerplate
+    clean = strip_boilerplate(text)[:max_chars] if text else ""
+
+    title = extract_title_from_html(raw_html, fallback=(clean.split(".")[0][:100] if clean else "No Title"))
+    return {"text": clean, "title": title, "method": method or "none", "raw_html": raw_html}
+
+def paraphrase_snippet(text: str, max_chars: int = 200) -> str:
+    """
+    Safe fallback summarizer:
+      - If a transformer pipeline is available use it (not installed by default)
+      - Otherwise pick first meaningful sentences, strip boilerplate, and cap length.
+    """
+    if not text:
+        return ""
+    # prefer an installed summarizer pipeline if configured
+    if SUMMARIZER_PIPELINE:
+        try:
+            out = SUMMARIZER_PIPELINE(text[:4000], max_length=max_chars, truncation=True)
+            return out[0]['summary_text'] if isinstance(out, list) else str(out)
+        except Exception:
+            pass
+
+    # naive extractive fallback
+    s = text.strip()
+    # remove repeated header-chunks
+    s = re.sub(r'^(Subscribe|Sign in|Home|Dashboard|Latest News)[\s:,-]*', '', s, flags=re.I)
+    sentences = re.split(r'(?<=[.!?])\s+', s)
+    out = ""
+    for sent in sentences:
+        if len(out) + len(sent) <= max_chars:
+            out += (sent + " ")
+        else:
+            break
+    out = out.strip()
+    if not out:
+        out = (s[:max_chars]).rsplit(" ", 1)[0]
+    return out[:max_chars]
 ## Pro Feature: New import for plotting
 try:
     import matplotlib
@@ -120,11 +367,29 @@ TIMEOUT = 25
 NLP_MODEL, SUMMARIZER_PIPELINE = None, None
 
 # --- Core Scraping & Analysis Functions ---
+# URL detection regex - matches http:// or https:// URLs
+URL_REGEX = re.compile(r'^https?://[^\s]+$', re.IGNORECASE)
+
+
+def is_direct_url(text: str) -> bool:
+    """Check if text is a direct URL rather than a search query."""
+    if not text:
+        return False
+    text = text.strip()
+    return bool(URL_REGEX.match(text))
+
+
 def topic_to_urls(topic: str, num_results: int = 5) -> List[str]:
     """
     Finds news article URLs for a topic by scraping Google News.
+    If topic is already a URL (http/https), returns it directly.
     This version uses a list of CSS selectors to robustly handle HTML changes.
     """
+    # Detect if topic is actually a direct URL
+    if is_direct_url(topic):
+        logging.info(f"Direct URL detected, skipping Google search: {topic[:80]}...")
+        return [topic.strip()]
+    
     logging.info(f"Searching for '{topic}' on Google News...")
     search_url = f"https://www.google.com/search?q={up.quote(topic)}&tbm=nws&num={num_results + 5}"
     headers = {
@@ -252,38 +517,68 @@ def process_scraped_text(scrape_data: dict, args: argparse.Namespace) -> Optiona
     """
     Takes raw scraped text, analyzes it, and formats the ArticleData dict.
     This is a SYNCHRONOUS, CPU-bound function designed to run in a thread.
+    Uses robust extraction (trafilatura/readability/bs4) and creates clean 200-char snippets.
     """
     try:
-        url = scrape_data['url']
-        text = scrape_data['content']
-        method = scrape_data['method']
+        url = scrape_data.get('url')
+        raw_content = scrape_data.get('content')  # may be raw text or HTML
+        extraction_method = scrape_data.get('method')
         
-        if not text or len(text) < 50:
+        if not raw_content or len(raw_content) < 50:
             logging.warning(f"Insufficient content from {url}")
             return None
         
-        # Run NLP analysis
-        analysis = analyze_text(text, args)
+        # Use robust extraction: trafilatura -> readability -> bs4 -> passthrough
+        clean_res = fetch_and_clean(url, html=raw_content, max_chars=12000)
+        clean_text = clean_res.get("text") or ""
+        title = clean_res.get("title") or (clean_text.split(".")[0][:100] if clean_text else "No Title")
+        used_method = clean_res.get("method") or extraction_method or "unknown"
         
-        # Extract basic metadata from content
-        lines = text.split('\n')
-        title = lines[0][:100] + "..." if lines else "No Title"
-        domain = up.urlsplit(url).netloc
+        if not clean_text or len(clean_text) < 50:
+            logging.warning(f"Insufficient clean content from {url}")
+            return None
         
-        # Try to parse BeautifulSoup for better metadata if needed
-        # (Optional enhancement: you could pass HTML from HybridScraper)
+        # Run NLP analysis on cleaned text
+        analysis = analyze_text(clean_text, args)
         
+        # Create short paraphrased snippet (≤200 chars, removes site chrome)
+        snippet = paraphrase_snippet(clean_text, max_chars=200)
+        
+        # Normalize domain (strip www.)
+        domain = up.urlsplit(url).netloc.lower().replace("www.", "")
+        
+        # Build forensic_dossier with proper structure (fixes [object Object] UI bug)
+        forensic_entities = []
+        entities_dict = analysis.get('entities', {})
+        for entity_type, entity_names in entities_dict.items():
+            for ent_name in (entity_names[:3] if isinstance(entity_names, list) else []):
+                forensic_entities.append({
+                    "name": ent_name,
+                    "type": entity_type,
+                    "reputation_score": 50,
+                    "red_flags": [],
+                    "source": domain
+                })
+        
+        # Get domain-based authority if available
+        domain_auth = get_domain_authority(domain)
+        base_authority = domain_auth if domain_auth else None
+        
+        # Build ArticleData with normalized URL hash for deterministic dedupe
         return {
             "url": url,
             "canonical_url": url,
-            "url_hash": hashlib.sha256(url.encode()).hexdigest(),
+            "url_hash": hashlib.sha256(normalize_url_for_dedupe(url).encode()).hexdigest(),
             "domain": domain,
             "title": title,
-            "published_at": None,  # Could be enhanced
-            "text": text,
+            "published_at": None,
+            "text": clean_text,
+            "summary": snippet,  # Short ≤200 char snippet
             "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(),
-            "extraction_method": method,  # Now stores "playwright", "jina", etc.
-            "word_count": len(text.split()) if text else 0,
+            "extraction_method": used_method,
+            "word_count": len(clean_text.split()) if clean_text else 0,
+            "authority": base_authority,
+            "forensic_dossier": {"entities": forensic_entities},
             **analysis,
         }
     except Exception as e:
@@ -292,14 +587,32 @@ def process_scraped_text(scrape_data: dict, args: argparse.Namespace) -> Optiona
     
 
 def scrape_and_analyze(url: str, session: requests.Session, args: argparse.Namespace) -> ArticleData:
+    """Synchronous scrape and analyze - uses robust extraction."""
     resp = session.get(url, timeout=TIMEOUT); resp.raise_for_status(); html = resp.text
-    text, meta, method = extract_text_and_meta(html)
-    analysis = analyze_text(text or "", args)
+    
+    # Use robust extraction
+    clean_res = fetch_and_clean(url, html=html, max_chars=12000)
+    clean_text = clean_res.get("text") or ""
+    title = clean_res.get("title") or "No Title"
+    used_method = clean_res.get("method") or "unknown"
+    
+    analysis = analyze_text(clean_text, args)
+    snippet = paraphrase_snippet(clean_text, max_chars=200)
+    domain = up.urlsplit(url).netloc.lower().replace("www.", "")
+    
     return {
-        "url": url, "canonical_url": url, "url_hash": hashlib.sha256(url.encode()).hexdigest(),
-        "domain": up.urlsplit(url).netloc, "title": meta.get("title"), "published_at": meta.get("published_at"),
-        "text": text, "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(), "extraction_method": method,
-        "word_count": len(text.split()) if text else 0, **analysis,
+        "url": url, 
+        "canonical_url": url, 
+        "url_hash": hashlib.sha256(normalize_url_for_dedupe(url).encode()).hexdigest(),
+        "domain": domain, 
+        "title": title, 
+        "published_at": None,
+        "text": clean_text, 
+        "summary": snippet,
+        "fetched_at": dt.datetime.now(dt.timezone.utc).isoformat(), 
+        "extraction_method": used_method,
+        "word_count": len(clean_text.split()) if clean_text else 0, 
+        **analysis,
     }
 
 # --- Caching and Ranking ---
@@ -619,10 +932,61 @@ async def get_diversified_evidence(topic: str, num_results: int = 5, use_cache: 
             cache_article(result, db_conn)  # Add to cache
             newly_processed_articles.append(result)
 
+    # ==================================================================================
+    # EVIDENCE QUALITY: Normalize authority, dedupe, and return top-N
+    # ==================================================================================
+    
+    # Normalize authority for all newly processed articles
+    for art in newly_processed_articles:
+        raw_auth = art.get('authority')
+        if raw_auth is None:
+            # Try domain-based authority first
+            domain = art.get('domain', '')
+            domain_auth = get_domain_authority(domain)
+            if domain_auth is not None:
+                art['authority'] = normalize_authority(domain_auth)
+            else:
+                # Heuristic: longer, better-analyzed article = slightly higher authority
+                wc = art.get("word_count", 0)
+                has_entities = bool(art.get('entities'))
+                has_sentiment = bool(art.get('sentiment'))
+                base_auth = 0.2 + (wc / 3000) + (0.1 if has_entities else 0) + (0.05 if has_sentiment else 0)
+                art['authority'] = normalize_authority(min(0.9, base_auth))
+        else:
+            art['authority'] = normalize_authority(raw_auth)
+    
+    # Also normalize cached articles that may not have authority
+    for art in successful_articles:
+        if 'authority' not in art or art.get('authority') is None:
+            domain = art.get('domain', '')
+            domain_auth = get_domain_authority(domain)
+            if domain_auth is not None:
+                art['authority'] = normalize_authority(domain_auth)
+            else:
+                wc = art.get("word_count", 0)
+                art['authority'] = normalize_authority(min(0.7, 0.2 + (wc / 3000)))
+    
+    # Merge cached + newly processed and dedupe
+    all_articles = successful_articles + newly_processed_articles
+    all_articles = dedupe_articles_by_url(all_articles)
+    
+    # Rank by authority (and word_count as tiebreaker) and limit to top N evidence items
+    N_EVIDENCE = max(5, num_results)  # At least 5, or requested amount
+    all_articles = sorted(
+        all_articles, 
+        key=lambda a: (a.get('authority', 0), a.get('word_count', 0)), 
+        reverse=True
+    )[:N_EVIDENCE]
+    
+    # Attach 'relevance' score for weighting when combining confidences
+    # (Future: compute actual topic overlap)
+    for a in all_articles:
+        a['relevance'] = 1.0
+    
     if db_conn:
         db_conn.close()
 
-    logging.info(f"✅ Successfully gathered {len(newly_processed_articles)} new articles (+ {len(successful_articles)} from cache).")
+    logging.info(f"✅ Successfully gathered {len(all_articles)} evidence articles (deduped from {len(successful_articles)} cached + {len(newly_processed_articles)} new).")
     if failed_urls:
         logging.warning(f"⚠️  Failed to gather evidence from {len(failed_urls)} sources.")
     
@@ -630,8 +994,7 @@ async def get_diversified_evidence(topic: str, num_results: int = 5, use_cache: 
     stats = hybrid_scraper.get_stats()
     logging.info(f"📊 Scraper statistics: {stats}")
 
-    # Return ALL articles (cached + new)
-    return successful_articles + newly_processed_articles
+    return all_articles
 
 
 

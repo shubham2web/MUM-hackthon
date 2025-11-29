@@ -456,10 +456,373 @@ const Chat = {
         Messages.addAIMessage('⏹️ Generation stopped by user.');
     },
 
+    // ==================== THINKING UI HELPERS (Debate Mode) ====================
+    
+    /**
+     * Create and show a thinking bubble for a single step.
+     * Returns a Promise that resolves when the bubble times out.
+     */
+    showReasoningStep(stepData, container, duration = 1200) {
+        return new Promise(resolve => {
+            const bubble = document.createElement('div');
+            bubble.className = 'thinking-bubble';
+
+            bubble.innerHTML = `
+                <div class="thinking-dots">
+                    <span class="thinking-dot"></span>
+                    <span class="thinking-dot"></span>
+                    <span class="thinking-dot"></span>
+                </div>
+                <div class="thinking-text">${this.escapeHtmlForThinking(stepData.message)}</div>
+            `;
+
+            container.appendChild(bubble);
+            container.scrollTop = container.scrollHeight;
+
+            // Animate then fade
+            setTimeout(() => {
+                bubble.classList.add('fade-out');
+                // Remove after fade completes
+                setTimeout(() => {
+                    bubble.remove();
+                    resolve();
+                }, 350);
+            }, duration);
+        });
+    },
+
+    /**
+     * Play a full trace sequence one step after another.
+     */
+    async playDebateReasoning(trace, container, perStepMs = 1200) {
+        if (!Array.isArray(trace) || trace.length === 0) return;
+        for (const step of trace) {
+            await this.showReasoningStep(step, container, perStepMs);
+        }
+    },
+
+    /**
+     * Safe HTML escape for thinking bubbles
+     */
+    escapeHtmlForThinking(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    },
+
+    /**
+     * Main entry point for debate flow with Gemini-style thinking.
+     * Shows "Show thinking" dropdown first (with pro/opp/moderator scripts),
+     * then the verdict OUTSIDE/AFTER the thinking block.
+     */
+    async startDebateFlow(apiResponse) {
+        const container = document.getElementById('chatMessages') || document.getElementById('debate-output');
+        if (!container) {
+            console.error('No container found for debate flow');
+            return;
+        }
+
+        console.log('🧠 startDebateFlow received:', apiResponse);
+
+        // Create the AI response container (like Gemini's response bubble)
+        const responseContainer = document.createElement('div');
+        responseContainer.className = 'message ai-message debate-response';
+        container.appendChild(responseContainer);
+
+        // 1. First show the "Show thinking" collapsible with pro/opp/moderator scripts INSIDE
+        const hasThinking = (apiResponse.pro) || (apiResponse.opp) || (apiResponse.trace && apiResponse.trace.length > 0);
+        
+        if (hasThinking) {
+            const thinkingPanel = document.createElement('div');
+            thinkingPanel.className = 'gemini-show-thinking';
+            
+            // Build thinking content with pro/opp/moderator scripts
+            let thinkingContent = '';
+            
+            // Proponent script/reasoning
+            if (apiResponse.pro) {
+                const proSummary = apiResponse.pro.summary || (apiResponse.pro.arguments && apiResponse.pro.arguments.join(' ')) || 'Analyzing supporting evidence...';
+                const proThinking = apiResponse.pro.thinking || '';
+                thinkingContent += `
+                    <div class="thinking-agent-block pro-agent">
+                        <div class="agent-header">
+                            <span class="agent-icon">✅</span>
+                            <span class="agent-name">Proponent</span>
+                        </div>
+                        <div class="agent-script">${this.escapeHtmlForThinking(proSummary)}</div>
+                        ${proThinking ? `<div class="agent-reasoning"><em>Internal reasoning:</em> ${this.escapeHtmlForThinking(proThinking)}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            // Opponent script/reasoning
+            if (apiResponse.opp) {
+                const oppSummary = apiResponse.opp.summary || (apiResponse.opp.arguments && apiResponse.opp.arguments.join(' ')) || 'Analyzing counter-evidence...';
+                const oppThinking = apiResponse.opp.thinking || '';
+                thinkingContent += `
+                    <div class="thinking-agent-block opp-agent">
+                        <div class="agent-header">
+                            <span class="agent-icon">❌</span>
+                            <span class="agent-name">Opponent</span>
+                        </div>
+                        <div class="agent-script">${this.escapeHtmlForThinking(oppSummary)}</div>
+                        ${oppThinking ? `<div class="agent-reasoning"><em>Internal reasoning:</em> ${this.escapeHtmlForThinking(oppThinking)}</div>` : ''}
+                    </div>
+                `;
+            }
+            
+            // Moderator/Judge reasoning (from verdict)
+            if (apiResponse.verdict) {
+                const verdictSummary = apiResponse.verdict.summary || 'Weighing arguments from both sides...';
+                thinkingContent += `
+                    <div class="thinking-agent-block moderator-agent">
+                        <div class="agent-header">
+                            <span class="agent-icon">⚖️</span>
+                            <span class="agent-name">Moderator</span>
+                        </div>
+                        <div class="agent-script">${this.escapeHtmlForThinking(verdictSummary)}</div>
+                        <div class="agent-reasoning"><em>Analyzing both arguments to reach a balanced verdict...</em></div>
+                    </div>
+                `;
+            }
+            
+            thinkingPanel.innerHTML = `
+                <button class="show-thinking-btn" onclick="this.nextElementSibling.classList.toggle('show'); this.classList.toggle('expanded');">
+                    <span class="thinking-sparkle">✦</span>
+                    <span class="btn-text">Show thinking</span>
+                    <span class="thinking-chevron">▼</span>
+                </button>
+                <div class="thinking-dropdown">
+                    ${thinkingContent}
+                </div>
+            `;
+            
+            responseContainer.appendChild(thinkingPanel);
+        }
+
+        // 2. NOW show the VERDICT OUTSIDE the thinking block (this is the main output)
+        if (apiResponse.verdict) {
+            const verdictBox = document.createElement('div');
+            verdictBox.className = 'verdict-result-box';
+            
+            const verdict = apiResponse.verdict;
+            const verdictText = verdict.verdict || 'INCONCLUSIVE';
+            const confidence = verdict.confidence_pct || 50;
+            const recommendation = verdict.recommendation || '';
+            
+            // Determine verdict color
+            let verdictColor = '#FBBF24'; // yellow for complex/inconclusive
+            if (verdictText === 'VERIFIED' || verdictText === 'TRUE') {
+                verdictColor = '#10B981'; // green
+            } else if (verdictText === 'DEBUNKED' || verdictText === 'FALSE') {
+                verdictColor = '#EF4444'; // red
+            }
+            
+            verdictBox.innerHTML = `
+                <div class="verdict-header">
+                    <span class="verdict-icon">⚖️</span>
+                    <span class="verdict-label">Final Verdict</span>
+                </div>
+                <div class="verdict-main" style="color: ${verdictColor}">
+                    ${verdictText}
+                    <span class="verdict-confidence">${confidence}% confidence</span>
+                </div>
+                ${recommendation ? `<div class="verdict-recommendation">💡 ${this.escapeHtmlForThinking(recommendation)}</div>` : ''}
+            `;
+            
+            responseContainer.appendChild(verdictBox);
+        }
+
+        // 3. Show evidence tiles if available
+        if (apiResponse.evidence && apiResponse.evidence.length > 0) {
+            this.renderEvidenceTiles(apiResponse.evidence, responseContainer);
+        }
+
+        container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Render Gemini-style "Show thinking" panel (kept for backwards compatibility)
+     */
+    renderThinkingPanel(apiResponse, container) {
+        // This is now integrated into startDebateFlow
+    },
+
+    /**
+     * Render proponent arguments box (clean, no inline thinking)
+     */
+    renderProponentBox(pro, container) {
+        if (!pro) return;
+        const box = document.createElement('div');
+        box.className = 'message ai-message pro-box';
+        
+        const summary = pro.summary || (pro.arguments && pro.arguments.join(' • ')) || (pro.points && pro.points.join(' • ')) || 'No arguments available';
+        
+        box.innerHTML = `
+            <div class="box-title pro-title">✅ Proponent</div>
+            <div class="box-summary">${this.escapeHtmlForThinking(summary)}</div>
+            ${pro.citations ? `<div class="box-citations">Citations: ${pro.citations.map(c => `[${c}]`).join(', ')}</div>` : ''}
+        `;
+        container.appendChild(box);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Render opponent arguments box (clean, no inline thinking)
+     */
+    renderOpponentBox(opp, container) {
+        if (!opp) return;
+        const box = document.createElement('div');
+        box.className = 'message ai-message opp-box';
+        
+        const summary = opp.summary || (opp.arguments && opp.arguments.join(' • ')) || (opp.points && opp.points.join(' • ')) || 'No arguments available';
+        
+        box.innerHTML = `
+            <div class="box-title opp-title">❌ Opponent</div>
+            <div class="box-summary">${this.escapeHtmlForThinking(summary)}</div>
+            ${opp.citations ? `<div class="box-citations">Citations: ${opp.citations.map(c => `[${c}]`).join(', ')}</div>` : ''}
+        `;
+        container.appendChild(box);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Render safe background reasoning panel (PRD-compliant, no chain-of-thought)
+     * Shows: pipeline trace, evidence provenance, agent summaries, score breakdown, audit fingerprint
+     */
+    renderBackgroundPanel(background, container) {
+        if (!background) return;
+        
+        const panel = document.createElement('div');
+        panel.className = 'bg-panel';
+
+        const toggle = document.createElement('button');
+        toggle.className = 'bg-toggle';
+        toggle.innerHTML = '🔍 Show background reasoning';
+        panel.appendChild(toggle);
+
+        const inner = document.createElement('div');
+        inner.className = 'bg-inner';
+        inner.style.display = 'none';
+
+        // Pipeline timeline
+        if (background.trace && background.trace.length > 0) {
+            const traceTitle = document.createElement('h4');
+            traceTitle.textContent = '⏱️ Pipeline Timeline';
+            inner.appendChild(traceTitle);
+            
+            background.trace.forEach(t => {
+                const li = document.createElement('div');
+                li.className = 'bg-trace';
+                li.innerHTML = `<span class="trace-step">${this.escapeHtmlForThinking(t.step)}</span> — ${this.escapeHtmlForThinking(t.msg)} <span class="trace-time">(${t.took_ms} ms)</span>`;
+                inner.appendChild(li);
+            });
+        }
+
+        // Evidence provenance
+        if (background.evidence_provenance && background.evidence_provenance.length > 0) {
+            const evTitle = document.createElement('h4');
+            evTitle.textContent = '📚 Evidence Provenance';
+            inner.appendChild(evTitle);
+            
+            background.evidence_provenance.forEach(e => {
+                const ev = document.createElement('div');
+                ev.className = 'bg-evidence';
+                const authorityPct = Math.round((e.authority || 0) * 100);
+                const cacheIcon = e.cache_hit ? '💾' : '🌐';
+                ev.innerHTML = `
+                    <div class="bg-ev-header">
+                        <span class="bg-ev-id">[${this.escapeHtmlForThinking(e.id)}]</span>
+                        <strong>${this.escapeHtmlForThinking(e.title || e.domain)}</strong>
+                        <span class="bg-ev-authority">Authority: ${authorityPct}%</span>
+                        <span class="bg-ev-cache">${cacheIcon}</span>
+                    </div>
+                    <div class="bg-ev-meta">${this.escapeHtmlForThinking(e.domain)} · Method: ${this.escapeHtmlForThinking(e.method)}</div>
+                    <div class="bg-ev-snippet">${this.escapeHtmlForThinking(e.snippet)}</div>
+                `;
+                inner.appendChild(ev);
+            });
+        }
+
+        // Agent summaries
+        if (background.agents && Object.keys(background.agents).length > 0) {
+            const agTitle = document.createElement('h4');
+            agTitle.textContent = '🤖 Agent Summaries';
+            inner.appendChild(agTitle);
+            
+            Object.keys(background.agents).forEach(agentName => {
+                const a = background.agents[agentName];
+                const el = document.createElement('div');
+                el.className = 'bg-agent';
+                const usedEv = (a.used_evidence || []).join(', ') || 'none';
+                el.innerHTML = `
+                    <div class="bg-agent-name">${this.escapeHtmlForThinking(agentName)}</div>
+                    <div class="bg-agent-summary">${this.escapeHtmlForThinking(a.summary || 'No summary')}</div>
+                    <div class="bg-agent-evidence">Used evidence: ${usedEv}</div>
+                `;
+                inner.appendChild(el);
+            });
+        }
+
+        // Score breakdown
+        if (background.score_breakdown) {
+            const scTitle = document.createElement('h4');
+            scTitle.textContent = '📊 Score Breakdown';
+            inner.appendChild(scTitle);
+            
+            const sb = background.score_breakdown;
+            const sbEl = document.createElement('div');
+            sbEl.className = 'bg-score';
+            sbEl.innerHTML = `
+                <div class="bg-score-row"><span>Combined Confidence:</span> <strong>${Math.round((sb.combined_confidence || 0) * 100)}%</strong></div>
+                <div class="bg-score-row"><span>Authority Average:</span> <strong>${Math.round((sb.authority_avg || 0) * 100)}%</strong></div>
+                <div class="bg-score-row"><span>Evidence Count:</span> <strong>${sb.evidence_count || 0}</strong></div>
+                <div class="bg-score-formula">Formula: ${this.escapeHtmlForThinking(sb.calculation || 'N/A')}</div>
+            `;
+            inner.appendChild(sbEl);
+        }
+
+        // Audit fingerprint
+        if (background.audit) {
+            const audit = document.createElement('div');
+            audit.className = 'bg-audit';
+            const hash = (background.audit.deterministic_hash || '').slice(0, 12);
+            audit.innerHTML = `
+                <span class="bg-audit-label">🔐 Audit:</span>
+                <span class="bg-audit-hash">fingerprint: ${hash}...</span>
+                <span class="bg-audit-version">version: ${this.escapeHtmlForThinking(background.audit.version || 'unknown')}</span>
+            `;
+            inner.appendChild(audit);
+        }
+
+        // Toggle functionality
+        toggle.onclick = () => {
+            if (inner.style.display === 'none') {
+                inner.style.display = 'block';
+                toggle.innerHTML = '🔍 Hide background reasoning';
+            } else {
+                inner.style.display = 'none';
+                toggle.innerHTML = '🔍 Show background reasoning';
+            }
+        };
+
+        panel.appendChild(inner);
+        container.appendChild(panel);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    // ==================== END THINKING UI HELPERS ====================
+
     setupEventListeners() {
         const sendBtn = document.getElementById('sendBtn');
         const stopBtn = document.getElementById('stopBtn');
         const input = document.getElementById('messageInput');
+        
+        console.log('🔧 setupEventListeners - sendBtn:', !!sendBtn, 'stopBtn:', !!stopBtn, 'input:', !!input);
 
         sendBtn?.addEventListener('click', () => this.handleSend());
         stopBtn?.addEventListener('click', () => this.stopGeneration());
@@ -1096,9 +1459,14 @@ const Chat = {
 
     async handleSend() {
         const input = document.getElementById('messageInput');
-        const message = input.value.trim();
+        console.log('📤 handleSend called, input element:', !!input);
+        const message = input?.value?.trim() || '';
+        console.log('📝 Message to send:', message);
 
-        if (!message || this.isProcessing) return;
+        if (!message || this.isProcessing) {
+            console.log('⚠️ Skipping send - no message or already processing');
+            return;
+        }
 
         // Check if V2 enhanced analysis is enabled
         const v2Toggle = document.getElementById('v2Toggle');
@@ -1220,9 +1588,9 @@ const Chat = {
                 
                 let response;
                 
-                // DEBATE MODE: Always use streaming debate, ignore v2 toggle
+                // DEBATE MODE: Use /rag/debate with thinking animation
                 if (this.currentMode === 'debate') {
-                    console.log('🎭 Running debate mode...');
+                    console.log('🎭 Running debate mode with thinking animation...');
                     response = await Promise.race([
                         API.sendMessage(message, 'debate', conversationHistory, abortSignal),
                         timeoutPromise
@@ -1236,8 +1604,19 @@ const Chat = {
                     
                     Messages.hideLoading();
                     
-                    // Handle new verdict response (v4.1)
-                    if (response && response.isVerdict && response.verdict) {
+                    // Handle new debate response with trace (thinking animation)
+                    if (response && response.isDebate) {
+                        console.log('🧠 Starting debate flow with trace animation...', response);
+                        await this.startDebateFlow(response);
+                        
+                        // Persist verdict summary
+                        if (ChatStore.currentChatId && response.verdict) {
+                            const summary = `Verdict: ${response.verdict.verdict} (${response.verdict.confidence_pct}%) - ${response.verdict.summary}`;
+                            ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', summary);
+                        }
+                    }
+                    // Handle legacy verdict response (v4.1 without trace)
+                    else if (response && response.isVerdict && response.verdict) {
                         console.log('📊 Displaying neutral verdict (v4.1)...', response.verdict);
                         this.displayFinalVerdict(response.verdict);
                         
@@ -1642,6 +2021,93 @@ const Chat = {
      *   timestamp: "..."
      * }
      */
+    
+    /**
+     * Insert citation anchors into text, replacing [1], [2] with clickable links.
+     * @param {string} text - Text containing citation markers like [1], [2]
+     * @param {Array} evidenceBundle - Array of evidence objects with url property
+     * @returns {string} HTML string with citation links
+     */
+    injectCitationAnchors(text, evidenceBundle) {
+        if (!text || !evidenceBundle) return text || '';
+        
+        return text.replace(/\[(\d+)\]/g, (match, num) => {
+            const idx = parseInt(num, 10) - 1;
+            if (idx < 0 || idx >= evidenceBundle.length) return match;
+            
+            const ev = evidenceBundle[idx];
+            const url = ev.url || '#';
+            const hasValidUrl = url && url.startsWith('http');
+            
+            if (hasValidUrl) {
+                return `<a href="${url}" target="_blank" rel="noreferrer noopener" class="citation-link" style="color: #60a5fa; text-decoration: none; font-weight: 600;">[${num}]</a>`;
+            }
+            return `<span class="citation-ref" style="color: #60a5fa; font-weight: 600;">[${num}]</span>`;
+        });
+    },
+    
+    /**
+     * Render evidence tiles with citation markers.
+     * Creates clickable evidence cards with [1], [2], etc. markers.
+     */
+    renderEvidenceTiles(evidenceBundle, containerEl) {
+        if (!Array.isArray(evidenceBundle) || evidenceBundle.length === 0) return;
+        
+        const list = document.createElement('ul');
+        list.className = 'evidence-list';
+        list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+        
+        evidenceBundle.forEach((ev, idx) => {
+            const citationIdx = ev.citation_idx || (idx + 1);
+            const li = document.createElement('li');
+            li.className = 'evidence-item';
+            li.style.cssText = 'margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #60a5fa;';
+            
+            // Citation badge
+            const cite = document.createElement('span');
+            cite.className = 'evidence-cite';
+            cite.style.cssText = 'display: inline-block; background: #60a5fa; color: #1a1a2e; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-right: 8px; font-size: 12px;';
+            cite.textContent = `[${citationIdx}]`;
+            
+            // Title link
+            const title = document.createElement('a');
+            const url = ev.url || '#';
+            const hasValidUrl = url && url.startsWith('http') && url.length >= 15;
+            title.href = hasValidUrl ? url : '#';
+            title.target = '_blank';
+            title.rel = 'noreferrer noopener';
+            title.style.cssText = 'color: #60a5fa; text-decoration: none; font-weight: 500;';
+            title.textContent = ev.title || ev.domain || `Source ${citationIdx}`;
+            if (!hasValidUrl) {
+                title.style.cursor = 'default';
+                title.onclick = (e) => e.preventDefault();
+            }
+            
+            // Domain + authority meta
+            const meta = document.createElement('div');
+            meta.className = 'evidence-meta';
+            meta.style.cssText = 'font-size: 12px; color: #9ca3af; margin-top: 4px;';
+            const authorityPct = Math.round((ev.authority || 0.5) * 100);
+            const sourceType = ev.source_type || 'Other';
+            meta.textContent = `${ev.domain || ''} · ${sourceType} · Authority: ${authorityPct}%`;
+            
+            // Snippet (max 200 chars)
+            const snip = document.createElement('div');
+            snip.className = 'evidence-snippet';
+            snip.style.cssText = 'font-size: 13px; color: #d1d5db; margin-top: 6px; line-height: 1.4;';
+            const snippetText = ev.snippet || ev.summary || '';
+            snip.textContent = snippetText.slice(0, 200) + (snippetText.length > 200 ? '...' : '');
+            
+            li.appendChild(cite);
+            li.appendChild(title);
+            li.appendChild(meta);
+            li.appendChild(snip);
+            list.appendChild(li);
+        });
+        
+        containerEl.appendChild(list);
+    },
+    
     displayFinalVerdict(verdictObj) {
         // Extract verdict data
         const verdict = (verdictObj.verdict || 'COMPLEX').toUpperCase();
@@ -1673,27 +2139,48 @@ const Chat = {
                 verdictBg = 'rgba(242, 183, 5, 0.1)';
         }
         
-        // Build key evidence HTML
+        // Build key evidence HTML with citation indices [1], [2], etc.
         let evidenceHtml = '';
         if (keyEvidence.length > 0) {
-            const evidenceItems = keyEvidence.slice(0, 5).map(e => {
+            const evidenceItems = keyEvidence.slice(0, 5)
+                .filter(e => {
+                    // Filter out malformed URLs like "https://www" without actual domain
+                    const url = e.url;
+                    if (!url) return true; // Allow entries without URL
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+                    if (url.length < 15) return false; // Too short to be valid
+                    if (url === 'https://www' || url === 'http://www') return false;
+                    return true;
+                })
+                .map((e, idx) => {
+                const citationIdx = e.citation_idx || (idx + 1);
                 const authority = e.authority ? Math.round(e.authority * 100) : 50;
                 const title = e.title || e.source_id || 'Unknown Source';
-                const url = e.url || '#';
+                const url = e.url;
+                const domain = e.domain || '';
+                const sourceType = e.source_type || '';
+                const snippet = (e.snippet || e.summary || '').slice(0, 150);
+                const hasValidUrl = url && url.startsWith('http') && url.length >= 15;
+                
+                // Render title as link if URL is valid
+                const titleHtml = hasValidUrl 
+                    ? `<a href="${url}" target="_blank" rel="noreferrer noopener" style="color: #60a5fa; text-decoration: none; font-weight: 500;">${title}</a>`
+                    : `<span style="color: #60a5fa; font-weight: 500;">${title}</span>`;
+                
                 return `
-                    <li style="margin-bottom: 8px;">
-                        <a href="${url}" target="_blank" style="color: #60a5fa; text-decoration: none;">
-                            ${title}
-                        </a>
-                        <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">(authority: ${authority}%)</span>
+                    <li style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #60a5fa;">
+                        <span style="display: inline-block; background: #60a5fa; color: #1a1a2e; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-right: 8px; font-size: 12px;">[${citationIdx}]</span>
+                        ${titleHtml}
+                        <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${domain}${sourceType ? ' · ' + sourceType : ''} · Authority: ${authority}%</div>
+                        ${snippet ? `<div style="font-size: 13px; color: #d1d5db; margin-top: 6px; line-height: 1.4;">${snippet}...</div>` : ''}
                     </li>
                 `;
             }).join('');
             
             evidenceHtml = `
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <h4 style="font-weight: 600; margin-bottom: 8px; color: #e5e7eb;">📋 Key Evidence</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #d1d5db;">
+                    <h4 style="font-weight: 600; margin-bottom: 12px; color: #e5e7eb;">📚 Key Evidence</h4>
+                    <ul style="margin: 0; padding: 0; list-style: none; color: #d1d5db;">
                         ${evidenceItems}
                     </ul>
                 </div>

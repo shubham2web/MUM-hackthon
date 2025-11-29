@@ -17,11 +17,13 @@ const API = {
         }
         
         try {
-            // Use new /analyze endpoint with verdict engine (v4.1)
-            const endpoint = mode === 'debate' ? `${this.baseURL}/analyze` : `${this.baseURL}/analyze_topic`;
+            // Use /rag/debate for debate mode (with thinking trace), /analyze for standard
+            const endpoint = mode === 'debate' 
+                ? `${this.baseURL}/rag/debate` 
+                : `${this.baseURL}/analyze_topic`;
             
             const requestBody = mode === 'debate' ? {
-                query: message,
+                claim: message,
                 session_id: sessionId,
                 enable_forensics: true
             } : {
@@ -65,9 +67,16 @@ const API = {
             const data = JSON.parse(responseText);
             console.log('Parsed data:', data);
             
-            // For debate mode, return structured verdict response
+            // For debate mode, return structured response with trace
             if (mode === 'debate') {
-                return { isVerdict: true, verdict: data };
+                return { 
+                    isDebate: true, 
+                    trace: data.trace || [],
+                    pro: data.pro,
+                    opp: data.opp,
+                    verdict: data.verdict,
+                    evidence: data.evidence || []
+                };
             }
             
             return data;
