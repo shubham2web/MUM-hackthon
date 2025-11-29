@@ -45,6 +45,61 @@ def combine_confidences_probabilistic(confidences: List[float], weights: List[fl
         w_ = max(0.0, min(1.0, w))
         prod *= (1.0 - (c_ * w_))
     return round(1.0 - prod, 4)  # Fixed precision
+
+
+def calculate_realistic_confidence(evidence_bundle: List[Dict]) -> int:
+    """
+    Calculate more realistic confidence score based on:
+    - Source count (with diminishing returns)
+    - Average authority
+    - Snippet quality (length, UI pollution check)
+    - Contradiction signals
+    
+    Returns: confidence score 0-100
+    """
+    if not evidence_bundle:
+        return 20  # Very low confidence with no evidence
+    
+    score = 0
+    
+    # 1. Source count weight (diminishing returns)
+    num_sources = len(evidence_bundle)
+    if num_sources == 1:
+        score += 15  # Single source = low confidence
+    elif num_sources == 2:
+        score += 30
+    elif num_sources == 3:
+        score += 42
+    else:
+        score += min(50, 30 + (num_sources * 5))  # Cap at 50 for source count
+    
+    # 2. Average authority weight
+    auth_values = []
+    for e in evidence_bundle:
+        auth = e.get("authority", 0.3)
+        if isinstance(auth, (int, float)):
+            if auth > 1:  # If authority is 0-100 scale
+                auth = auth / 100.0
+            auth_values.append(auth)
+    
+    avg_auth = sum(auth_values) / len(auth_values) if auth_values else 0.3
+    score += int(avg_auth * 40)  # Authority contributes up to 40 points
+    
+    # 3. Snippet quality penalties
+    for e in evidence_bundle:
+        snippet = e.get("snippet", "")
+        # Penalty for very short snippets (likely UI junk)
+        if len(snippet) < 50:
+            score -= 8
+        # Penalty for extremely short snippets
+        elif len(snippet) < 100:
+            score -= 4
+    
+    # 4. Clamp to realistic bounds
+    confidence = max(15, min(92, score))  # Never 0 or 100, stay realistic
+    
+    return confidence
+
 logger.setLevel(logging.INFO)
 
 # ---------- Configuration / thresholds ----------
@@ -159,30 +214,20 @@ def decide_verdict(
         # Get contradictions for deterministic formula
         contradictions = extra_context.get("contradictions", []) if extra_context else []
         
-        # PROBABILISTIC CONFIDENCE COMBINING (v4.1.3)
-        # Uses 1 - product(1 - authority_i * relevance_i) to model diminishing returns
-        # This prevents duplicate/low-quality sources from escalating confidence linearly
+        # REALISTIC CONFIDENCE CALCULATION (v4.1.4)
+        # More sensitive to source count, authority, snippet quality
         n = len(evidence_bundle) if evidence_bundle else 0
         if n > 0:
-            # Extract confidence values (authority * relevance) for each evidence
-            confidences = [
-                round(e.get('authority', 0.3) * e.get('relevance', 1.0), 4)
-                for e in evidence_bundle
-            ]
-            
-            # Probabilistic combination - models diminishing returns
-            combined_conf = combine_confidences_probabilistic(confidences)
+            # Use realistic confidence calculator
+            confidence_score = calculate_realistic_confidence(evidence_bundle)
             
             # Apply contradiction penalty (each contradiction reduces by 5%)
-            contradiction_penalty = len(contradictions) * 0.05
-            combined_conf = max(0.0, combined_conf - contradiction_penalty)
+            contradiction_penalty = len(contradictions) * 5
+            confidence_score = max(15, confidence_score - contradiction_penalty)
             
-            # Convert to percentage (0-100 scale)
-            confidence_score = int(round(combined_conf * 100))
-            confidence_score = max(0, min(confidence_score, 100))
             score = float(confidence_score)
         else:
-            score = 50.0  # Default when no evidence
+            score = 20.0  # Low confidence when no evidence
         
         verdict_label = classify_verdict(score)
         summary_text = summarize_evidence(evidence_bundle) or (claims[0] if claims else "")

@@ -67,7 +67,10 @@ const API = {
                     pro: data.pro,
                     opp: data.opp,
                     verdict: data.verdict,
-                    evidence: data.evidence || []
+                    evidence: data.evidence || [],
+                    nlp_explanation: data.nlp_explanation,
+                    background: data.background,
+                    explanation: data.explanation
                 };
             }
             

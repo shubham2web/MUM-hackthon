@@ -88,6 +88,24 @@ def sanitize_title(title: str, max_chars: int = 100) -> str:
     if not title:
         return "Unknown Source"
     
+    # NDTV breadcrumb and UI garbage removal
+    NDTV_BREADCRUMB = [
+        "Our Network", "NDTV", "हिन्दी", "मराठी", "World", "Profit",
+        "Apps", "Live TV", "India", "Entertainment", "Movies",
+        "Latest", "ePaper", "Delhi", "°C", "MPCG", "Marathi"
+    ]
+    
+    if any(b in title for b in NDTV_BREADCRUMB):
+        # Remove everything until the LAST segment (the actual headline)
+        if "|" in title:
+            parts = [p.strip() for p in title.split("|") if p.strip()]
+            if len(parts) > 1:
+                title = parts[-1]
+        elif "•" in title:
+            parts = [p.strip() for p in title.split("•") if p.strip()]
+            if len(parts) > 1:
+                title = parts[-1]
+    
     # Remove common UI junk from titles
     title_junk_patterns = [
         r'(LOGIN|SUBSCRIBE|Sign in|Log in|Register)\s*[-|—:]*\s*',
@@ -156,6 +174,25 @@ def sanitize_snippet(text: str, max_chars: int = MAX_SNIPPET_CHARS) -> str:
     """
     if not text:
         return ""
+    
+    # NDTV and Indian news site specific patterns
+    BAD_PATTERNS = [
+        r'Delhi\s*\d+°C',
+        r'Our Network',
+        r'NDTV',
+        r'Download the.*App Store.*',
+        r'Choose Your Destination',
+        r'Edition India World',
+        r'ePaper',
+        r'Live TV',
+        r'SUBSCRIBE',
+        r'Sign in',
+        r'Login',
+    ]
+    
+    clean_text = text
+    for pat in BAD_PATTERNS:
+        clean_text = re.sub(pat, '', clean_text, flags=re.IGNORECASE)
     
     # Remove common UI strings and site chrome junk
     junk_patterns = [

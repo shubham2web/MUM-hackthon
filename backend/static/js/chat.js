@@ -356,83 +356,89 @@ const Chat = {
 
         console.log('🧠 startDebateFlow received:', apiResponse);
 
+        // Store the response for later use
+        window.lastDebateResponse = apiResponse;
+
         // Create the AI response container (like Gemini's response bubble)
         const responseContainer = document.createElement('div');
         responseContainer.className = 'message ai-message debate-response';
         container.appendChild(responseContainer);
 
-        // 1. First show the "Show thinking" collapsible with pro/opp/moderator scripts INSIDE
-        const hasThinking = (apiResponse.pro) || (apiResponse.opp) || (apiResponse.trace && apiResponse.trace.length > 0);
+        // === GEMINI-STYLE "SHOW THINKING" DROPDOWN ===
+        // Contains: Proponent script, Opponent script, Moderator script
+        const hasThinking = (apiResponse.pro) || (apiResponse.opp) || (apiResponse.verdict);
         
         if (hasThinking) {
-            const thinkingPanel = document.createElement('div');
-            thinkingPanel.className = 'gemini-show-thinking';
+            const thinkingSection = document.createElement('div');
+            thinkingSection.className = 'gemini-thinking-section';
             
-            // Build thinking content with pro/opp/moderator scripts
-            let thinkingContent = '';
+            // Build the dropdown content with agent scripts
+            let dropdownContent = '';
             
-            // Proponent script/reasoning
+            // Proponent reasoning/script
             if (apiResponse.pro) {
                 const proSummary = apiResponse.pro.summary || (apiResponse.pro.arguments && apiResponse.pro.arguments.join(' ')) || 'Analyzing supporting evidence...';
                 const proThinking = apiResponse.pro.thinking || '';
-                thinkingContent += `
-                    <div class="thinking-agent-block pro-agent">
-                        <div class="agent-header">
-                            <span class="agent-icon">✅</span>
-                            <span class="agent-name">Proponent</span>
-                        </div>
-                        <div class="agent-script">${this.escapeHtmlForThinking(proSummary)}</div>
-                        ${proThinking ? `<div class="agent-reasoning"><em>Internal reasoning:</em> ${this.escapeHtmlForThinking(proThinking)}</div>` : ''}
+                dropdownContent += `
+                    <div class="thinking-section-block">
+                        <div class="section-title pro-title">Proponent Analysis</div>
+                        <p class="section-content">${this.escapeHtmlForThinking(proSummary)}</p>
+                        ${proThinking ? `<div class="section-reasoning">${this.escapeHtmlForThinking(proThinking)}</div>` : ''}
                     </div>
                 `;
             }
             
-            // Opponent script/reasoning
+            // Opponent reasoning/script
             if (apiResponse.opp) {
-                const oppSummary = apiResponse.opp.summary || (apiResponse.opp.arguments && apiResponse.opp.arguments.join(' ')) || 'Analyzing counter-evidence...';
+                const oppSummary = apiResponse.opp.summary || (apiResponse.opp.arguments && apiResponse.opp.arguments.join(' ')) || 'Analyzing counter-arguments...';
                 const oppThinking = apiResponse.opp.thinking || '';
-                thinkingContent += `
-                    <div class="thinking-agent-block opp-agent">
-                        <div class="agent-header">
-                            <span class="agent-icon">❌</span>
-                            <span class="agent-name">Opponent</span>
-                        </div>
-                        <div class="agent-script">${this.escapeHtmlForThinking(oppSummary)}</div>
-                        ${oppThinking ? `<div class="agent-reasoning"><em>Internal reasoning:</em> ${this.escapeHtmlForThinking(oppThinking)}</div>` : ''}
+                dropdownContent += `
+                    <div class="thinking-section-block">
+                        <div class="section-title opp-title">Opponent Analysis</div>
+                        <p class="section-content">${this.escapeHtmlForThinking(oppSummary)}</p>
+                        ${oppThinking ? `<div class="section-reasoning">${this.escapeHtmlForThinking(oppThinking)}</div>` : ''}
                     </div>
                 `;
             }
             
-            // Moderator/Judge reasoning (from verdict)
-            if (apiResponse.verdict) {
-                const verdictSummary = apiResponse.verdict.summary || 'Weighing arguments from both sides...';
-                thinkingContent += `
-                    <div class="thinking-agent-block moderator-agent">
-                        <div class="agent-header">
-                            <span class="agent-icon">⚖️</span>
-                            <span class="agent-name">Moderator</span>
-                        </div>
-                        <div class="agent-script">${this.escapeHtmlForThinking(verdictSummary)}</div>
-                        <div class="agent-reasoning"><em>Analyzing both arguments to reach a balanced verdict...</em></div>
+            // Moderator/Judge reasoning
+            if (apiResponse.verdict && apiResponse.verdict.summary) {
+                dropdownContent += `
+                    <div class="thinking-section-block">
+                        <div class="section-title moderator-title">Moderator Analysis</div>
+                        <p class="section-content">${this.escapeHtmlForThinking(apiResponse.verdict.summary)}</p>
                     </div>
                 `;
             }
             
-            thinkingPanel.innerHTML = `
-                <button class="show-thinking-btn" onclick="this.nextElementSibling.classList.toggle('show'); this.classList.toggle('expanded');">
-                    <span class="thinking-sparkle">✦</span>
-                    <span class="btn-text">Show thinking</span>
-                    <span class="thinking-chevron">▼</span>
-                </button>
-                <div class="thinking-dropdown">
-                    ${thinkingContent}
+            thinkingSection.innerHTML = `
+                <div class="gemini-thinking-toggle">
+                    <span class="thinking-sparkle-icon">✦</span>
+                    <button class="show-thinking-btn">
+                        Show thinking
+                        <span class="chevron-icon">▲</span>
+                    </button>
+                </div>
+                <div class="thinking-dropdown-content">
+                    ${dropdownContent}
                 </div>
             `;
             
-            responseContainer.appendChild(thinkingPanel);
+            // Add click handler for the thinking toggle
+            const toggleBtn = thinkingSection.querySelector('.show-thinking-btn');
+            const dropdownDiv = thinkingSection.querySelector('.thinking-dropdown-content');
+            if (toggleBtn && dropdownDiv) {
+                toggleBtn.addEventListener('click', () => {
+                    dropdownDiv.classList.toggle('expanded');
+                    toggleBtn.classList.toggle('active');
+                });
+            }
+            
+            responseContainer.appendChild(thinkingSection);
         }
 
-        // 2. NOW show the VERDICT OUTSIDE the thinking block (this is the main output)
+        // === VERDICT BOX (OUTSIDE/AFTER the thinking dropdown) ===
+        // This is the main visible output like Gemini shows
         if (apiResponse.verdict) {
             const verdictBox = document.createElement('div');
             verdictBox.className = 'verdict-result-box';
@@ -465,12 +471,110 @@ const Chat = {
             responseContainer.appendChild(verdictBox);
         }
 
-        // 3. Show evidence tiles if available
-        if (apiResponse.evidence && apiResponse.evidence.length > 0) {
+        // === 4-LINE REASONING SUMMARY ===
+        if (apiResponse.explanation && apiResponse.explanation.summary_4_lines) {
+            const lines = apiResponse.explanation.summary_4_lines;
+            const reasoningBox = document.createElement('div');
+            reasoningBox.className = 'reasoning-box';
+            
+            reasoningBox.innerHTML = `
+                <h3 class="reasoning-title">🧠 How This Verdict Was Reached</h3>
+                <ul class="reasoning-list">
+                    <li>${this.escapeHtmlForThinking(lines[0])}</li>
+                    <li>${this.escapeHtmlForThinking(lines[1])}</li>
+                    <li>${this.escapeHtmlForThinking(lines[2])}</li>
+                    <li>${this.escapeHtmlForThinking(lines[3])}</li>
+                </ul>
+                <details class="reasoning-details">
+                    <summary>Show detailed reasoning</summary>
+                    <pre class="reasoning-detailed">${this.escapeHtmlForThinking(apiResponse.explanation.detailed)}</pre>
+                </details>
+            `;
+            
+            responseContainer.appendChild(reasoningBox);
+        }
+
+        // === NLP EXPLANATION (More details) ===
+        if (apiResponse.nlp_explanation) {
+            const nlp = apiResponse.nlp_explanation;
+            const nlpCard = document.createElement('div');
+            nlpCard.className = 'nlp-explanation-card';
+            
+            const shortDiv = document.createElement('div');
+            shortDiv.className = 'nlp-short';
+            shortDiv.textContent = nlp.short || '';
+            nlpCard.appendChild(shortDiv);
+            
+            if (nlp.detailed) {
+                const toggleBtn = document.createElement('button');
+                toggleBtn.className = 'nlp-toggle-btn';
+                toggleBtn.textContent = 'More details';
+                
+                const detailsDiv = document.createElement('div');
+                detailsDiv.className = 'nlp-details';
+                detailsDiv.style.display = 'none';
+                detailsDiv.textContent = nlp.detailed;
+                
+                toggleBtn.onclick = () => {
+                    const isHidden = detailsDiv.style.display === 'none';
+                    detailsDiv.style.display = isHidden ? 'block' : 'none';
+                    toggleBtn.textContent = isHidden ? 'Hide details' : 'More details';
+                    toggleBtn.classList.toggle('expanded', isHidden);
+                };
+                
+                nlpCard.appendChild(toggleBtn);
+                nlpCard.appendChild(detailsDiv);
+            }
+            
+            responseContainer.appendChild(nlpCard);
+        }
+
+        // === EVIDENCE TILES ===
+        // Only render evidence tiles in debate mode with verdict
+        // This prevents duplicate evidence rendering
+        if (apiResponse.evidence && apiResponse.evidence.length > 0 && apiResponse.verdict) {
             this.renderEvidenceTiles(apiResponse.evidence, responseContainer);
         }
 
         container.scrollTop = container.scrollHeight;
+    },
+
+    /**
+     * Play animated thinking timeline (like ChatGPT/Gemini)
+     */
+    async playThinkingTimeline(trace, container) {
+        for (const step of trace) {
+            await this.showThinkingBubble(step, container);
+        }
+        // Add completion indicator
+        const doneDiv = document.createElement('div');
+        doneDiv.className = 'thinking-done';
+        doneDiv.innerHTML = '✓ Thinking complete';
+        container.appendChild(doneDiv);
+    },
+
+    /**
+     * Show a single thinking bubble with animated dots
+     */
+    showThinkingBubble(step, container) {
+        return new Promise(resolve => {
+            const bubble = document.createElement('div');
+            bubble.className = 'thinking-bubble';
+            bubble.innerHTML = `
+                <div class="thinking-dots">
+                    <span></span><span></span><span></span>
+                </div>
+                <span class="thinking-text">${this.escapeHtmlForThinking(step.message)}</span>
+            `;
+            container.appendChild(bubble);
+            container.scrollTop = container.scrollHeight;
+            
+            // Resolve after animation delay
+            setTimeout(() => {
+                bubble.classList.add('done');
+                resolve();
+            }, 1100);
+        });
     },
 
     /**

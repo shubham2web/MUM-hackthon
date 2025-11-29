@@ -75,6 +75,30 @@ try:
 except ImportError:
     AGENTS_AVAILABLE = False
 
+# Import NLP explanation generator
+try:
+    from utils.explanation import generate_nlp_explanation, generate_simple_explanation
+    NLP_EXPLANATION_AVAILABLE = True
+except ImportError:
+    try:
+        from backend.utils.explanation import generate_nlp_explanation, generate_simple_explanation
+        NLP_EXPLANATION_AVAILABLE = True
+    except ImportError:
+        NLP_EXPLANATION_AVAILABLE = False
+        logging.warning("NLP explanation module not available")
+
+# Import 4-line reasoning summary engine
+try:
+    from explanation_engine import build_reasoning_summary, get_reasoning_for_verdict
+    REASONING_ENGINE_AVAILABLE = True
+except ImportError:
+    try:
+        from backend.explanation_engine import build_reasoning_summary, get_reasoning_for_verdict
+        REASONING_ENGINE_AVAILABLE = True
+    except ImportError:
+        REASONING_ENGINE_AVAILABLE = False
+        logging.warning("Reasoning engine not available")
+
 logger = logging.getLogger(__name__)
 
 # Create blueprint
@@ -308,10 +332,19 @@ async def analyze():
             else:
                 assistant = "Inconclusive based on available sources."
         
+        # 5) Generate NLP explanation
+        nlp_explanation = None
+        if NLP_EXPLANATION_AVAILABLE:
+            try:
+                nlp_explanation = generate_simple_explanation(analysis, len(evidence_bundle))
+            except Exception as e:
+                logger.error(f"NLP explanation generation failed: {e}")
+        
         return jsonify({
             "assistant": assistant,
             "analysis": analysis,
-            "evidence": evidence_bundle
+            "evidence": evidence_bundle,
+            "nlp_explanation": nlp_explanation
         })
         
     except Exception as e:
@@ -443,13 +476,43 @@ async def debate():
                 logger.error(f"Background report generation failed: {e}")
                 background = None
         
+        # 6) Generate NLP explanation from structured data
+        nlp_explanation = None
+        if NLP_EXPLANATION_AVAILABLE:
+            try:
+                nlp_explanation = generate_nlp_explanation(claim, verdict, background)
+            except Exception as e:
+                logger.error(f"NLP explanation generation failed: {e}")
+                # Fallback to simple explanation
+                try:
+                    nlp_explanation = generate_simple_explanation(verdict, len(evidence_bundle))
+                except:
+                    pass
+        
+        # 7) Generate 4-line reasoning summary
+        explanation = None
+        if REASONING_ENGINE_AVAILABLE:
+            try:
+                confidence_pct = verdict.get("confidence_pct", 50) if isinstance(verdict, dict) else 50
+                verdict_str = verdict.get("verdict", "COMPLEX") if isinstance(verdict, dict) else str(verdict)
+                explanation = build_reasoning_summary(
+                    claim=claim,
+                    evidence=evidence_bundle,
+                    verdict=verdict_str,
+                    confidence=confidence_pct
+                )
+            except Exception as e:
+                logger.error(f"Reasoning summary generation failed: {e}")
+        
         return jsonify({
             "trace": process_trace,
             "pro": pro,
             "opp": opp,
             "verdict": verdict,
             "evidence": evidence_bundle,
-            "background": background
+            "background": background,
+            "nlp_explanation": nlp_explanation,
+            "explanation": explanation
         })
         
     except Exception as e:

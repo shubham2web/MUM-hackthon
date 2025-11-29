@@ -7,34 +7,116 @@
     border: none !important;
 }
 
-/* === GEMINI-STYLE "SHOW THINKING" BUTTON === */
-.gemini-show-thinking {
-    margin: 0 0 16px 0;
-    animation: slideIn 0.3s ease-out;
+/* === GEMINI-STYLE "SHOW THINKING" SECTION === */
+.gemini-thinking-section {
+    margin-bottom: 16px;
+}
+
+.gemini-thinking-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.thinking-sparkle-icon {
+    color: #818cf8;
+    font-size: 18px;
 }
 
 .show-thinking-btn {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    background: rgba(30, 41, 59, 0.8);
-    border: 1px solid rgba(100, 116, 139, 0.3);
-    border-radius: 24px;
+    background: rgba(30, 41, 59, 0.9);
+    border: 1px solid rgba(100, 116, 139, 0.4);
+    border-radius: 20px;
     padding: 8px 16px;
     cursor: pointer;
     transition: all 0.2s ease;
-    color: #94a3b8;
+    color: #e2e8f0;
     font-size: 14px;
     font-weight: 500;
 }
 
 .show-thinking-btn:hover {
-    background: rgba(51, 65, 85, 0.9);
-    border-color: rgba(100, 116, 139, 0.5);
+    background: rgba(51, 65, 85, 0.95);
+    border-color: rgba(129, 140, 248, 0.5);
 }
 
-.show-thinking-btn.expanded {
-    background: rgba(51, 65, 85, 0.9);
+.show-thinking-btn.active {
+    background: rgba(51, 65, 85, 0.95);
+}
+
+.show-thinking-btn .chevron-icon {
+    font-size: 10px;
+    transition: transform 0.2s ease;
+    color: #94a3b8;
+}
+
+.show-thinking-btn.active .chevron-icon {
+    transform: rotate(180deg);
+}
+
+/* Thinking dropdown content - Gemini style with left border */
+.thinking-dropdown-content {
+    display: none;
+    margin-top: 12px;
+    margin-left: 26px;
+    padding-left: 16px;
+    border-left: 2px solid rgba(129, 140, 248, 0.4);
+}
+
+.thinking-dropdown-content.expanded {
+    display: block;
+    animation: expandDown 0.3s ease-out;
+}
+
+@keyframes expandDown {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Thinking section blocks (Proponent, Opponent, Moderator) */
+.thinking-section-block {
+    margin-bottom: 20px;
+}
+
+.thinking-section-block:last-child {
+    margin-bottom: 0;
+}
+
+.section-title {
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 8px;
+    color: #e2e8f0;
+}
+
+.section-title.pro-title { color: #10B981; }
+.section-title.opp-title { color: #F97316; }
+.section-title.moderator-title { color: #FBBF24; }
+
+.section-content {
+    font-size: 14px;
+    line-height: 1.7;
+    color: #cbd5e1;
+    margin: 0 0 8px 0;
+}
+
+.section-reasoning {
+    font-size: 13px;
+    color: #94a3b8;
+    font-style: italic;
+    padding: 10px 12px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    white-space: pre-wrap;
+}
+
+/* Old styles kept for backwards compatibility */
+.gemini-show-thinking {
+    margin: 0 0 16px 0;
+    animation: slideIn 0.3s ease-out;
 }
 
 .show-thinking-btn .thinking-sparkle {
@@ -67,11 +149,6 @@
 .thinking-dropdown.show {
     display: block;
     animation: expandDown 0.3s ease-out;
-}
-
-@keyframes expandDown {
-    from { opacity: 0; transform: translateY(-10px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 /* Agent blocks inside thinking */
@@ -179,6 +256,381 @@
     font-size: 13px;
     color: #fcd34d;
     border-left: 3px solid rgba(251, 191, 36, 0.5);
+}
+
+/* === 4-LINE REASONING BOX === */
+.reasoning-box {
+    background: #0e121a;
+    padding: 14px 20px;
+    border-radius: 12px;
+    border-left: 3px solid #5da0ff;
+    margin-top: 16px;
+}
+
+.reasoning-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 12px;
+    color: #e2e8f0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.reasoning-list {
+    list-style-type: disc;
+    margin-left: 20px;
+    color: #d0d6e3;
+    padding: 0;
+}
+
+.reasoning-list li {
+    margin-bottom: 6px;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.reasoning-details {
+    margin-top: 12px;
+    border-top: 1px solid rgba(100, 116, 139, 0.3);
+    padding-top: 10px;
+}
+
+.reasoning-details summary {
+    cursor: pointer;
+    color: #60a5fa;
+    font-size: 13px;
+    font-weight: 500;
+    user-select: none;
+}
+
+.reasoning-details summary:hover {
+    color: #93c5fd;
+}
+
+.reasoning-detailed {
+    margin-top: 10px;
+    padding: 12px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #94a3b8;
+    white-space: pre-wrap;
+    font-family: inherit;
+}
+
+/* Light mode support for reasoning box */
+body.light-mode .reasoning-box {
+    background: #f8fafc;
+    border-left-color: #3b82f6;
+}
+
+body.light-mode .reasoning-title {
+    color: #1e293b;
+}
+
+body.light-mode .reasoning-list {
+    color: #475569;
+}
+
+body.light-mode .reasoning-details summary {
+    color: #2563eb;
+}
+
+body.light-mode .reasoning-detailed {
+    background: rgba(0, 0, 0, 0.05);
+    color: #64748b;
+}
+
+/* === THINKING TIMELINE (Animated bubbles like ChatGPT/Gemini) === */
+.thinking-timeline {
+    margin-bottom: 16px;
+    padding: 12px 0;
+}
+
+.thinking-timeline.completed {
+    opacity: 0.7;
+    max-height: 200px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.thinking-bubble {
+    background: #1a1f2b;
+    border-radius: 14px;
+    padding: 10px 16px;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: fadeInBubble 0.3s ease;
+}
+
+@keyframes fadeInBubble {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.thinking-bubble.done {
+    background: #1a2332;
+}
+
+.thinking-bubble.done .thinking-dots {
+    display: none;
+}
+
+.thinking-bubble.done::before {
+    content: '✓';
+    color: #10B981;
+    font-size: 14px;
+    margin-right: 4px;
+}
+
+.thinking-dots {
+    display: flex;
+    gap: 4px;
+}
+
+.thinking-dots span {
+    width: 6px;
+    height: 6px;
+    background: #4e91ff;
+    border-radius: 50%;
+    display: inline-block;
+    animation: pulse 1s infinite ease-in-out;
+}
+
+.thinking-dots span:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.thinking-dots span:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(0.8);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 1;
+    }
+}
+
+.thinking-text {
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.thinking-done {
+    font-size: 12px;
+    color: #10B981;
+    margin-top: 8px;
+    padding: 6px 12px;
+    background: rgba(16, 185, 129, 0.1);
+    border-radius: 8px;
+    display: inline-block;
+}
+
+/* Trace summary inside "Show thinking" dropdown */
+.thinking-trace-summary {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+.trace-header {
+    font-size: 13px;
+    font-weight: 600;
+    color: #94a3b8;
+    margin-bottom: 8px;
+}
+
+.trace-step-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.trace-check {
+    color: #10B981;
+    font-size: 11px;
+}
+
+.trace-msg {
+    color: #94a3b8;
+}
+
+/* === NLP EXPLANATION CARD (More details button) === */
+.nlp-explanation-card {
+    background: #0f131a;
+    padding: 12px 18px;
+    border-radius: 12px;
+    margin-top: 12px;
+    border-left: 3px solid #4e91ff;
+}
+
+.nlp-short {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e2e8f0;
+    margin-bottom: 8px;
+}
+
+.nlp-toggle-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(78, 145, 255, 0.15);
+    border: 1px solid rgba(78, 145, 255, 0.3);
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #4e91ff;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nlp-toggle-btn:hover {
+    background: rgba(78, 145, 255, 0.25);
+    border-color: rgba(78, 145, 255, 0.5);
+}
+
+.nlp-toggle-btn.expanded {
+    background: rgba(78, 145, 255, 0.2);
+    color: #93c5fd;
+}
+
+.nlp-details {
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #cbd5e1;
+    animation: slideDown 0.2s ease-out;
+}
+
+/* Old NLP container (kept for backwards compatibility) */
+.nlp-explanation-container {
+    margin-top: 16px;
+    padding: 12px 16px;
+    background: rgba(15, 23, 42, 0.5);
+    border-radius: 10px;
+    border: 1px solid rgba(100, 116, 139, 0.2);
+}
+
+.nlp-why-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(59, 130, 246, 0.15);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 16px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #60a5fa;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.nlp-why-btn:hover {
+    background: rgba(59, 130, 246, 0.25);
+    border-color: rgba(59, 130, 246, 0.5);
+}
+
+.nlp-why-btn.expanded {
+    background: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+}
+
+.nlp-detail {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: #cbd5e1;
+    border-left: 3px solid rgba(59, 130, 246, 0.4);
+    animation: slideDown 0.2s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Light mode - Thinking timeline */
+body.light-mode .thinking-bubble {
+    background: #f1f5f9;
+}
+
+body.light-mode .thinking-bubble.done {
+    background: #e2e8f0;
+}
+
+body.light-mode .thinking-text {
+    color: #475569;
+}
+
+body.light-mode .thinking-done {
+    background: rgba(16, 185, 129, 0.1);
+}
+
+body.light-mode .nlp-explanation-card {
+    background: #f8fafc;
+    border-left-color: #2563eb;
+}
+
+body.light-mode .nlp-short {
+    color: #1e293b;
+}
+
+body.light-mode .nlp-toggle-btn {
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+}
+
+body.light-mode .nlp-details {
+    background: rgba(0, 0, 0, 0.03);
+    color: #475569;
+}
+
+/* Light mode NLP (old) */
+body.light-mode .nlp-explanation-container {
+    background: rgba(248, 250, 252, 0.8);
+}
+
+body.light-mode .nlp-why-btn {
+    background: rgba(59, 130, 246, 0.1);
+    color: #2563eb;
+}
+
+body.light-mode .nlp-detail {
+    background: rgba(0, 0, 0, 0.03);
+    color: #475569;
 }
 
 /* Light mode */
