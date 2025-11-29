@@ -42,48 +42,76 @@ const Chat = {
             }
         }
 
-        // Restore per-mode chat if present, otherwise clear messages and add welcome
+        // ===== HOMEPAGE QUERY HANDLING =====
+        // Check if coming from homepage with a new query (forceNewChat flag)
+        const forceNewChat = sessionStorage.getItem('forceNewChat');
+        const initialPrompt = sessionStorage.getItem('initialPrompt');
+        const ocrResults = sessionStorage.getItem('ocrResults');
+        
         const messages = document.getElementById('chatMessages');
-        try {
-            const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[this.currentMode] : null;
-            if (mappedId) {
-                // Attempt to open the mapped chat for this mode
-                try { ChatStore.openChat(mappedId); ChatStore.currentChatId = mappedId; }
-                catch (e) { console.warn('Failed to open mapped chat', e); if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } }
-            } else {
+        
+        // Log for debugging
+        console.log('🔍 Chat.init() - forceNewChat:', forceNewChat);
+        console.log('🔍 Chat.init() - initialPrompt:', initialPrompt);
+        console.log('🔍 Chat.init() - ocrResults:', ocrResults ? 'present' : 'none');
+        
+        // CRITICAL: If we have an initialPrompt from homepage, ALWAYS start fresh
+        // This handles both forceNewChat=true AND cases where flag wasn't set properly
+        const hasHomepageQuery = (forceNewChat === 'true') || (initialPrompt && initialPrompt.length > 0);
+        
+        if (hasHomepageQuery) {
+            console.log('🆕 HOMEPAGE QUERY DETECTED - Creating brand new chat session');
+            
+            // Clear ALL flags immediately
+            sessionStorage.removeItem('forceNewChat');
+            sessionStorage.removeItem('initialPrompt');
+            sessionStorage.removeItem('ocrResults');
+            
+            // Clear the UI completely - remove all old messages
+            if (messages) {
+                messages.innerHTML = '';
+                console.log('✅ Cleared all messages from UI');
+            }
+            
+            // Reset ALL chat state to force creation of new chat
+            if (typeof ChatStore !== 'undefined') {
+                ChatStore.currentChatId = null;
+                // Clear ALL mode mappings to prevent any old chat from loading
+                ChatStore.currentChatIdByMode = {};
+                localStorage.removeItem('chatIdsByMode');
+                console.log('✅ Cleared all chat ID mappings');
+            }
+            
+            // Now create new chat and process the query
+            this.processHomepageQuery(initialPrompt, ocrResults);
+            
+        } else {
+            // Normal flow - NO homepage query, restore per-mode chat if present
+            console.log('📂 Normal flow - checking for existing chat');
+            try {
+                const mappedId = (typeof ChatStore !== 'undefined' && ChatStore.currentChatIdByMode) ? ChatStore.currentChatIdByMode[this.currentMode] : null;
+                if (mappedId) {
+                    // Attempt to open the mapped chat for this mode
+                    try { 
+                        ChatStore.openChat(mappedId); 
+                        ChatStore.currentChatId = mappedId; 
+                    } catch (e) { 
+                        console.warn('Failed to open mapped chat', e); 
+                        if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); } 
+                    }
+                } else {
+                    if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
+                }
+            } catch (e) {
                 if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
             }
-        } catch (e) {
-            if (messages) { messages.innerHTML = ''; this.addWelcomeMessage(); }
-        }
 
-        // Check for OCR result from sessionStorage (old single file format)
-        const ocrResult = sessionStorage.getItem('ocrResult');
-        if (ocrResult) {
-            this.handleOCRResult(JSON.parse(ocrResult));
-            sessionStorage.removeItem('ocrResult'); // Clear after using
-        }
-
-        // Check for OCR results from homepage (new multiple files format)
-        const ocrResults = sessionStorage.getItem('ocrResults');
-        if (ocrResults) {
-            this.handleMultipleOCRResults(JSON.parse(ocrResults));
-            sessionStorage.removeItem('ocrResults'); // Clear after using
-        }
-
-        // If homepage set an initial prompt (text or link), auto-fill and send it
-        const initialPrompt = sessionStorage.getItem('initialPrompt');
-        if (initialPrompt) {
-            try {
-                const inputEl = document.getElementById('messageInput');
-                if (inputEl) {
-                    inputEl.value = initialPrompt;
-                    // remove so it doesn't resend on reload
-                    sessionStorage.removeItem('initialPrompt');
-                    // Give the UI a moment to settle then send
-                    setTimeout(() => { try { this.handleSend(); } catch (e) { console.warn('Auto send failed', e); } }, 250);
-                }
-            } catch (e) { console.warn('initialPrompt handling error', e); }
+            // Check for OCR result from sessionStorage (old single file format)
+            const ocrResult = sessionStorage.getItem('ocrResult');
+            if (ocrResult) {
+                this.handleOCRResult(JSON.parse(ocrResult));
+                sessionStorage.removeItem('ocrResult');
+            }
         }
 
         // Update navigation active state
@@ -205,6 +233,135 @@ const Chat = {
         }
     },
 
+    /**
+     * Process a query coming from the homepage
+     * Creates a brand new chat and sends the query
+     */
+    async processHomepageQuery(initialPrompt, ocrResultsJson) {
+        console.log('🆕 processHomepageQuery called');
+        console.log('📝 Initial prompt:', initialPrompt);
+        console.log('📎 OCR results:', ocrResultsJson ? 'present' : 'none');
+        
+        // Parse OCR results if present
+        let ocrResults = null;
+        if (ocrResultsJson) {
+            try {
+                ocrResults = JSON.parse(ocrResultsJson);
+            } catch (e) {
+                console.warn('Failed to parse OCR results', e);
+            }
+        }
+        
+        // Generate chat title from prompt or first file
+        let chatTitle = 'New Chat';
+        if (initialPrompt && initialPrompt.length > 0) {
+            chatTitle = initialPrompt.length > 40 ? initialPrompt.slice(0, 40) + '...' : initialPrompt;
+        } else if (ocrResults && ocrResults.length > 0 && ocrResults[0].filename) {
+            chatTitle = ocrResults[0].filename;
+        }
+        
+        // Create new chat in the store FIRST
+        try {
+            if (typeof ChatStore !== 'undefined') {
+                console.log('📝 Creating new chat with title:', chatTitle);
+                const newChat = await ChatStore.createChat(chatTitle);
+                if (newChat && (newChat._id || newChat.id)) {
+                    ChatStore.currentChatId = newChat._id || newChat.id;
+                    // Update the mode mapping
+                    ChatStore.currentChatIdByMode[this.currentMode] = ChatStore.currentChatId;
+                    localStorage.setItem('chatIdsByMode', JSON.stringify(ChatStore.currentChatIdByMode));
+                    console.log('✅ New chat created with ID:', ChatStore.currentChatId);
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to create new chat', e);
+        }
+        
+        // Handle OCR files if present
+        if (ocrResults && ocrResults.length > 0) {
+            // Show files were uploaded
+            const fileNames = ocrResults.map(r => r.filename).join(', ');
+            Messages.addUserMessage(`📷 Uploaded ${ocrResults.length} file(s): ${fileNames}`);
+            
+            // If there's also a prompt, process with the prompt
+            if (initialPrompt && initialPrompt.length > 0) {
+                // Process OCR results with the prompt
+                setTimeout(async () => {
+                    Messages.showLoading('Analyzing uploaded files...');
+                    try {
+                        for (let i = 0; i < ocrResults.length; i++) {
+                            const ocrData = ocrResults[i];
+                            const analysisPrompt = `${initialPrompt}\n\nAnalyze this text extracted from ${ocrData.filename}:\n\n${ocrData.extractedText}`;
+                            
+                            // Persist user message
+                            try {
+                                if (ChatStore.currentChatId) {
+                                    await ChatStore.appendMessage(ChatStore.currentChatId, 'user', `📷 ${ocrData.filename}: ${initialPrompt}`);
+                                }
+                            } catch (e) { console.warn('append user message failed', e); }
+                            
+                            const response = await fetch('/chat', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'X-API-Key': API_KEY
+                                },
+                                body: JSON.stringify({
+                                    message: analysisPrompt,
+                                    mode: this.currentMode,
+                                    use_scraper: true
+                                })
+                            });
+                            
+                            const data = await response.json();
+                            if (i === 0) Messages.hideLoading();
+                            
+                            if (data.analysis || data.result || data.answer) {
+                                const aiMessage = data.analysis || data.result || data.answer;
+                                Messages.addAIMessage(aiMessage);
+                                try {
+                                    if (ChatStore.currentChatId) {
+                                        await ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiMessage);
+                                    }
+                                } catch (e) { console.warn('append assistant message failed', e); }
+                            }
+                            
+                            if (i < ocrResults.length - 1) {
+                                await new Promise(resolve => setTimeout(resolve, 500));
+                            }
+                        }
+                    } catch (error) {
+                        Messages.hideLoading();
+                        Messages.addAIMessage('❌ Error analyzing files: ' + error.message);
+                    }
+                }, 300);
+            }
+        } else if (initialPrompt && initialPrompt.length > 0) {
+            // Just a text prompt - fill input and send
+            const inputEl = document.getElementById('messageInput');
+            if (inputEl) {
+                inputEl.value = initialPrompt;
+                // Give UI a moment to settle, then send
+                setTimeout(() => {
+                    try {
+                        console.log('📤 Auto-sending query:', initialPrompt);
+                        this.handleSend();
+                    } catch (e) {
+                        console.warn('Auto send failed', e);
+                    }
+                }, 300);
+            }
+        } else {
+            // No prompt, no files - just show welcome
+            this.addWelcomeMessage();
+        }
+    },
+
+    // Legacy method - now calls processHomepageQuery
+    async createNewChatFromHomepage(initialPrompt, ocrResultsJson) {
+        return this.processHomepageQuery(initialPrompt, ocrResultsJson);
+    },
+
     switchMode(mode) {
         this.currentMode = mode;
 
@@ -249,6 +406,9 @@ const Chat = {
 
     // Abort controller for canceling requests
     abortController: null,
+    
+    // Request ID to track which request is current (prevents stale responses)
+    currentRequestId: null,
 
     // Show loading state - hide send button, show stop button
     showLoadingState() {
@@ -274,13 +434,25 @@ const Chat = {
 
     // Stop the current generation
     stopGeneration() {
+        console.log('🛑 STOP GENERATION called - canceling request:', this.currentRequestId);
+        
+        // Abort any active fetch requests
         if (this.abortController) {
             this.abortController.abort();
             this.abortController = null;
         }
+        
+        // Invalidate current request ID to ignore any stale responses
+        this.currentRequestId = null;
+        
         this.isProcessing = false;
         Messages.hideLoading();
         this.hideLoadingState();
+        
+        // Remove any "typing" or partial response messages
+        const typingIndicators = document.querySelectorAll('.typing-indicator, .loading-message');
+        typingIndicators.forEach(el => el.remove());
+        
         Messages.addAIMessage('⏹️ Generation stopped by user.');
     },
 
@@ -730,6 +902,198 @@ const Chat = {
         throw new Error('No transcript returned');
     },
 
+    /**
+     * Show combined user message with text and image attachment preview
+     */
+    async showCombinedUserMessage(text, files) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'message user-message';
+        
+        let htmlContent = '';
+        
+        // Add text message if present
+        if (text && text.length > 0) {
+            htmlContent += `<div class="user-message-text">${this.escapeHtml(text)}</div>`;
+        }
+        
+        // Add image previews
+        for (const file of files) {
+            const isImage = file.type && file.type.startsWith('image/');
+            
+            if (isImage) {
+                const imageUrl = await this.fileToDataURL(file);
+                const fileSize = (file.size / 1024).toFixed(1);
+                htmlContent += `
+                    <div class="user-attachment-preview">
+                        <img src="${imageUrl}" alt="${file.name}" class="attachment-preview-img">
+                        <div class="attachment-preview-info">
+                            <span class="attachment-preview-name">${file.name}</span>
+                            <span class="attachment-preview-size">Image • ${fileSize} KB</span>
+                        </div>
+                    </div>
+                `;
+            } else {
+                const fileSize = (file.size / 1024).toFixed(1);
+                htmlContent += `
+                    <div class="user-attachment-preview">
+                        <div class="attachment-preview-icon">📄</div>
+                        <div class="attachment-preview-info">
+                            <span class="attachment-preview-name">${file.name}</span>
+                            <span class="attachment-preview-size">${fileSize} KB</span>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        messageDiv.innerHTML = htmlContent;
+        
+        // Add timestamp
+        const timestamp = document.createElement('div');
+        timestamp.className = 'message-time';
+        timestamp.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        messageDiv.appendChild(timestamp);
+        
+        const chatMessages = document.getElementById('chatMessages');
+        if (chatMessages) {
+            chatMessages.appendChild(messageDiv);
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // Persist combined message
+        try {
+            if (ChatStore.currentChatId) {
+                const persistText = text + (files.length > 0 ? ` [${files.length} file(s) attached]` : '');
+                await ChatStore.appendMessage(ChatStore.currentChatId, 'user', persistText);
+            }
+        } catch (e) { console.warn('Failed to persist combined message', e); }
+    },
+    
+    /**
+     * Convert file to data URL
+     */
+    fileToDataURL(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = () => reject(new Error('Failed to read file'));
+            reader.readAsDataURL(file);
+        });
+    },
+    
+    /**
+     * Escape HTML characters
+     */
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+    
+    /**
+     * Process image with user's text as context
+     */
+    async processImageWithContext(file, userMessage) {
+        console.log('🖼️ Processing image with context:', file.name, 'Message:', userMessage);
+        
+        try {
+            const formData = new FormData();
+            formData.append('image', file);
+            formData.append('analyze', 'true');
+            formData.append('use_scraper', 'true');
+            // Pass user's message as the question/context for analysis
+            if (userMessage && userMessage.length > 0) {
+                formData.append('question', userMessage);
+            }
+
+            console.log('📤 Sending to OCR endpoint with user context...');
+
+            const response = await fetch('http://127.0.0.1:8000/ocr_upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                throw new Error('Server error: ' + response.status);
+            }
+
+            const result = await response.json();
+            console.log('📊 OCR Result:', result);
+
+            if (result.success) {
+                const { ocr_result, ai_analysis, evidence_count, evidence_sources } = result;
+
+                // Log OCR details
+                console.log(`📝 OCR: ${ocr_result.word_count} words, ${ocr_result.confidence.toFixed(1)}% confidence`);
+
+                // Show AI analysis with context
+                if (ai_analysis) {
+                    const contextNote = userMessage ? `\n\n*Analysis based on your question: "${userMessage}"*` : '';
+                    Messages.addAIMessage(`**🔍 Analysis of "${file.name}":**\n\n${ai_analysis}${contextNote}`);
+                    
+                    if (ChatStore.currentChatId) {
+                        await ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', `Analysis of ${file.name}: ${ai_analysis}`);
+                    }
+                } else {
+                    Messages.addAIMessage(`✅ Image processed but no specific analysis was generated.`);
+                }
+
+                // Show evidence sources if available
+                if (evidence_sources && evidence_sources.length > 0) {
+                    let evidenceMsg = `\n\n**📚 ${evidence_count} source(s) found:**\n`;
+                    evidence_sources.slice(0, 3).forEach((src, idx) => {
+                        evidenceMsg += `${idx + 1}. [${src.title || src.domain}](${src.url})\n`;
+                    });
+                    Messages.addAIMessage(evidenceMsg);
+                }
+            } else {
+                Messages.addAIMessage(`❌ Failed to process image: ${result.error || 'Unknown error'}`);
+            }
+
+        } catch (error) {
+            console.error('❌ Image processing error:', error);
+            Messages.addAIMessage(`❌ Error processing image: ${error.message}`);
+        }
+    },
+    
+    /**
+     * Process text file with user's text as context
+     */
+    async processTextFileWithContext(file, userMessage) {
+        console.log('📄 Processing text file with context:', file.name);
+        
+        try {
+            const textContent = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result);
+                reader.onerror = () => reject(new Error('Failed to read file'));
+                reader.readAsText(file);
+            });
+
+            const wordCount = textContent.split(/\s+/).filter(w => w.length > 0).length;
+            
+            // Create analysis prompt combining file content and user message
+            const analysisPrompt = userMessage 
+                ? `${userMessage}\n\nContent from file "${file.name}" (${wordCount} words):\n\n${textContent}`
+                : `Analyze this content from "${file.name}":\n\n${textContent}`;
+            
+            // Send to chat API for analysis
+            const response = await API.sendMessage(analysisPrompt, this.currentMode, []);
+            
+            if (response && (response.analysis || response.result || response.answer)) {
+                const aiResponse = response.analysis || response.result || response.answer;
+                Messages.addAIMessage(aiResponse);
+                
+                if (ChatStore.currentChatId) {
+                    await ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', aiResponse);
+                }
+            }
+        } catch (error) {
+            console.error('❌ Text file processing error:', error);
+            Messages.addAIMessage(`❌ Error processing file: ${error.message}`);
+        }
+    },
+
     async handleSend() {
         const input = document.getElementById('messageInput');
         const message = input.value.trim();
@@ -761,6 +1125,11 @@ const Chat = {
         // Create abort controller for this request
         this.abortController = new AbortController();
         
+        // Generate unique request ID to track this specific request
+        const requestId = 'req_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        this.currentRequestId = requestId;
+        console.log('🆔 New request started:', requestId);
+        
         // Ensure we have a chat to append to. Create one if necessary.
         try {
             if (!ChatStore.currentChatId) {
@@ -773,45 +1142,53 @@ const Chat = {
             }
         } catch (e) { console.warn('Could not create/open chat before send', e); }
 
-        Messages.addUserMessage(message);
+        // Check if we have attached files
+        const hasAttachments = Attachments.attachedFiles && Attachments.attachedFiles.length > 0;
+        
+        // Show combined user message (text + attachments)
+        if (hasAttachments) {
+            // Create combined message with image preview and text
+            await this.showCombinedUserMessage(message, Attachments.attachedFiles);
+        } else {
+            // Just text message
+            Messages.addUserMessage(message);
+            // Persist the user message to the chat store (best-effort)
+            try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'user', message); } catch (e) { console.warn('append user message failed', e); }
+        }
 
-        // Persist the user message to the chat store (best-effort)
-        try { if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'user', message); } catch (e) { console.warn('append user message failed', e); }
+        // Process attached files WITH the user's message context
+        if (hasAttachments) {
+            const filesToProcess = [...Attachments.attachedFiles];
+            
+            // Clear attachment area UI and files array immediately
+            Attachments.attachedFiles = [];
+            const attachmentArea = document.getElementById('attachmentArea');
+            if (attachmentArea) attachmentArea.innerHTML = '';
+            
+            Messages.showLoading('Processing attached file(s)...');
 
-        // Process all attached files before sending message
-        if (Attachments.attachedFiles && Attachments.attachedFiles.length > 0) {
-            Messages.addAIMessage(`🔄 Processing ${Attachments.attachedFiles.length} attached file(s)...`);
-
-            for (let i = 0; i < Attachments.attachedFiles.length; i++) {
-                const file = Attachments.attachedFiles[i];
+            for (let i = 0; i < filesToProcess.length; i++) {
+                const file = filesToProcess[i];
                 const fileName = file.name.toLowerCase();
-
-                // Add separator for multiple files
-                if (Attachments.attachedFiles.length > 1) {
-                    Messages.addAIMessage(`\n--- Processing file ${i + 1} of ${Attachments.attachedFiles.length}: ${file.name} ---\n`);
-                }
 
                 // Check if it's an image or text file
                 const isImage = fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png');
                 const isTextFile = fileName.endsWith('.md') || fileName.endsWith('.txt');
 
                 if (isImage) {
-                    await Attachments.processImageWithOCR(file);
+                    // Pass user's message as context for OCR analysis
+                    await this.processImageWithContext(file, message);
                 } else if (isTextFile) {
-                    await Attachments.processTextFile(file);
+                    await this.processTextFileWithContext(file, message);
                 }
 
                 // Small delay between files
-                if (i < Attachments.attachedFiles.length - 1) {
-                    await new Promise(resolve => setTimeout(resolve, 500));
+                if (i < filesToProcess.length - 1) {
+                    await new Promise(resolve => setTimeout(resolve, 300));
                 }
             }
 
-            // Clear attached files after processing
-            Attachments.attachedFiles = [];
-            Messages.addAIMessage(`✅ All files processed successfully!\n\n`);
-
-            // Don't send additional message to chat endpoint - OCR already provided analysis
+            Messages.hideLoading();
             this.isProcessing = false;
             this.hideLoadingState();
             return;
@@ -829,11 +1206,14 @@ const Chat = {
         const timeoutPromise = new Promise((_, reject) =>
             setTimeout(() => reject(new Error('Request timed out')), timeoutMs)
         );
+        
+        // Store abort signal for passing to API calls
+        const abortSignal = this.abortController.signal;
 
             try {
                 // Check v2 toggle state
                 const v2Enabled = document.getElementById('v2Toggle')?.checked || false;
-                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled);
+                console.log('Sending message:', message, 'Mode:', this.currentMode, 'V2 enabled:', v2Enabled, 'RequestId:', requestId);
                 
                 // Collect conversation history from chat messages
                 const conversationHistory = this.getConversationHistory();
@@ -844,9 +1224,15 @@ const Chat = {
                 if (this.currentMode === 'debate') {
                     console.log('🎭 Running debate mode...');
                     response = await Promise.race([
-                        API.sendMessage(message, 'debate', conversationHistory),
+                        API.sendMessage(message, 'debate', conversationHistory, abortSignal),
                         timeoutPromise
                     ]);
+                    
+                    // Check if request was cancelled while waiting
+                    if (this.currentRequestId !== requestId) {
+                        console.log('🛑 Request', requestId, 'was cancelled, ignoring response');
+                        return;
+                    }
                     
                     Messages.hideLoading();
                     
@@ -863,7 +1249,7 @@ const Chat = {
                     }
                     // Legacy: Handle old SSE stream (backwards compatibility)
                     else if (response && response.isStream) {
-                        await this.handleDebateStream(response.response, message);
+                        await this.handleDebateStream(response.response, message, requestId);
                     } else {
                         Messages.addAIMessage('Error: Unexpected response format from analysis.');
                     }
@@ -872,15 +1258,21 @@ const Chat = {
                 else {
                     if (v2Enabled && typeof ATLASv2 !== 'undefined') {
                         console.log('💎 Using v2.0 enhanced analysis...');
-                        // Use v2.0 enhanced analysis
+                        // Use v2.0 enhanced analysis - pass abort signal
                         response = await Promise.race([
                             ATLASv2.analyzeWithV2(message, {
                                 num_agents: 4,
                                 enable_reversal: true,
                                 reversal_rounds: 1
-                            }),
+                            }, abortSignal),
                             timeoutPromise
                         ]);
+                        
+                        // Check if request was cancelled while waiting
+                        if (this.currentRequestId !== requestId) {
+                            console.log('🛑 Request', requestId, 'was cancelled, ignoring v2 response');
+                            return;
+                        }
                         
                         console.log('Received v2.0 response:', response);
                         Messages.hideLoading();
@@ -889,21 +1281,37 @@ const Chat = {
                             // Use V2UI to render enhanced response
                             const v2Card = V2UI.createV2ResponseCard(response.data);
                             this.addV2Card(v2Card);
-                            // Persist a short synthesis from v2 response if available
+                            // Persist the FULL v2 response data as JSON with marker for re-rendering
                             try {
-                                const synth = response.data.synthesis || response.data.summary || JSON.stringify(response.data || {});
-                                if (ChatStore.currentChatId) ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', synth);
+                                const v2DataToStore = {
+                                    __v2_dashboard__: true,
+                                    data: response.data
+                                };
+                                if (ChatStore.currentChatId) {
+                                    ChatStore.appendMessage(
+                                        ChatStore.currentChatId, 
+                                        'assistant', 
+                                        JSON.stringify(v2DataToStore),
+                                        { is_v2_dashboard: true }
+                                    );
+                                }
                             } catch (e) { console.warn('append v2 response failed', e); }
                         } else {
                             Messages.addAIMessage(response.error || 'v2.0 analysis failed. Please try again.');
                         }
                     } else {
                         console.log('💬 Using standard chat analysis...');
-                        // Use standard v1.0 analysis
+                        // Use standard v1.0 analysis - pass abort signal
                         response = await Promise.race([
-                            API.sendMessage(message, 'analytical', conversationHistory),
+                            API.sendMessage(message, 'analytical', conversationHistory, abortSignal),
                             timeoutPromise
                         ]);
+                        
+                        // Check if request was cancelled while waiting
+                        if (this.currentRequestId !== requestId) {
+                            console.log('🛑 Request', requestId, 'was cancelled, ignoring standard response');
+                            return;
+                        }
                         
                         console.log('Received response:', response);
                         Messages.hideLoading();
@@ -925,7 +1333,14 @@ const Chat = {
                 
                 // Check if this was an abort (user clicked stop)
                 if (error.name === 'AbortError') {
+                    console.log('🛑 Request aborted:', requestId);
                     // Already handled by stopGeneration()
+                    return;
+                }
+                
+                // Check if request was cancelled
+                if (this.currentRequestId !== requestId) {
+                    console.log('🛑 Request', requestId, 'was cancelled during error handling');
                     return;
                 }
                 
@@ -948,8 +1363,8 @@ const Chat = {
             }
         },
 
-    async handleDebateStream(response, originalTopic) {
-        console.log('📡 Handling debate stream...');
+    async handleDebateStream(response, originalTopic, requestId = null) {
+        console.log('📡 Handling debate stream... RequestId:', requestId);
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
 
@@ -964,6 +1379,13 @@ const Chat = {
             let currentEventType = null;  // Track current SSE event type
             
             while (true) {
+                // Check if request was cancelled
+                if (requestId && this.currentRequestId !== requestId) {
+                    console.log('🛑 Debate stream cancelled for request:', requestId);
+                    reader.cancel();
+                    return;
+                }
+                
                 const { done, value } = await reader.read();
                 if (done) break;
 
@@ -971,6 +1393,13 @@ const Chat = {
                 const lines = chunk.split('\n');
 
                 for (const line of lines) {
+                    // Check again inside loop
+                    if (requestId && this.currentRequestId !== requestId) {
+                        console.log('🛑 Debate stream cancelled during chunk processing');
+                        reader.cancel();
+                        return;
+                    }
+                    
                     if (!line.trim() || line.startsWith(':')) continue;
 
                     // Track event type from SSE

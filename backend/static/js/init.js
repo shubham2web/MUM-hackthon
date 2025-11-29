@@ -2,6 +2,30 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Atlas Chat...');
     
+    // ===== CRITICAL: Check for homepage query BEFORE anything else =====
+    // This must happen before ChatStore loads its values from localStorage
+    const forceNewChat = sessionStorage.getItem('forceNewChat');
+    const initialPrompt = sessionStorage.getItem('initialPrompt');
+    
+    // If either flag is set OR there's an initial prompt, we need a fresh chat
+    const needsNewChat = (forceNewChat === 'true') || (initialPrompt && initialPrompt.length > 0);
+    
+    if (needsNewChat) {
+        console.log('🆕 Homepage query detected in init.js - clearing ALL chat state');
+        console.log('   forceNewChat:', forceNewChat);
+        console.log('   initialPrompt:', initialPrompt ? initialPrompt.substring(0, 50) + '...' : 'none');
+        
+        // Clear chat ID mappings to ensure a fresh chat is created
+        localStorage.removeItem('chatIdsByMode');
+        
+        // Also update ChatStore if it already loaded (it reads from localStorage at declaration)
+        if (typeof ChatStore !== 'undefined') {
+            ChatStore.currentChatId = null;
+            ChatStore.currentChatIdByMode = {};
+            console.log('✅ ChatStore state cleared');
+        }
+    }
+    
     // Central theme applier so it's available before components initialize
     window.applyTheme = function(theme) {
         if (theme === 'light') {
