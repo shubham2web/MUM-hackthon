@@ -1,5 +1,77 @@
 /* Chat Page Specific Styles */
 
+/* === EVIDENCE LIST STYLES === */
+.evidence-list {
+    list-style: none;
+    padding: 0;
+    margin: 15px 0;
+}
+
+.evidence-item {
+    margin-bottom: 12px;
+    padding: 12px 15px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 8px;
+    border-left: 3px solid #60a5fa;
+    transition: background 0.2s ease;
+}
+
+.evidence-item:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.evidence-cite {
+    display: inline-block;
+    background: #60a5fa;
+    color: #1a1a2e;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 4px;
+    margin-right: 8px;
+    font-size: 12px;
+}
+
+.evidence-item a {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.evidence-item a:hover {
+    text-decoration: underline;
+}
+
+.evidence-meta {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.evidence-snippet {
+    font-size: 13px;
+    color: #d1d5db;
+    margin-top: 6px;
+    line-height: 1.4;
+}
+
+/* Citation links in assistant text */
+.citation-link {
+    color: #60a5fa;
+    text-decoration: none;
+    font-weight: 600;
+    transition: color 0.2s;
+}
+
+.citation-link:hover {
+    color: #93c5fd;
+    text-decoration: underline;
+}
+
+.citation-ref {
+    color: #60a5fa;
+    font-weight: 600;
+}
+
 /* Attachment Area Styling */
 .attachment-area {
     padding-bottom: 10px;

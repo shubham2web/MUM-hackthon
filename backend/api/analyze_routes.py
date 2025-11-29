@@ -1,12 +1,18 @@
 """
-ATLAS v4.0 Full Analysis Pipeline API
+ATLAS v4.1.1 Full Analysis Pipeline API with RAG Integration
 
 This module implements the complete analysis endpoint as per PRD:
-RAG → Web Scraper → OCR → Credibility → Forensic → Debate → Verdict
+RAG Evidence Module → Claim Parser → Agents → Verdict Engine → Response
 
 Routes:
-- /analyze: Full pipeline analysis
+- /analyze: Full pipeline analysis with RAG
 - /analyze/quick: Quick analysis (no debate)
+
+v4.1.1 Changes:
+- Integrated Hybrid RAG (BM25 + Embedding) for evidence retrieval
+- RAG runs BEFORE agents for factual grounding
+- No debate transcripts exposed (PRD compliant)
+- Latency target: 4-8 seconds per verdict
 """
 from __future__ import annotations
 
@@ -25,6 +31,23 @@ from core.ai_agent import AiAgent
 from core.config import DEFAULT_MODEL, ROLE_PROMPTS
 from core.utils import compute_advanced_analytics, format_sse
 from services.pro_scraper import get_diversified_evidence
+
+# RAG Evidence Module (v4.1.3)
+try:
+    from rag.evidence_retriever import get_rag_retriever, RAGEvidenceRetriever
+    from rag.adapter import (
+        process_scraper_results,
+        build_evidence_prompt,
+        format_assistant_with_citations
+    )
+    RAG_AVAILABLE = True
+    logging.info("✅ RAG Evidence Module loaded (v4.1.3)")
+except ImportError as e:
+    RAG_AVAILABLE = False
+    process_scraper_results = None
+    build_evidence_prompt = None
+    format_assistant_with_citations = None
+    logging.warning(f"⚠️ RAG Evidence Module not available: {e}")
 
 # V2 Features
 try:
@@ -777,7 +800,9 @@ def get_pipeline() -> ATLASAnalysisPipeline:
 @analyze_bp.route('/', methods=['POST'])
 async def full_analysis():
     """
-    ATLAS v4.1 Neutral Verdict Analysis Endpoint (NO DEBATE TRANSCRIPTS).
+    ATLAS v4.1.1 Neutral Verdict Analysis Endpoint with RAG Integration.
+    
+    Pipeline: RAG Evidence Module → Claim Parser → Agents → Verdict Engine → Response
     
     Request JSON:
     {
@@ -788,8 +813,10 @@ async def full_analysis():
         "session_id": "optional-session-id"
     }
     
-    Returns neutral verdict (NO proponent/opponent/debate fields).
+    Returns neutral verdict with RAG-sourced evidence (NO proponent/opponent/debate fields).
     """
+    start_time = time.time()
+    
     try:
         # Import verdict engine
         import sys
@@ -814,34 +841,100 @@ async def full_analysis():
         article_text = query or text
         analysis_id = str(uuid.uuid4())
         
-        logger.info(f"🚀 Starting neutral verdict analysis: {article_text[:100]}...")
+        logger.info(f"🚀 Starting ATLAS v4.1.1 analysis (RAG-enabled): {article_text[:100]}...")
         
-        # Step 1: Gather evidence via RAG + web scraping
-        pipeline = get_pipeline()
-        evidence_bundle = await pipeline._gather_evidence(article_text)
+        # ============================================
+        # STEP 1: RAG Evidence Module (NEW in v4.1.1)
+        # Runs FIRST to provide factual grounding
+        # ============================================
+        rag_start = time.time()
+        evidence_bundle = []
+        rag_metrics = {}
         
-        # Step 2: Run internal agents (claim extraction, synthesis, bias, forensics)
+        if RAG_AVAILABLE:
+            try:
+                rag_retriever = get_rag_retriever()
+                evidence_bundle = await asyncio.wait_for(
+                    rag_retriever.retrieve_evidence(article_text),
+                    timeout=8.0  # 8 second RAG timeout
+                )
+                rag_metrics = rag_retriever.get_metrics()
+                logger.info(f"📚 RAG retrieved {len(evidence_bundle)} evidence items in {rag_metrics.get('last_latency_ms', 0)}ms")
+            except asyncio.TimeoutError:
+                logger.warning("RAG retrieval timed out, falling back to web scraping")
+                evidence_bundle = []
+            except Exception as e:
+                logger.warning(f"RAG retrieval failed: {e}, falling back to web scraping")
+                evidence_bundle = []
+        
+        # Fallback to web scraping if RAG didn't return results
+        if not evidence_bundle:
+            logger.info("📡 Falling back to web scraping for evidence...")
+            pipeline = get_pipeline()
+            evidence_bundle = await pipeline._gather_evidence(article_text)
+            # Normalize to RAG format
+            evidence_bundle = [
+                {
+                    "title": ev.get("title", "Unknown"),
+                    "url": ev.get("url", ""),
+                    "snippet": (ev.get("text", "") or ev.get("summary", ""))[:200],
+                    "authority": ev.get("authority", 0.5),
+                    "source_type": "News",
+                    "domain": ev.get("domain", "")
+                }
+                for ev in evidence_bundle
+            ]
+        
+        rag_duration_ms = int((time.time() - rag_start) * 1000)
+        
+        # ============================================
+        # STEP 2: Claim Extraction (FactualAnalyst)
+        # ============================================
         fa = FactualAnalyst()
         claims = fa.extract_claims(article_text)
+        logger.info(f"📋 Extracted {len(claims)} claims")
         
+        # ============================================
+        # STEP 3: Evidence Enrichment (EvidenceSynthesizer)
+        # ============================================
         synth = EvidenceSynthesizer()
         evidence_bundle_enriched = synth.enrich(evidence_bundle)
         
+        # ============================================
+        # STEP 4: Bias Analysis (BiasAuditorAgent)
+        # ============================================
         ba = BiasAuditorAgent()
         bias_report = ba.audit_text(article_text)
         
-        # Extract named entities (placeholder - use your NER pipeline)
-        named_entities = []  # TODO: integrate spaCy NER or similar
+        # ============================================
+        # STEP 5: Forensic Analysis (ForensicAgent)
+        # ============================================
+        # Extract named entities for forensic analysis
+        named_entities = []
+        try:
+            import spacy
+            nlp = spacy.load("en_core_web_sm")
+            doc = nlp(article_text[:5000])  # Limit text for NER
+            named_entities = [
+                {"name": ent.text, "type": ent.label_}
+                for ent in doc.ents
+                if ent.label_ in ["PERSON", "ORG", "GPE", "LOC"]
+            ][:10]  # Limit to 10 entities
+        except Exception as e:
+            logger.debug(f"NER extraction not available: {e}")
         
         forensic_agent = ForensicAgent()
         forensic_dossier = forensic_agent.build_dossier(named_entities)
         
-        # Step 3: Internal contradiction detection (placeholder)
-        contradictions = []  # TODO: implement contradiction_engine.find_contradictions
-        
+        # ============================================
+        # STEP 6: Contradiction Detection (placeholder)
+        # ============================================
+        contradictions = []  # TODO: implement contradiction_engine
         extra_context = {"contradictions": contradictions}
         
-        # Step 4: Compute neutral verdict (NO DEBATE)
+        # ============================================
+        # STEP 7: Verdict Engine (NO DEBATE)
+        # ============================================
         verdict_json = decide_verdict(
             claims=claims,
             evidence_bundle=evidence_bundle_enriched,
@@ -850,11 +943,28 @@ async def full_analysis():
             extra_context=extra_context
         )
         
+        # Add metadata
         verdict_json["analysis_id"] = analysis_id
         verdict_json["request_url"] = url if url else None
         verdict_json["query"] = article_text[:200]
         
-        # Step 5: Persist to DB (non-blocking)
+        # Add RAG metrics to response
+        verdict_json["rag_metrics"] = {
+            "evidence_count": len(evidence_bundle),
+            "latency_ms": rag_duration_ms,
+            "avg_authority": rag_metrics.get("last_avg_authority", 0) if rag_metrics else (
+                sum(e.get("authority", 0.5) for e in evidence_bundle) / len(evidence_bundle) if evidence_bundle else 0
+            ),
+            "rag_enabled": RAG_AVAILABLE
+        }
+        
+        # Total latency
+        total_latency_ms = int((time.time() - start_time) * 1000)
+        verdict_json["total_latency_ms"] = total_latency_ms
+        
+        # ============================================
+        # STEP 8: Persist to DB (non-blocking)
+        # ============================================
         try:
             from database.db_manager import db_manager
             await db_manager.analysis.insert_one({
@@ -865,9 +975,13 @@ async def full_analysis():
         except Exception as e:
             logger.warning(f"Failed to persist analysis result: {e}")
         
-        logger.info(f"✅ Neutral verdict generated: {verdict_json.get('verdict')} ({verdict_json.get('confidence_pct')}%)")
+        logger.info(
+            f"✅ Verdict generated: {verdict_json.get('verdict')} "
+            f"({verdict_json.get('confidence_pct')}%) "
+            f"[latency={total_latency_ms}ms, evidence={len(evidence_bundle)}]"
+        )
         
-        # Step 6: Return ONLY neutral verdict (no debate transcript)
+        # Return ONLY neutral verdict (no debate transcript)
         return jsonify(verdict_json), 200
         
     except Exception as e:

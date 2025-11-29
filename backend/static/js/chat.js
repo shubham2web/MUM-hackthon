@@ -288,6 +288,8 @@ const Chat = {
         const sendBtn = document.getElementById('sendBtn');
         const stopBtn = document.getElementById('stopBtn');
         const input = document.getElementById('messageInput');
+        
+        console.log('🔧 setupEventListeners - sendBtn:', !!sendBtn, 'stopBtn:', !!stopBtn, 'input:', !!input);
 
         sendBtn?.addEventListener('click', () => this.handleSend());
         stopBtn?.addEventListener('click', () => this.stopGeneration());
@@ -732,9 +734,14 @@ const Chat = {
 
     async handleSend() {
         const input = document.getElementById('messageInput');
-        const message = input.value.trim();
+        console.log('📤 handleSend called, input element:', !!input);
+        const message = input?.value?.trim() || '';
+        console.log('📝 Message to send:', message);
 
-        if (!message || this.isProcessing) return;
+        if (!message || this.isProcessing) {
+            console.log('⚠️ Skipping send - no message or already processing');
+            return;
+        }
 
         // Check if V2 enhanced analysis is enabled
         const v2Toggle = document.getElementById('v2Toggle');
@@ -1213,6 +1220,93 @@ const Chat = {
      *   timestamp: "..."
      * }
      */
+    
+    /**
+     * Insert citation anchors into text, replacing [1], [2] with clickable links.
+     * @param {string} text - Text containing citation markers like [1], [2]
+     * @param {Array} evidenceBundle - Array of evidence objects with url property
+     * @returns {string} HTML string with citation links
+     */
+    injectCitationAnchors(text, evidenceBundle) {
+        if (!text || !evidenceBundle) return text || '';
+        
+        return text.replace(/\[(\d+)\]/g, (match, num) => {
+            const idx = parseInt(num, 10) - 1;
+            if (idx < 0 || idx >= evidenceBundle.length) return match;
+            
+            const ev = evidenceBundle[idx];
+            const url = ev.url || '#';
+            const hasValidUrl = url && url.startsWith('http');
+            
+            if (hasValidUrl) {
+                return `<a href="${url}" target="_blank" rel="noreferrer noopener" class="citation-link" style="color: #60a5fa; text-decoration: none; font-weight: 600;">[${num}]</a>`;
+            }
+            return `<span class="citation-ref" style="color: #60a5fa; font-weight: 600;">[${num}]</span>`;
+        });
+    },
+    
+    /**
+     * Render evidence tiles with citation markers.
+     * Creates clickable evidence cards with [1], [2], etc. markers.
+     */
+    renderEvidenceTiles(evidenceBundle, containerEl) {
+        if (!Array.isArray(evidenceBundle) || evidenceBundle.length === 0) return;
+        
+        const list = document.createElement('ul');
+        list.className = 'evidence-list';
+        list.style.cssText = 'list-style: none; padding: 0; margin: 0;';
+        
+        evidenceBundle.forEach((ev, idx) => {
+            const citationIdx = ev.citation_idx || (idx + 1);
+            const li = document.createElement('li');
+            li.className = 'evidence-item';
+            li.style.cssText = 'margin-bottom: 12px; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #60a5fa;';
+            
+            // Citation badge
+            const cite = document.createElement('span');
+            cite.className = 'evidence-cite';
+            cite.style.cssText = 'display: inline-block; background: #60a5fa; color: #1a1a2e; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-right: 8px; font-size: 12px;';
+            cite.textContent = `[${citationIdx}]`;
+            
+            // Title link
+            const title = document.createElement('a');
+            const url = ev.url || '#';
+            const hasValidUrl = url && url.startsWith('http') && url.length >= 15;
+            title.href = hasValidUrl ? url : '#';
+            title.target = '_blank';
+            title.rel = 'noreferrer noopener';
+            title.style.cssText = 'color: #60a5fa; text-decoration: none; font-weight: 500;';
+            title.textContent = ev.title || ev.domain || `Source ${citationIdx}`;
+            if (!hasValidUrl) {
+                title.style.cursor = 'default';
+                title.onclick = (e) => e.preventDefault();
+            }
+            
+            // Domain + authority meta
+            const meta = document.createElement('div');
+            meta.className = 'evidence-meta';
+            meta.style.cssText = 'font-size: 12px; color: #9ca3af; margin-top: 4px;';
+            const authorityPct = Math.round((ev.authority || 0.5) * 100);
+            const sourceType = ev.source_type || 'Other';
+            meta.textContent = `${ev.domain || ''} · ${sourceType} · Authority: ${authorityPct}%`;
+            
+            // Snippet (max 200 chars)
+            const snip = document.createElement('div');
+            snip.className = 'evidence-snippet';
+            snip.style.cssText = 'font-size: 13px; color: #d1d5db; margin-top: 6px; line-height: 1.4;';
+            const snippetText = ev.snippet || ev.summary || '';
+            snip.textContent = snippetText.slice(0, 200) + (snippetText.length > 200 ? '...' : '');
+            
+            li.appendChild(cite);
+            li.appendChild(title);
+            li.appendChild(meta);
+            li.appendChild(snip);
+            list.appendChild(li);
+        });
+        
+        containerEl.appendChild(list);
+    },
+    
     displayFinalVerdict(verdictObj) {
         // Extract verdict data
         const verdict = (verdictObj.verdict || 'COMPLEX').toUpperCase();
@@ -1244,27 +1338,48 @@ const Chat = {
                 verdictBg = 'rgba(242, 183, 5, 0.1)';
         }
         
-        // Build key evidence HTML
+        // Build key evidence HTML with citation indices [1], [2], etc.
         let evidenceHtml = '';
         if (keyEvidence.length > 0) {
-            const evidenceItems = keyEvidence.slice(0, 5).map(e => {
+            const evidenceItems = keyEvidence.slice(0, 5)
+                .filter(e => {
+                    // Filter out malformed URLs like "https://www" without actual domain
+                    const url = e.url;
+                    if (!url) return true; // Allow entries without URL
+                    if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+                    if (url.length < 15) return false; // Too short to be valid
+                    if (url === 'https://www' || url === 'http://www') return false;
+                    return true;
+                })
+                .map((e, idx) => {
+                const citationIdx = e.citation_idx || (idx + 1);
                 const authority = e.authority ? Math.round(e.authority * 100) : 50;
                 const title = e.title || e.source_id || 'Unknown Source';
-                const url = e.url || '#';
+                const url = e.url;
+                const domain = e.domain || '';
+                const sourceType = e.source_type || '';
+                const snippet = (e.snippet || e.summary || '').slice(0, 150);
+                const hasValidUrl = url && url.startsWith('http') && url.length >= 15;
+                
+                // Render title as link if URL is valid
+                const titleHtml = hasValidUrl 
+                    ? `<a href="${url}" target="_blank" rel="noreferrer noopener" style="color: #60a5fa; text-decoration: none; font-weight: 500;">${title}</a>`
+                    : `<span style="color: #60a5fa; font-weight: 500;">${title}</span>`;
+                
                 return `
-                    <li style="margin-bottom: 8px;">
-                        <a href="${url}" target="_blank" style="color: #60a5fa; text-decoration: none;">
-                            ${title}
-                        </a>
-                        <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">(authority: ${authority}%)</span>
+                    <li style="margin-bottom: 12px; padding: 10px; background: rgba(255,255,255,0.03); border-radius: 8px; border-left: 3px solid #60a5fa;">
+                        <span style="display: inline-block; background: #60a5fa; color: #1a1a2e; font-weight: 700; padding: 2px 8px; border-radius: 4px; margin-right: 8px; font-size: 12px;">[${citationIdx}]</span>
+                        ${titleHtml}
+                        <div style="font-size: 12px; color: #9ca3af; margin-top: 4px;">${domain}${sourceType ? ' · ' + sourceType : ''} · Authority: ${authority}%</div>
+                        ${snippet ? `<div style="font-size: 13px; color: #d1d5db; margin-top: 6px; line-height: 1.4;">${snippet}...</div>` : ''}
                     </li>
                 `;
             }).join('');
             
             evidenceHtml = `
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <h4 style="font-weight: 600; margin-bottom: 8px; color: #e5e7eb;">📋 Key Evidence</h4>
-                    <ul style="margin: 0; padding-left: 20px; color: #d1d5db;">
+                    <h4 style="font-weight: 600; margin-bottom: 12px; color: #e5e7eb;">📚 Key Evidence</h4>
+                    <ul style="margin: 0; padding: 0; list-style: none; color: #d1d5db;">
                         ${evidenceItems}
                     </ul>
                 </div>

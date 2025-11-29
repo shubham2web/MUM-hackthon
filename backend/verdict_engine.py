@@ -1,19 +1,50 @@
 # verdict_engine.py
 """
-Neutral Verdict Engine for ATLAS v4.1
+Neutral Verdict Engine for ATLAS v4.1.2 (Deterministic)
 
 - Accepts extracted claims, evidence bundle, bias report, forensic dossier.
 - Produces a neutral verdict JSON conforming to PRD v4.1 schema.
 - Uses safe deterministic heuristics + optional LLM summarizer hooks.
 - Includes schema validation & helpful logs.
+- v4.1.2: 100% deterministic - same input = same output ALWAYS
 """
 
 from datetime import datetime
 from typing import List, Dict, Any, Optional
 import logging
 import math
+import random
+import numpy as np
+
+# PATCH 1: Seed random globally for determinism
+random.seed(1)
+np.random.seed(1)
 
 logger = logging.getLogger("verdict_engine")
+
+# ---------- Probabilistic Confidence Combining ----------
+def combine_confidences_probabilistic(confidences: List[float], weights: List[float] = None) -> float:
+    """
+    Probabilistic confidence combining - models diminishing returns.
+    
+    confidences: list of floats in [0,1]
+    weights: optional list of [0,1] same length, used to scale each evidence's contribution.
+    Returns combined probability in [0,1] using: 1 - product(1 - w_i * c_i)
+    
+    This avoids linear runaway sums:
+    - Two identical 50% supports -> combined ≈ 75%
+    - A dozen tiny supports won't reach 100%
+    """
+    if not confidences:
+        return 0.0
+    prod = 1.0
+    if weights is None:
+        weights = [1.0] * len(confidences)
+    for c, w in zip(confidences, weights):
+        c_ = max(0.0, min(1.0, c))
+        w_ = max(0.0, min(1.0, w))
+        prod *= (1.0 - (c_ * w_))
+    return round(1.0 - prod, 4)  # Fixed precision
 logger.setLevel(logging.INFO)
 
 # ---------- Configuration / thresholds ----------
@@ -111,29 +142,58 @@ def decide_verdict(
     }
     """
     try:
-        alignment = compute_alignment_score(evidence_bundle)  # 0..100
-        bias_penalty = compute_bias_penalty(bias_report)      # 0..30
-        forensic_penalty = compute_forensic_penalty(forensic_dossier) # 0..15
-
-        # base score influenced by alignment largely
-        base = alignment
-        score = clamp_0_100(base - bias_penalty - forensic_penalty)
-
-        # small adjustment for number of evidence items (more = slightly more confidence)
-        n = len(evidence_bundle) if evidence_bundle is not None else 0
-        if n >= 3:
-            score = clamp_0_100(score + min(5, math.log1p(n) * 2.0))
-
+        # PATCH 2: Freeze evidence ordering for determinism
+        # Same evidence order = same score = same confidence
+        if evidence_bundle:
+            evidence_bundle = sorted(
+                evidence_bundle,
+                key=lambda x: (round(x.get("authority", 0), 2), x.get("title", "")),
+                reverse=True
+            )
+        
+        # PATCH 3: Convert authority to deterministic fixed precision
+        # Normalize all authority values to 2 decimal places to kill float drift
+        for item in (evidence_bundle or []):
+            item["authority"] = round(item.get("authority", 0), 2)
+        
+        # Get contradictions for deterministic formula
+        contradictions = extra_context.get("contradictions", []) if extra_context else []
+        
+        # PROBABILISTIC CONFIDENCE COMBINING (v4.1.3)
+        # Uses 1 - product(1 - authority_i * relevance_i) to model diminishing returns
+        # This prevents duplicate/low-quality sources from escalating confidence linearly
+        n = len(evidence_bundle) if evidence_bundle else 0
+        if n > 0:
+            # Extract confidence values (authority * relevance) for each evidence
+            confidences = [
+                round(e.get('authority', 0.3) * e.get('relevance', 1.0), 4)
+                for e in evidence_bundle
+            ]
+            
+            # Probabilistic combination - models diminishing returns
+            combined_conf = combine_confidences_probabilistic(confidences)
+            
+            # Apply contradiction penalty (each contradiction reduces by 5%)
+            contradiction_penalty = len(contradictions) * 0.05
+            combined_conf = max(0.0, combined_conf - contradiction_penalty)
+            
+            # Convert to percentage (0-100 scale)
+            confidence_score = int(round(combined_conf * 100))
+            confidence_score = max(0, min(confidence_score, 100))
+            score = float(confidence_score)
+        else:
+            score = 50.0  # Default when no evidence
+        
         verdict_label = classify_verdict(score)
         summary_text = summarize_evidence(evidence_bundle) or (claims[0] if claims else "")
 
         result = {
             "verdict": verdict_label,
             "confidence": round(score / 100.0, 3),
-            "confidence_pct": int(round(score)),
+            "confidence_pct": int(score),  # Already integer from PATCH 4
             "summary": summary_text,
             "key_evidence": build_key_evidence(evidence_bundle),
-            "contradictions": extra_context.get("contradictions", []) if extra_context else [],
+            "contradictions": contradictions,  # Use pre-computed value
             "forensic_dossier": forensic_dossier or {"entities": []},
             "bias_signals": bias_report.get("flags", []) if bias_report else [],
             "recommendation": "Cross-check with primary official sources." if verdict_label != "VERIFIED" else "Primary corroboration present; monitor for updates.",
