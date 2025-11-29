@@ -2,9 +2,182 @@
 const Messages = {
     container: null,
     thinkingInterval: null,  // Track dynamic thinking animation
+    selectionMenu: null,     // Text selection context menu
 
     init(containerSelector) {
         this.container = document.querySelector(containerSelector);
+        this.initSelectionMenu();
+    },
+
+    // Initialize the text selection context menu
+    initSelectionMenu() {
+        // Create the selection menu element
+        this.selectionMenu = document.createElement('div');
+        this.selectionMenu.className = 'text-selection-menu';
+        this.selectionMenu.innerHTML = `
+            <button class="selection-menu-item" data-action="summarize">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="21" y1="10" x2="3" y2="10"></line>
+                    <line x1="21" y1="6" x2="3" y2="6"></line>
+                    <line x1="21" y1="14" x2="3" y2="14"></line>
+                    <line x1="21" y1="18" x2="3" y2="18"></line>
+                </svg>
+                Summarize
+            </button>
+            <button class="selection-menu-item" data-action="explain">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+                    <line x1="12" y1="17" x2="12.01" y2="17"></line>
+                </svg>
+                Explain this
+            </button>
+        `;
+        this.selectionMenu.style.display = 'none';
+        document.body.appendChild(this.selectionMenu);
+
+        // Add event listeners for menu items
+        this.selectionMenu.querySelectorAll('.selection-menu-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                const action = item.dataset.action;
+                const selectedText = this.currentSelectedText;
+                this.hideSelectionMenu();
+                if (selectedText && action) {
+                    this.handleSelectionAction(action, selectedText);
+                }
+            });
+        });
+
+        // Listen for text selection on AI messages
+        document.addEventListener('mouseup', (e) => this.handleTextSelection(e));
+        document.addEventListener('mousedown', (e) => {
+            // Hide menu if clicking outside
+            if (!this.selectionMenu.contains(e.target)) {
+                this.hideSelectionMenu();
+            }
+        });
+
+        // Hide on scroll
+        document.addEventListener('scroll', () => this.hideSelectionMenu(), true);
+    },
+
+    currentSelectedText: '',
+
+    handleTextSelection(e) {
+        const selection = window.getSelection();
+        const selectedText = selection.toString().trim();
+
+        // Check if selection is within an AI message
+        if (selectedText.length > 0) {
+            const range = selection.getRangeAt(0);
+            const container = range.commonAncestorContainer;
+            const aiMessage = container.nodeType === 3 
+                ? container.parentElement.closest('.ai-message')
+                : container.closest?.('.ai-message');
+
+            if (aiMessage) {
+                this.currentSelectedText = selectedText;
+                this.showSelectionMenu(e, range);
+                return;
+            }
+        }
+        
+        // Only hide if not clicking on the menu itself
+        if (!this.selectionMenu.contains(e.target)) {
+            this.hideSelectionMenu();
+        }
+    },
+
+    showSelectionMenu(e, range) {
+        const rect = range.getBoundingClientRect();
+        const menuWidth = 180;
+        const menuHeight = 200;
+        
+        // Position the menu above or below the selection
+        let top = rect.bottom + window.scrollY + 8;
+        let left = rect.left + window.scrollX + (rect.width / 2) - (menuWidth / 2);
+        
+        // Ensure menu stays within viewport
+        if (left < 10) left = 10;
+        if (left + menuWidth > window.innerWidth - 10) {
+            left = window.innerWidth - menuWidth - 10;
+        }
+        
+        // If menu would go below viewport, show above selection
+        if (top + menuHeight > window.innerHeight + window.scrollY) {
+            top = rect.top + window.scrollY - menuHeight - 8;
+        }
+
+        this.selectionMenu.style.left = `${left}px`;
+        this.selectionMenu.style.top = `${top}px`;
+        this.selectionMenu.style.display = 'block';
+        
+        // Animate in
+        requestAnimationFrame(() => {
+            this.selectionMenu.classList.add('visible');
+        });
+    },
+
+    hideSelectionMenu() {
+        this.selectionMenu.classList.remove('visible');
+        setTimeout(() => {
+            this.selectionMenu.style.display = 'none';
+        }, 150);
+    },
+
+    async handleSelectionAction(action, text) {
+        // Clear selection
+        window.getSelection().removeAllRanges();
+
+        // Show the selected text as user message
+        const actionLabel = action === 'summarize' ? '📝 Summarize' : '💡 Explain';
+        this.addUserMessage(`${actionLabel}: "${text.length > 100 ? text.substring(0, 100) + '...' : text}"`);
+
+        // Show loading indicator
+        this.showLoading();
+
+        // Show loading state on send button if Chat module is available
+        if (typeof Chat !== 'undefined' && Chat.showLoadingState) {
+            Chat.showLoadingState();
+        }
+
+        try {
+            // Call the text_action endpoint with fallback strategy
+            const response = await fetch('/text_action', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-API-Key': typeof API_KEY !== 'undefined' ? API_KEY : ''
+                },
+                body: JSON.stringify({
+                    action: action,
+                    text: text
+                })
+            });
+
+            this.hideLoading();
+
+            const data = await response.json();
+
+            if (data.success && data.result) {
+                // Show which provider was used (for debugging/transparency)
+                const providerBadge = data.provider ? ` <span style="opacity: 0.5; font-size: 0.8em;">(via ${data.provider})</span>` : '';
+                this.addAIMessage(data.result + providerBadge);
+            } else {
+                this.addAIMessage(`❌ Error: ${data.error || 'Failed to process text'}`);
+            }
+        } catch (error) {
+            this.hideLoading();
+            console.error('Text action error:', error);
+            this.addAIMessage(`❌ Error: ${error.message || 'Failed to connect to server'}`);
+        } finally {
+            // Hide loading state on send button
+            if (typeof Chat !== 'undefined' && Chat.hideLoadingState) {
+                Chat.hideLoadingState();
+            }
+        }
     },
 
     addUserMessage(text) {
