@@ -832,14 +832,24 @@ const Chat = {
                         timeoutPromise
                     ]);
                     
-                    // DON'T hide loading yet - let it continue until first debate message arrives
+                    Messages.hideLoading();
                     
-                    // Should be SSE stream
-                    if (response && response.isStream) {
+                    // Handle new verdict response (v4.1)
+                    if (response && response.isVerdict && response.verdict) {
+                        console.log('📊 Displaying neutral verdict (v4.1)...', response.verdict);
+                        this.displayFinalVerdict(response.verdict);
+                        
+                        // Persist verdict summary
+                        if (ChatStore.currentChatId) {
+                            const summary = `Verdict: ${response.verdict.verdict} (${response.verdict.confidence_pct}%) - ${response.verdict.summary}`;
+                            ChatStore.appendMessage(ChatStore.currentChatId, 'assistant', summary);
+                        }
+                    }
+                    // Legacy: Handle old SSE stream (backwards compatibility)
+                    else if (response && response.isStream) {
                         await this.handleDebateStream(response.response, message);
                     } else {
-                        Messages.hideLoading();
-                        Messages.addAIMessage('Error: Expected debate stream but got regular response.');
+                        Messages.addAIMessage('Error: Unexpected response format from analysis.');
                     }
                 }
                 // CHAT MODE: Use v2.0 if enabled, otherwise standard chat
@@ -932,6 +942,7 @@ const Chat = {
         let messageDiv = null;
         let firstMessageReceived = false; // Track if we've received first message
         let allDebateContent = []; // Store all debate messages for persistence
+        let debateMetadata = null; // Store debate metadata
 
         try {
             let currentEventType = null;  // Track current SSE event type
@@ -981,6 +992,19 @@ const Chat = {
 
                         try {
                             const json = JSON.parse(data);
+                            
+                            // 🎯 Handle METADATA event (debate ID, topic, etc.)
+                            if (currentEventType === 'metadata' || json.debate_id) {
+                                console.log('📋 Debate metadata received:', json);
+                                this.displayDebateMetadata(json, () => {
+                                    if (!firstMessageReceived) {
+                                        Messages.hideLoading();
+                                        firstMessageReceived = true;
+                                    }
+                                });
+                                currentEventType = null;
+                                continue;
+                            }
                             
                             // 🎯 Handle FINAL VERDICT event
                             if (currentEventType === 'final_verdict' || json.verdict) {
@@ -1078,6 +1102,19 @@ const Chat = {
                                     messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
                                 }
                             }
+                            
+                            // Handle turn_error events - log but continue
+                            if (currentEventType === 'turn_error' || json.message?.includes('error') || json.message?.includes('Error')) {
+                                console.warn('⚠️ Turn error detected:', json);
+                                // Don't stop the debate, just log the error
+                                if (messageDiv && currentRole) {
+                                    const errorText = json.message || 'An error occurred during this turn';
+                                    currentContent += `\n\n⚠️ [System: ${errorText}]`;
+                                    messageDiv.innerHTML = this.formatDebateContent(currentContent, currentRole);
+                                }
+                                currentEventType = null;
+                                continue;
+                            }
 
                         } catch (e) {
                             console.error('Error parsing SSE data:', e, data);
@@ -1102,63 +1139,173 @@ const Chat = {
     },
     
     /**
-     * Display the final verdict from the Chief Fact-Checker
+     * Display debate metadata (ID, topic, etc.) at the start
      */
-    displayFinalVerdict(verdictData) {
-        const verdict = verdictData.verdict || 'COMPLEX';
-        const confidence = verdictData.confidence || 50;
-        const reasoning = verdictData.reasoning || 'Analysis complete.';
-        const keyEvidence = verdictData.key_evidence || [];
-        const winningArg = verdictData.winning_argument || '';
+    displayDebateMetadata(metadata, hideLoadingCallback) {
+        this.debateMetadata = metadata; // Store for later use
+        const { debate_id, topic, model_used, memory_enabled, v2_features_enabled } = metadata;
+        
+        const metadataDiv = document.createElement('div');
+        metadataDiv.className = 'message ai-message';
+        metadataDiv.style.cssText = `
+            background: rgba(66, 181, 235, 0.1);
+            border-left: 3px solid #42b5eb;
+            padding: 16px;
+            margin-bottom: 16px;
+            border-radius: 8px;
+        `;
+        
+        let html = '<div style="font-size: 12px; color: rgba(255,255,255,0.7);">';
+        if (debate_id) {
+            html += `<div style="margin-bottom: 6px;"><strong>Debate ID:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; font-family: monospace;">${debate_id}</code></div>`;
+        }
+        if (topic) {
+            html += `<div style="margin-bottom: 6px;"><strong>Topic:</strong> ${topic}</div>`;
+        }
+        if (model_used) {
+            html += `<div style="margin-bottom: 6px;"><strong>Model:</strong> ${model_used}</div>`;
+        }
+        if (v2_features_enabled) {
+            html += `<div style="color: #10b981; margin-top: 8px;">✨ v2.0 Enhanced Features Enabled</div>`;
+        }
+        html += '</div>';
+        
+        metadataDiv.innerHTML = html;
+        Messages.container.appendChild(metadataDiv);
+        Messages.container.scrollTop = Messages.container.scrollHeight;
+        
+        // Hide loading on first metadata
+        if (hideLoadingCallback) {
+            hideLoadingCallback();
+        }
+    },
+    
+    /**
+     * Display the final verdict from neutral verdict engine (ATLAS v4.1)
+     * 
+     * Expected schema:
+     * {
+     *   verdict: "VERIFIED" | "DEBUNKED" | "COMPLEX",
+     *   confidence: 0-1,
+     *   confidence_pct: 0-100,
+     *   summary: "...",
+     *   key_evidence: [{title, url, snippet, authority}, ...],
+     *   forensic_dossier: {entities: [{name, reputation_score, red_flags}, ...]},
+     *   bias_signals: [{type, severity, explanation}, ...],
+     *   recommendation: "...",
+     *   contradictions: [...],
+     *   timestamp: "..."
+     * }
+     */
+    displayFinalVerdict(verdictObj) {
+        // Extract verdict data
+        const verdict = (verdictObj.verdict || 'COMPLEX').toUpperCase();
+        const confidencePct = verdictObj.confidence_pct || Math.round((verdictObj.confidence || 0.5) * 100);
+        const summary = verdictObj.summary || 'No summary available.';
+        const keyEvidence = verdictObj.key_evidence || [];
+        const forensicDossier = verdictObj.forensic_dossier || {entities: []};
+        const biasSignals = verdictObj.bias_signals || [];
+        const recommendation = verdictObj.recommendation || '';
+        const contradictions = verdictObj.contradictions || [];
         
         // Determine verdict styling
         let verdictColor, verdictIcon, verdictBg;
-        switch(verdict.toUpperCase()) {
+        switch(verdict) {
             case 'VERIFIED':
-                verdictColor = '#10b981';
+                verdictColor = '#1FB65B';
                 verdictIcon = '✅';
-                verdictBg = 'rgba(16, 185, 129, 0.1)';
+                verdictBg = 'rgba(31, 182, 91, 0.1)';
                 break;
             case 'DEBUNKED':
-                verdictColor = '#ef4444';
+                verdictColor = '#FF4D4F';
                 verdictIcon = '❌';
-                verdictBg = 'rgba(239, 68, 68, 0.1)';
+                verdictBg = 'rgba(255, 77, 79, 0.1)';
                 break;
             case 'COMPLEX':
             default:
-                verdictColor = '#f59e0b';
+                verdictColor = '#F2B705';
                 verdictIcon = '⚖️';
-                verdictBg = 'rgba(245, 158, 11, 0.1)';
+                verdictBg = 'rgba(242, 183, 5, 0.1)';
         }
         
         // Build key evidence HTML
         let evidenceHtml = '';
         if (keyEvidence.length > 0) {
+            const evidenceItems = keyEvidence.slice(0, 5).map(e => {
+                const authority = e.authority ? Math.round(e.authority * 100) : 50;
+                const title = e.title || e.source_id || 'Unknown Source';
+                const url = e.url || '#';
+                return `
+                    <li style="margin-bottom: 8px;">
+                        <a href="${url}" target="_blank" style="color: #60a5fa; text-decoration: none;">
+                            ${title}
+                        </a>
+                        <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">(authority: ${authority}%)</span>
+                    </li>
+                `;
+            }).join('');
+            
             evidenceHtml = `
                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
-                    <div style="font-weight: 600; margin-bottom: 8px; color: #9ca3af;">📋 Key Evidence:</div>
+                    <h4 style="font-weight: 600; margin-bottom: 8px; color: #e5e7eb;">📋 Key Evidence</h4>
                     <ul style="margin: 0; padding-left: 20px; color: #d1d5db;">
-                        ${keyEvidence.map(e => `<li style="margin-bottom: 4px;">${e}</li>`).join('')}
+                        ${evidenceItems}
                     </ul>
                 </div>
             `;
         }
         
-        // Build winning argument HTML
-        let winningArgHtml = '';
-        if (winningArg) {
-            winningArgHtml = `
-                <div style="margin-top: 12px; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 6px;">
-                    <div style="font-weight: 600; color: #9ca3af; margin-bottom: 4px;">🏆 Strongest Argument:</div>
-                    <div style="color: #e5e7eb; font-style: italic;">"${winningArg}"</div>
+        // Build forensic dossier HTML
+        let forensicHtml = '';
+        if (forensicDossier.entities && forensicDossier.entities.length > 0) {
+            const entityItems = forensicDossier.entities.slice(0, 3).map(entity => {
+                const reputation = entity.reputation_score ? Math.round(entity.reputation_score * 100) : 50;
+                const redFlagsText = entity.red_flags && entity.red_flags.length > 0 
+                    ? `<div style="color: #fca5a5; font-size: 11px; margin-top: 4px;">Flags: ${entity.red_flags.join(', ')}</div>`
+                    : '';
+                return `
+                    <div style="margin-bottom: 8px; padding: 8px; background: rgba(255,255,255,0.02); border-radius: 6px;">
+                        <strong style="color: #e5e7eb;">${entity.name}</strong>
+                        <span style="color: #9ca3af; font-size: 12px; margin-left: 8px;">
+                            — reputation: ${reputation}%
+                        </span>
+                        ${redFlagsText}
+                    </div>
+                `;
+            }).join('');
+            
+            forensicHtml = `
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h4 style="font-weight: 600; margin-bottom: 8px; color: #e5e7eb;">🔬 Forensic Dossier</h4>
+                    ${entityItems}
+                </div>
+            `;
+        } else {
+            forensicHtml = `
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1);">
+                    <h4 style="font-weight: 600; margin-bottom: 8px; color: #e5e7eb;">🔬 Forensic Dossier</h4>
+                    <p style="color: #9ca3af; font-size: 13px;">No notable entities found.</p>
                 </div>
             `;
         }
         
+        // Build recommendation HTML
+        let recommendationHtml = '';
+        if (recommendation) {
+            recommendationHtml = `
+                <div style="margin-top: 15px; padding: 10px; background: rgba(96, 165, 250, 0.1); border-left: 3px solid #60a5fa; border-radius: 4px;">
+                    <div style="font-weight: 600; color: #60a5fa; margin-bottom: 4px;">💡 Recommendation</div>
+                    <div style="color: #e5e7eb; font-size: 14px;">${recommendation}</div>
+                </div>
+            `;
+        }
+        
+        // Build final verdict card
         const verdictDiv = document.createElement('div');
-        verdictDiv.className = 'message ai-message';
+        verdictDiv.className = 'message ai-message verdict-card';
         verdictDiv.innerHTML = `
             <div style="padding: 20px; border: 2px solid ${verdictColor}; border-radius: 12px; background: ${verdictBg};">
+                <!-- Verdict Badge -->
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 15px;">
                     <span style="font-size: 32px;">${verdictIcon}</span>
                     <div>
@@ -1167,19 +1314,21 @@ const Chat = {
                     </div>
                     <div style="margin-left: auto; text-align: right;">
                         <div style="font-size: 11px; color: #9ca3af;">Confidence</div>
-                        <div style="font-size: 20px; font-weight: 600; color: ${verdictColor};">${confidence}%</div>
+                        <div style="font-size: 20px; font-weight: 600; color: ${verdictColor};">${confidencePct}%</div>
                     </div>
                 </div>
                 
-                <div style="color: #e5e7eb; line-height: 1.6;">
-                    ${reasoning}
+                <!-- Summary -->
+                <div style="color: #e5e7eb; line-height: 1.6; margin-bottom: 12px;">
+                    ${summary}
                 </div>
                 
-                ${winningArgHtml}
+                ${recommendationHtml}
                 ${evidenceHtml}
+                ${forensicHtml}
                 
                 <div style="margin-top: 15px; font-size: 11px; color: #6b7280; text-align: center;">
-                    ⚖️ Verdict by Chief Fact-Checker AI
+                    ⚖️ Neutral Verdict by ATLAS v4.1 Analysis Engine
                 </div>
             </div>
         `;
@@ -1228,13 +1377,39 @@ const Chat = {
             colorClass = 'default';
         }
 
+        // Enhanced formatting for moderator messages with forensic dossier
+        let formattedContent = this.markdownToHtml(content);
+        
+        // Highlight forensic dossier sections in moderator messages
+        if (role === 'moderator') {
+            // Format forensic dossier sections
+            formattedContent = formattedContent
+                .replace(/FORENSIC DOSSIER|Forensic Analysis|Key Entities|Red Flags/gi, (match) => {
+                    return `<strong style="color: #a855f7; font-size: 14px;">${match}</strong>`;
+                })
+                .replace(/Debate ID:\s*([a-f0-9-]+)/gi, (match, id) => {
+                    return `<div style="background: rgba(168, 85, 247, 0.1); padding: 8px; border-radius: 4px; margin: 8px 0;"><strong>Debate ID:</strong> <code style="background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px;">${id}</code></div>`;
+                })
+                .replace(/Topic:\s*(.+?)(?:\n|$)/gi, (match, topic) => {
+                    return `<div style="background: rgba(168, 85, 247, 0.1); padding: 8px; border-radius: 4px; margin: 8px 0;"><strong>Topic:</strong> ${topic}</div>`;
+                })
+                .replace(/Credibility:\s*(\d+)\/100/gi, (match, score) => {
+                    const color = score >= 70 ? '#10b981' : score >= 50 ? '#f59e0b' : '#ef4444';
+                    return `<span style="color: ${color}; font-weight: bold;">Credibility: ${score}/100</span>`;
+                })
+                .replace(/Red Flags:\s*(\d+)/gi, (match, count) => {
+                    const color = count > 5 ? '#ef4444' : count > 2 ? '#f59e0b' : '#10b981';
+                    return `<span style="color: ${color}; font-weight: bold;">Red Flags: ${count}</span>`;
+                });
+        }
+
         return `
                 <div class="debate-message ${colorClass}">
                     <div class="debate-header">
                         <span class="debate-icon">${icon}</span>
                         <strong>${label}</strong>
                     </div>
-                    <div class="debate-content">${this.markdownToHtml(content)}</div>
+                    <div class="debate-content">${formattedContent}</div>
                 </div>
             `;
     },

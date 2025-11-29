@@ -151,18 +151,29 @@ class ATLASAnalysisPipeline:
             }
             
             # ============================================
-            # STAGE 3: Forensic Analysis
+            # STAGE 3: Forensic Analysis (Entity Background + Dossier)
             # ============================================
+            forensic_result = None
+            forensic_dossier = None
             if enable_forensics and self.forensic_engine:
-                logger.info("🔬 Stage 3: Running forensic analysis...")
+                logger.info("🔬 Stage 3: Running forensic analysis (entity extraction + dossier generation)...")
                 forensic_start = time.time()
                 
+                # Run complete forensic analysis
                 forensic_result = self.forensic_engine.analyze_claim(query, evidence_bundle)
+                
+                # Extract dossier for use in debate
+                if forensic_result and "dossier" in forensic_result:
+                    forensic_dossier = forensic_result["dossier"]
+                    logger.info(f"✅ Forensic dossier generated: credibility={forensic_dossier.get('credibility', 'N/A')}, red_flags={forensic_dossier.get('red_flags', [])}")
                 
                 result["pipeline_stages"]["forensics"] = {
                     "status": "completed",
                     "duration_ms": round((time.time() - forensic_start) * 1000),
-                    **forensic_result
+                    "entity_count": forensic_result.get("entity_count", 0) if forensic_result else 0,
+                    "red_flag_count": forensic_result.get("red_flag_count", 0) if forensic_result else 0,
+                    "overall_credibility": forensic_result.get("overall_credibility", 0) if forensic_result else 0,
+                    "recommendation": forensic_result.get("recommendation", "N/A") if forensic_result else "N/A"
                 }
             else:
                 result["pipeline_stages"]["forensics"] = {"status": "skipped"}
@@ -182,13 +193,14 @@ class ATLASAnalysisPipeline:
             # STAGE 5: Debate (if enabled)
             # ============================================
             if enable_debate:
-                logger.info("⚔️ Stage 5: Running adversarial debate...")
+                logger.info("⚔️ Stage 5: Running adversarial debate with forensic dossier...")
                 debate_start = time.time()
                 
+                # Pass forensic dossier to debate (per PRD Section 2.3)
                 debate_result = await self._run_debate(
                     query,
                     evidence_bundle,
-                    forensic_result.get("dossier") if enable_forensics else None
+                    forensic_dossier  # Pass the dossier object/dict
                 )
                 
                 result["pipeline_stages"]["debate"] = {
@@ -334,47 +346,98 @@ class ATLASAnalysisPipeline:
         forensics: Optional[Dict]
     ) -> Dict[str, Any]:
         """
-        Format evidence bundle per PRD specification.
+        Format evidence bundle per ATLAS v4.0 PRD specification (Section 2.2).
         
         PRD Format:
         {
-          "extracted_text": "",
           "sources": [...],
-          "authority": {...},
-          "ocr": [...],
-          "chunks": [...]
+          "authority_scores": {...},
+          "cleaned_text": "...",
+          "raw_metadata": {...}
         }
         """
-        # Combine extracted text
-        extracted_text = "\n\n".join([
-            f"[{ev.get('title', 'Unknown')}]\n{ev.get('text', '')[:500]}"
-            for ev in evidence[:5]
-        ])
+        # Clean and combine text from all sources
+        cleaned_text_parts = []
+        for ev in evidence[:10]:
+            text = ev.get('text', '') or ev.get('summary', '')
+            if text:
+                # Basic cleaning: remove extra whitespace, normalize
+                cleaned = ' '.join(text.split())
+                cleaned_text_parts.append(cleaned[:1000])  # Limit per source
         
-        # Authority scores from forensics or credibility
-        authority = {}
+        cleaned_text = "\n\n".join(cleaned_text_parts)
+        
+        # Authority scores per PRD Section 6.1
+        authority_scores = {}
         if forensics and "authority_scores" in forensics:
-            authority = forensics["authority_scores"]
+            authority_scores = forensics["authority_scores"]
         else:
-            authority = {
+            # Calculate from evidence domains
+            tier_counts = {"tier_1": 0, "tier_2": 0, "tier_3": 0, "tier_4": 0}
+            for ev in evidence:
+                domain = ev.get('domain', '')
+                url = ev.get('url', '')
+                if not domain and url:
+                    try:
+                        domain = url.split("//")[-1].split("/")[0].replace("www.", "")
+                    except:
+                        pass
+                
+                # Simple tier detection
+                if any(t in domain.lower() for t in ['reuters', 'ap', '.gov', '.edu']):
+                    tier_counts["tier_1"] += 1
+                elif any(t in domain.lower() for t in ['bbc', 'nytimes', 'theguardian', 'washingtonpost']):
+                    tier_counts["tier_2"] += 1
+                elif any(t in domain.lower() for t in ['medium', 'substack', 'blog']):
+                    tier_counts["tier_3"] += 1
+                else:
+                    tier_counts["tier_4"] += 1
+            
+            authority_scores = {
+                "tier_distribution": tier_counts,
                 "aggregate_score": credibility.get("overall_score", 0.5) * 100,
-                "source_count": len(evidence)
+                "source_count": len(evidence),
+                "tier_1_weight": tier_counts["tier_1"] * 40,
+                "tier_2_weight": tier_counts["tier_2"] * 20,
+                "tier_3_weight": tier_counts["tier_3"] * 5,
+                "tier_4_penalty": tier_counts["tier_4"] * -20
             }
         
+        # Format sources with authority information
+        formatted_sources = []
+        for ev in evidence[:10]:
+            domain = ev.get('domain', '')
+            url = ev.get('url', '')
+            if not domain and url:
+                try:
+                    domain = url.split("//")[-1].split("/")[0].replace("www.", "")
+                except:
+                    domain = "unknown"
+            
+            formatted_sources.append({
+                "title": ev.get("title", "Unknown"),
+                "url": url,
+                "domain": domain,
+                "summary": ev.get("summary", ev.get("text", "")[:200]),
+                "text": ev.get("text", "")[:500],  # Include text for reference
+                "published_at": ev.get("published_at"),
+                "fetched_at": ev.get("fetched_at")
+            })
+        
+        # Raw metadata for debugging/advanced use
+        raw_metadata = {
+            "total_sources": len(evidence),
+            "credibility_overall": credibility.get("overall_score", 0.5),
+            "credibility_level": credibility.get("confidence_level", "Unknown"),
+            "forensics_enabled": forensics is not None,
+            "timestamp": datetime.now().isoformat()
+        }
+        
         return {
-            "extracted_text": extracted_text[:5000],
-            "sources": [
-                {
-                    "title": ev.get("title", "Unknown"),
-                    "url": ev.get("url", ""),
-                    "domain": ev.get("domain", ""),
-                    "summary": ev.get("summary", ev.get("text", "")[:200])
-                } for ev in evidence[:10]
-            ],
-            "authority": authority,
-            "ocr": [],  # Will be populated if OCR was used
-            "chunks": [ev.get("text", "")[:500] for ev in evidence[:5]],
-            "total_sources": len(evidence)
+            "sources": formatted_sources,
+            "authority_scores": authority_scores,
+            "cleaned_text": cleaned_text[:10000],  # Limit total text
+            "raw_metadata": raw_metadata
         }
     
     async def _run_debate(
@@ -401,10 +464,35 @@ class ATLASAnalysisPipeline:
             for ev in evidence_bundle[:3]
         ])
         
-        # Add dossier context if available
+        # Add dossier context if available (per PRD Section 2.3)
         dossier_context = ""
         if dossier:
-            dossier_context = f"\n\nForensic Analysis:\n- Credibility: {dossier.get('credibility', 'N/A')}/100\n- Red Flags: {len(dossier.get('red_flags', []))}\n"
+            # Format dossier per PRD specification
+            if isinstance(dossier, dict):
+                credibility = dossier.get('credibility', 'N/A')
+                red_flags = dossier.get('red_flags', [])
+                entity = dossier.get('entity', 'Unknown')
+                authority_score = dossier.get('authority_score', 'N/A')
+                
+                dossier_context = f"""
+=== FORENSIC DOSSIER (Entity Background Check) ===
+Primary Entity: {entity}
+Credibility Score: {credibility}/100
+Authority Score: {authority_score}/100
+Red Flags Detected: {len(red_flags)}
+
+RED FLAGS:
+"""
+                for rf in red_flags[:5]:  # Top 5 red flags
+                    rf_type = rf.get('type', 'Unknown') if isinstance(rf, dict) else getattr(rf, 'flag_type', 'Unknown')
+                    rf_desc = rf.get('description', '')[:150] if isinstance(rf, dict) else getattr(rf, 'description', '')[:150]
+                    rf_severity = rf.get('severity', 'unknown') if isinstance(rf, dict) else getattr(rf, 'severity', 'unknown')
+                    dossier_context += f"  ⚠ [{rf_severity.upper()}] {rf_type}: {rf_desc}\n"
+                
+                dossier_context += "\n=== END FORENSIC DOSSIER ===\n\n"
+            else:
+                # Handle dossier object
+                dossier_context = f"\n\nForensic Analysis:\n- Credibility: {getattr(dossier, 'credibility', 'N/A')}/100\n- Red Flags: {len(getattr(dossier, 'red_flags', []))}\n"
         
         try:
             # Get role prompts
@@ -689,40 +777,98 @@ def get_pipeline() -> ATLASAnalysisPipeline:
 @analyze_bp.route('/', methods=['POST'])
 async def full_analysis():
     """
-    Full ATLAS v4.0 analysis endpoint.
+    ATLAS v4.1 Neutral Verdict Analysis Endpoint (NO DEBATE TRANSCRIPTS).
     
     Request JSON:
     {
         "query": "The claim or topic to analyze",
-        "enable_debate": true,  // Optional, default true
+        "url": "optional URL to analyze",
+        "text": "optional article text",
         "enable_forensics": true,  // Optional, default true
         "session_id": "optional-session-id"
     }
     
-    Returns complete analysis with verdict.
+    Returns neutral verdict (NO proponent/opponent/debate fields).
     """
     try:
+        # Import verdict engine
+        import sys
+        import os
+        sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+        from verdict_engine import decide_verdict
+        from agents.factual_analyst import FactualAnalyst
+        from agents.evidence_synthesizer import EvidenceSynthesizer
+        from agents.forensic_agent import ForensicAgent
+        from agents.bias_auditor_agent import BiasAuditorAgent
+        
         data = await request.get_json()
         
         query = data.get("query", "").strip()
-        if not query:
-            return jsonify({"error": "Missing 'query' parameter"}), 400
+        url = data.get("url", "").strip()
+        text = data.get("text", "").strip()
         
-        enable_debate = data.get("enable_debate", True)
-        enable_forensics = data.get("enable_forensics", True)
-        session_id = data.get("session_id")
+        if not query and not url and not text:
+            return jsonify({"error": "Missing 'query', 'url', or 'text' parameter"}), 400
         
-        logger.info(f"🚀 Starting full analysis: {query[:100]}...")
+        # Use query as primary, fallback to text
+        article_text = query or text
+        analysis_id = str(uuid.uuid4())
         
+        logger.info(f"🚀 Starting neutral verdict analysis: {article_text[:100]}...")
+        
+        # Step 1: Gather evidence via RAG + web scraping
         pipeline = get_pipeline()
-        result = await pipeline.run_full_analysis(
-            query=query,
-            enable_debate=enable_debate,
-            enable_forensics=enable_forensics,
-            session_id=session_id
+        evidence_bundle = await pipeline._gather_evidence(article_text)
+        
+        # Step 2: Run internal agents (claim extraction, synthesis, bias, forensics)
+        fa = FactualAnalyst()
+        claims = fa.extract_claims(article_text)
+        
+        synth = EvidenceSynthesizer()
+        evidence_bundle_enriched = synth.enrich(evidence_bundle)
+        
+        ba = BiasAuditorAgent()
+        bias_report = ba.audit_text(article_text)
+        
+        # Extract named entities (placeholder - use your NER pipeline)
+        named_entities = []  # TODO: integrate spaCy NER or similar
+        
+        forensic_agent = ForensicAgent()
+        forensic_dossier = forensic_agent.build_dossier(named_entities)
+        
+        # Step 3: Internal contradiction detection (placeholder)
+        contradictions = []  # TODO: implement contradiction_engine.find_contradictions
+        
+        extra_context = {"contradictions": contradictions}
+        
+        # Step 4: Compute neutral verdict (NO DEBATE)
+        verdict_json = decide_verdict(
+            claims=claims,
+            evidence_bundle=evidence_bundle_enriched,
+            bias_report=bias_report,
+            forensic_dossier=forensic_dossier,
+            extra_context=extra_context
         )
         
-        return jsonify(result)
+        verdict_json["analysis_id"] = analysis_id
+        verdict_json["request_url"] = url if url else None
+        verdict_json["query"] = article_text[:200]
+        
+        # Step 5: Persist to DB (non-blocking)
+        try:
+            from database.db_manager import db_manager
+            await db_manager.analysis.insert_one({
+                "_id": analysis_id,
+                "verdict": verdict_json,
+                "created_at": verdict_json.get("timestamp")
+            })
+        except Exception as e:
+            logger.warning(f"Failed to persist analysis result: {e}")
+        
+        logger.info(f"✅ Neutral verdict generated: {verdict_json.get('verdict')} ({verdict_json.get('confidence_pct')}%)")
+        
+        # Step 6: Return ONLY neutral verdict (no debate transcript)
+        return jsonify(verdict_json), 200
         
     except Exception as e:
         logger.error(f"Analysis endpoint error: {e}", exc_info=True)
