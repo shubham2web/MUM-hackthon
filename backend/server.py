@@ -9,6 +9,10 @@ import traceback
 import uuid
 from concurrent.futures import ThreadPoolExecutor
 import sys
+import random
+import httpx
+import feedparser
+from typing import List, Dict
 
 from quart import Quart, render_template, request, jsonify, send_from_directory, Response
 from quart_cors import cors
@@ -200,13 +204,14 @@ def limit(rule: str):
 @app.before_request
 async def check_api_key():
     # Allow access without API key for these endpoints
-    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page'] or  # Added ocr_page and ocr_upload
+    if (request.endpoint in ['home', 'chat', 'healthz', 'analyze_topic', 'ocr_upload', 'ocr_page', 'game_page', 'game_headlines'] or  # Added ocr_page, ocr_upload, and game endpoints
         request.path.startswith('/static/') or
         request.path.startswith('/v2/') or  # Allow v2.0 endpoints without API key
         request.path.startswith('/analyze') or  # Allow analyze endpoints (v4.1 verdict engine)
         request.path.startswith('/rag/') or  # Allow RAG integration endpoints
         request.path.startswith('/admin/') or  # Allow admin endpoints
         request.path.startswith('/api/chats') or  # Allow chat listing/creation without API key for local UI
+        request.path.startswith('/api/game/') or  # Allow game endpoints without API key
         not API_KEY or 
         request.method == 'OPTIONS'):
         return
@@ -259,6 +264,70 @@ async def serve_static(filename):
     return response
 
 # -----------------------------
+# Game RSS Configuration
+# -----------------------------
+REAL_RSS = [
+    "https://feeds.bbci.co.uk/news/rss.xml",
+    "https://www.theguardian.com/world/rss",
+    "https://rss.nytimes.com/services/xml/rss/nyt/World.xml",
+]
+SATIRE_RSS = [
+    "https://www.theonion.com/rss",
+    "https://thehardtimes.net/feed/",
+]
+
+_rss_cache: Dict[str, Dict] = {}
+CACHE_TTL = 300  # 5 minutes
+
+async def _fetch_rss(url: str) -> List[Dict[str, str]]:
+    now = time.time()
+    if url in _rss_cache and (now - _rss_cache[url]["ts"] < CACHE_TTL):
+        return _rss_cache[url]["items"]
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(url)
+            resp.raise_for_status()
+            parsed = feedparser.parse(resp.text)
+    except Exception as e:
+        logger.error(f"Failed to fetch RSS {url}: {e}")
+        return []
+
+    items = []
+    for e in parsed.entries[:15]:
+        title = (getattr(e, "title", "") or "").strip()
+        link = (getattr(e, "link", "") or "").strip()
+        if not title or not link:
+            continue
+        items.append({
+            "title": title,
+            "url": link,
+            "source": parsed.feed.get("title", url),
+        })
+
+    _rss_cache[url] = {"ts": now, "items": items}
+    return items
+
+async def _pick_news(sources: List[str], need: int) -> List[Dict[str, str]]:
+    pool: List[Dict[str, str]] = []
+    for url in sources:
+        try:
+            pool.extend(await _fetch_rss(url))
+        except Exception:
+            continue
+    random.shuffle(pool)
+    seen = set()
+    uniq = []
+    for x in pool:
+        key = x["title"].lower()
+        if key not in seen:
+            seen.add(key)
+            uniq.append(x)
+        if len(uniq) >= need:
+            break
+    return uniq
+
+# -----------------------------
 # Routes
 # -----------------------------
 @app.route("/")
@@ -280,6 +349,37 @@ async def chat():
 async def ocr_page():
     """Render the OCR interface"""
     return await render_template('ocr.html')
+
+@app.route("/game")
+async def game_page():
+    """Render the news game interface"""
+    return await render_template('game.html')
+
+@app.get("/api/game/headlines")
+async def game_headlines():
+    """Get 3 real news + 1 satire headline for the game"""
+    # Get userId and seed for unique randomization per user
+    user_id = request.args.get('userId', 'default')
+    seed_value = request.args.get('seed', str(time.time()))
+    
+    # Use userId + seed for deterministic but unique randomization
+    random.seed(f"{user_id}_{seed_value}")
+    
+    real = await _pick_news(REAL_RSS, 3)
+    satire = await _pick_news(SATIRE_RSS, 1)
+    
+    if not satire:
+        return {"error": "Failed to fetch satire news"}, 500
+    
+    items = real + satire
+    satire_item = satire[0]  # Store reference before shuffle
+    random.shuffle(items)
+    answer_index = items.index(satire_item)  # Find position after shuffle
+    
+    # Reset random seed to avoid affecting other parts of the app
+    random.seed()
+    
+    return {"items": items, "answerIndex": answer_index}
 
 @app.route("/healthz")
 async def healthz():

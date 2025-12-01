@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fake News Detective - ATLAS</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/game.css') }}?v={{ range(1, 10000) | random }}">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="game-container">
+        <!-- Back Button -->
+        <a href="/chat" class="back-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            Back to Chat
+        </a>
+        
+        <!-- Header -->
+        <div class="game-header">
+            <div class="title-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <path d="m21 21-4.35-4.35"/>
+                    <circle cx="11" cy="11" r="3"/>
+                </svg>
+            </div>
+            <h1 class="game-title">FAKE NEWS DETECTIVE</h1>
+            <p class="game-subtitle">Can you spot the satirical headline among real news?</p>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <span class="stat-label">Games Today</span>
+                <span class="stat-value" id="games-today">0/10</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Current Streak</span>
+                <span class="stat-value" id="current-streak">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Best Streak</span>
+                <span class="stat-value" id="best-streak">0</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-label">Accuracy</span>
+                <span class="stat-value" id="accuracy">0%</span>
+            </div>
+        </div>
+
+        <!-- Game Content -->
+        <div class="game-content" id="gameContent">
+            <!-- Loading State -->
+            <div class="loading-state" id="loading-state">
+                <div class="spinner"></div>
+                <p>Loading headlines...</p>
+            </div>
+
+            <!-- Game State -->
+            <div class="game-state hidden" id="game-state">
+                <div class="headlines-grid" id="headlines-grid">
+                    <!-- Headlines will be inserted here -->
+                </div>
+                
+                <div class="game-actions">
+                    <div class="nav-buttons">
+                        <button class="btn-nav" id="btn-prev" disabled>
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M15 18l-6-6 6-6"/>
+                            </svg>
+                            Previous
+                        </button>
+                        <button class="btn-continue-round hidden" id="btn-continue-round">
+                            Continue to Next Round →
+                        </button>
+                        <button class="btn-nav hidden" id="btn-next">
+                            Next
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M9 18l6-6-6-6"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Limit Reached State -->
+            <div class="limit-state hidden" id="limit-state">
+                <div class="limit-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M12 6v6l4 2"/>
+                    </svg>
+                </div>
+                <h2>Daily Limit Reached!</h2>
+                <p>You've played 10 games today. Come back tomorrow for more!</p>
+                <div class="limit-stats">
+                    <div class="limit-stat">
+                        <span class="limit-stat-value" id="limit-accuracy">0%</span>
+                        <span class="limit-stat-label">Today's Accuracy</span>
+                    </div>
+                    <div class="limit-stat">
+                        <span class="limit-stat-value" id="limit-best-streak">0</span>
+                        <span class="limit-stat-label">Best Streak</span>
+                    </div>
+                </div>
+                <button class="btn-home" id="btn-home">← Back to Chat</button>
+            </div>
+        </div>
+
+        <!-- Results Modal -->
+        <div class="modal" id="result-modal">
+            <div class="modal-content">
+                <div class="result-icon" id="result-icon"></div>
+                <h2 class="result-title" id="result-title"></h2>
+                <p class="result-message" id="result-message"></p>
+                <div class="result-details" id="result-details"></div>
+                <button class="btn-continue" id="btn-continue">Continue</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/game.js') }}?v={{ range(1, 10000) | random }}"></script>
+</body>
+</html>
