@@ -8,8 +8,23 @@
     <meta http-equiv="Expires" content="0">
     <title>Atlas Chat Interface</title>
     
+    <!-- CRITICAL: Clear chat mappings if coming from homepage with new query -->
+    <!-- This MUST run before any external scripts load -->
+    <script>
+        (function() {
+            var forceNewChat = sessionStorage.getItem('forceNewChat');
+            var initialPrompt = sessionStorage.getItem('initialPrompt');
+            var needsNewChat = (forceNewChat === 'true') || (initialPrompt && initialPrompt.length > 0);
+            
+            if (needsNewChat) {
+                console.log('🆕 [EARLY INLINE] Homepage query detected - clearing localStorage');
+                localStorage.removeItem('chatIdsByMode');
+            }
+        })();
+    </script>
+    
     <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Audiowide&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Audiowide&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
     <!-- CSS Modules with cache busting -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}?v={{ range(1, 10000) | random }}">
@@ -17,6 +32,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/components.css') }}?v={{ range(1, 10000) | random }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/animations.css') }}?v={{ range(1, 10000) | random }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas_v2.css') }}?v={{ range(1, 10000) | random }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/atlas_v25.css') }}?v={{ range(1, 10000) | random }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/chat-page.css') }}?v={{ range(1, 10000) | random }}">
 </head>
 <body>
@@ -163,10 +179,15 @@
                         </div>
                     </div>
                     <div class="toolbar-right">
-                        <span class="model-name send-text">SEND</span>
+                        <span class="model-name send-text" id="sendText">SEND</span>
                         <button class="input-btn send-btn" id="sendBtn">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M5 12h14M12 5l7 7-7 7"/>
+                            </svg>
+                        </button>
+                        <button class="input-btn stop-btn" id="stopBtn" style="display: none;" title="Stop generating">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="4" y="4" width="16" height="16" rx="2"/>
                             </svg>
                         </button>
                     </div>
@@ -298,6 +319,9 @@
     <script src="{{ url_for('static', filename='js/settings.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/api.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/atlasv2.js') }}?v={{ range(1, 10000) | random }}"></script>
+    <!-- ATLAS v2.5 Dashboard MUST load before v2_ui.js so it can delegate -->
+    <script src="{{ url_for('static', filename='js/atlas_v25.js') }}?v={{ range(1, 10000) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/atlas_v2.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/v2_ui.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/messages.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/chat_store.js') }}?v={{ range(1, 10000) | random }}"></script>
@@ -305,6 +329,5 @@
     <script src="{{ url_for('static', filename='js/attachments.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/chat.js') }}?v={{ range(1, 10000) | random }}"></script>
     <script src="{{ url_for('static', filename='js/init.js') }}?v={{ range(1, 10000) | random }}"></script>
-    <script src="{{ url_for('static', filename='js/atlas_v2.js') }}?v={{ range(1, 10000) | random }}"></script>
 </body>
 </html>

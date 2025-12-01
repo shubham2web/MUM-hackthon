@@ -2,6 +2,30 @@
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Initializing Atlas Chat...');
     
+    // ===== CRITICAL: Check for homepage query BEFORE anything else =====
+    // This must happen before ChatStore loads its values from localStorage
+    const forceNewChat = sessionStorage.getItem('forceNewChat');
+    const initialPrompt = sessionStorage.getItem('initialPrompt');
+    
+    // If either flag is set OR there's an initial prompt, we need a fresh chat
+    const needsNewChat = (forceNewChat === 'true') || (initialPrompt && initialPrompt.length > 0);
+    
+    if (needsNewChat) {
+        console.log('🆕 Homepage query detected in init.js - clearing ALL chat state');
+        console.log('   forceNewChat:', forceNewChat);
+        console.log('   initialPrompt:', initialPrompt ? initialPrompt.substring(0, 50) + '...' : 'none');
+        
+        // Clear chat ID mappings to ensure a fresh chat is created
+        localStorage.removeItem('chatIdsByMode');
+        
+        // Also update ChatStore if it already loaded (it reads from localStorage at declaration)
+        if (typeof ChatStore !== 'undefined') {
+            ChatStore.currentChatId = null;
+            ChatStore.currentChatIdByMode = {};
+            console.log('✅ ChatStore state cleared');
+        }
+    }
+    
     // Central theme applier so it's available before components initialize
     window.applyTheme = function(theme) {
         if (theme === 'light') {
@@ -63,13 +87,80 @@ document.addEventListener('DOMContentLoaded', () => {
                 v2Slider.style.transform = 'translateX(26px)';
                 v2Slider.parentElement.style.backgroundColor = '#3b82f6';
                 console.log('✅ v2.0 Enhanced Analysis: ENABLED');
+                
+                // Show animated notification for V2 mode
+                showV2Notification();
             } else {
                 v2Slider.style.transform = 'translateX(0)';
                 v2Slider.parentElement.style.backgroundColor = 'rgba(255,255,255,0.2)';
                 console.log('❌ v2.0 Enhanced Analysis: DISABLED');
+                
+                // Hide notification if visible
+                hideV2Notification();
             }
         });
     }
     
     console.log('✅ Atlas Chat initialized successfully');
 });
+
+/**
+ * Show animated V2 notification banner
+ */
+function showV2Notification() {
+    // Remove existing notification if any
+    hideV2Notification();
+    
+    const notification = document.createElement('div');
+    notification.id = 'v2-notification';
+    notification.className = 'v2-notification';
+    notification.innerHTML = `
+        <div class="v2-notification-content">
+            <div class="v2-notification-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                </svg>
+            </div>
+            <div class="v2-notification-text">
+                <div class="v2-notification-title">🔗 V2.5 Enhanced Analysis Activated</div>
+                <div class="v2-notification-message">This mode analyzes <strong>URLs and links only</strong>. Paste a news article or webpage link to get comprehensive credibility analysis with visual insights.</div>
+            </div>
+            <button class="v2-notification-close" onclick="hideV2Notification()">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+        <div class="v2-notification-progress"></div>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+        notification.classList.add('show');
+    });
+    
+    // Auto-hide after 8 seconds
+    setTimeout(() => {
+        hideV2Notification();
+    }, 8000);
+}
+
+/**
+ * Hide V2 notification with animation
+ */
+function hideV2Notification() {
+    const notification = document.getElementById('v2-notification');
+    if (notification) {
+        notification.classList.remove('show');
+        notification.classList.add('hide');
+        setTimeout(() => {
+            notification.remove();
+        }, 400);
+    }
+}
+
+// Make functions globally available
+window.showV2Notification = showV2Notification;
+window.hideV2Notification = hideV2Notification;

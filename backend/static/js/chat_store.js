@@ -2,7 +2,19 @@
 const ChatStore = {
     baseURL: 'http://127.0.0.1:8000',
     currentChatId: null,
-    currentChatIdByMode: JSON.parse(localStorage.getItem('chatIdsByMode') || '{}'),
+    // Load from localStorage - but check for homepage query first
+    currentChatIdByMode: (function() {
+        // If forceNewChat flag OR initialPrompt is set, return empty object
+        var forceNewChat = sessionStorage.getItem('forceNewChat');
+        var initialPrompt = sessionStorage.getItem('initialPrompt');
+        var needsNewChat = (forceNewChat === 'true') || (initialPrompt && initialPrompt.length > 0);
+        
+        if (needsNewChat) {
+            console.log('🆕 ChatStore: Homepage query detected, starting with empty chat mappings');
+            return {};
+        }
+        return JSON.parse(localStorage.getItem('chatIdsByMode') || '{}');
+    })(),
 
     init() {
         // Wire "New Chat" button at bottom of sidebar
@@ -131,7 +143,9 @@ const ChatStore = {
             if (data.chat.messages && data.chat.messages.length > 0) {
                 data.chat.messages.forEach(msg => {
                     const isHtml = msg.metadata && msg.metadata.is_html;
+                    const isV2Dashboard = msg.metadata && msg.metadata.is_v2_dashboard;
                     const messageText = msg.content || msg.text || '';
+                    
                     if (msg.role === 'user' && typeof Messages !== 'undefined') {
                         if (isHtml) {
                             Messages.addUserMessageWithHTML(messageText);
@@ -139,7 +153,10 @@ const ChatStore = {
                             Messages.addUserMessage(messageText);
                         }
                     } else if (msg.role === 'assistant' && typeof Messages !== 'undefined') {
-                        if (isHtml) {
+                        // Check if this is a V2 dashboard response that needs re-rendering
+                        if (isV2Dashboard || this.isV2DashboardData(messageText)) {
+                            this.renderV2Dashboard(messageText);
+                        } else if (isHtml) {
                             Messages.addAIMessageHTML(messageText);
                         } else {
                             Messages.addAIMessage(messageText);
@@ -152,6 +169,72 @@ const ChatStore = {
                 }
             }
         } catch (e) { console.warn('openChat error', e); }
+    },
+
+    /**
+     * Check if message content is V2 dashboard JSON data
+     */
+    isV2DashboardData(text) {
+        if (!text || typeof text !== 'string') return false;
+        try {
+            // Check if it starts with JSON object marker
+            if (!text.trim().startsWith('{')) return false;
+            const parsed = JSON.parse(text);
+            return parsed && parsed.__v2_dashboard__ === true;
+        } catch (e) {
+            return false;
+        }
+    },
+
+    /**
+     * Render V2 dashboard from stored JSON data
+     */
+    renderV2Dashboard(text) {
+        try {
+            let v2Data;
+            if (typeof text === 'string') {
+                const parsed = JSON.parse(text);
+                v2Data = parsed.data || parsed;
+            } else {
+                v2Data = text;
+            }
+            
+            // Use ATLASv25 to render the dashboard
+            if (typeof window.ATLASv25 !== 'undefined' && typeof window.ATLASv25.renderDashboard === 'function') {
+                const dashboardHtml = window.ATLASv25.renderDashboard(v2Data);
+                if (typeof Chat !== 'undefined' && typeof Chat.addV2Card === 'function') {
+                    Chat.addV2Card(dashboardHtml);
+                } else {
+                    // Fallback: add directly to messages
+                    const messageDiv = document.createElement('div');
+                    messageDiv.className = 'message ai-message v2-message';
+                    messageDiv.style.background = 'transparent';
+                    messageDiv.style.padding = '0';
+                    messageDiv.style.margin = '8px 0';
+                    messageDiv.innerHTML = dashboardHtml;
+                    const container = document.getElementById('chatMessages');
+                    if (container) container.appendChild(messageDiv);
+                }
+            } else if (typeof V2UI !== 'undefined' && typeof V2UI.createV2ResponseCard === 'function') {
+                // Fallback to V2UI
+                const v2Card = V2UI.createV2ResponseCard(v2Data);
+                if (typeof Chat !== 'undefined' && typeof Chat.addV2Card === 'function') {
+                    Chat.addV2Card(v2Card);
+                }
+            } else {
+                // Last resort: show as formatted text
+                console.warn('V2 dashboard renderer not available, showing as text');
+                if (typeof Messages !== 'undefined') {
+                    Messages.addAIMessage(v2Data.synthesis || JSON.stringify(v2Data, null, 2));
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to render V2 dashboard:', e);
+            // Show raw text as fallback
+            if (typeof Messages !== 'undefined') {
+                Messages.addAIMessage(text);
+            }
+        }
     },
 
     async appendMessage(chatId, role, text, metadata = {}) {

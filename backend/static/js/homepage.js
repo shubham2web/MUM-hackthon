@@ -1,7 +1,8 @@
 console.log('📦 homepage.js LOADED');
 
-// DOM Elements
+// DOM Elements - with null safety
 const promptInput = document.getElementById('prompt');
+console.log('🔍 promptInput element:', promptInput);
 const loader = document.getElementById('loader');
 const optionButtons = document.querySelectorAll('.option-btn[data-mode]');
 const ctaButton = document.querySelector('.cta-button');
@@ -432,7 +433,12 @@ errorOkBtn.addEventListener('click', () => {
 
 // ===== FORM SUBMISSION =====
 async function handleSubmit() {
+    if (!promptInput) {
+        console.error('❌ promptInput element not found!');
+        return;
+    }
     const promptValue = promptInput.value.trim();
+    console.log('📝 promptValue:', promptValue);
 
     if (!promptValue && attachedFiles.length === 0) {
         return;
@@ -467,9 +473,12 @@ async function handleSubmit() {
 
     sessionStorage.setItem('initialPrompt', finalPrompt || '');
     sessionStorage.setItem('chatMode', currentMode);
+    // Flag to tell chat page to create a brand new chat session
+    sessionStorage.setItem('forceNewChat', 'true');
 
     console.log('✅ Stored in sessionStorage');
     console.log('✅ Redirecting to /chat with mode:', currentMode);
+    console.log('✅ forceNewChat flag set - will create brand new chat');
 
     loader.style.display = 'flex';
     setTimeout(() => loader.style.opacity = '1', 10);

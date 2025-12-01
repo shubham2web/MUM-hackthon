@@ -381,6 +381,65 @@ class BiasAuditor:
         
         self.logger.info("Bias ledger integrity verified")
         return True
+    
+    def audit_text(self, text: str, source: str, context: Optional[Dict] = None) -> 'BiasAuditResult':
+        """
+        Audit text for bias and return structured result.
+        
+        This is a convenience method that wraps audit_response and returns
+        a BiasAuditResult object with flags, score, and recommendations.
+        
+        Args:
+            text: The text to audit
+            source: Who/what generated this text
+            context: Additional context
+            
+        Returns:
+            BiasAuditResult with flags, score, and recommendations
+        """
+        flags = self.audit_response(text, source, context)
+        
+        # Calculate overall bias score (0 = no bias, 1 = heavy bias)
+        if not flags:
+            overall_score = 0.0
+        else:
+            severity_weights = {
+                BiasSeverity.LOW: 0.1,
+                BiasSeverity.MEDIUM: 0.25,
+                BiasSeverity.HIGH: 0.5,
+                BiasSeverity.CRITICAL: 1.0
+            }
+            total_weight = sum(severity_weights.get(f.severity, 0.25) for f in flags)
+            overall_score = min(1.0, total_weight / 3.0)  # Normalize
+        
+        # Get recommendations
+        recommendations = self.get_mitigation_recommendations(source)
+        
+        return BiasAuditResult(
+            flags=flags,
+            overall_score=overall_score,
+            recommendations=recommendations,
+            source=source
+        )
+
+
+@dataclass
+class BiasAuditResult:
+    """Result of a bias audit."""
+    flags: List[BiasFlag]
+    overall_score: float  # 0.0 (no bias) to 1.0 (heavy bias)
+    recommendations: List[str]
+    source: str
+    
+    def to_dict(self) -> Dict:
+        """Convert to dictionary."""
+        return {
+            "flags": [f.to_dict() for f in self.flags],
+            "overall_score": round(self.overall_score, 3),
+            "recommendations": self.recommendations,
+            "source": self.source,
+            "flag_count": len(self.flags)
+        }
 
 
 # Global instance

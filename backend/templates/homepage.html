@@ -151,7 +151,7 @@
             
             const text = "EVIDENCE OVER NOISE";
             const letterDelay = 80;
-            const holdDuration = 6500; // Increased from 4500ms to add 2 extra seconds
+            const holdDuration = 6500;
             const fadeOutDelay = 40;
             const restartDelay = 800;
             
@@ -174,11 +174,11 @@
                     // Create magnifying glass element
                     const magnifyGlass = document.createElement('div');
                     magnifyGlass.className = 'magnifying-glass';
-                    magnifyGlass.style.cssText = 'position: absolute; z-index: 100;';
+                    magnifyGlass.id = 'magnify-glass';
                     taglineContainer.appendChild(magnifyGlass);
-                    console.log('🔍 Magnifying glass created:', magnifyGlass);
+                    console.log('🔍 Magnifying glass created');
                     
-                    let letterIndex = 0; // Track actual letter index (excluding spaces)
+                    let letterIndex = 0;
                     
                     text.split('').forEach((char, index) => {
                         const span = document.createElement('span');
@@ -190,11 +190,10 @@
                             span.textContent = char;
                             span.style.animationDelay = `${index * letterDelay}ms`;
                             
-                            // Mark EVIDENCE letters (first 8 letters)
+                            // Mark EVIDENCE letters (first 8 letters: E-V-I-D-E-N-C-E)
                             if (letterIndex < 8) {
                                 span.classList.add('magnify-target');
                                 span.setAttribute('data-letter-index', letterIndex);
-                                console.log(`✨ Marked letter ${letterIndex}: ${char}`);
                             }
                             letterIndex++;
                         }
@@ -202,22 +201,76 @@
                         taglineContainer.appendChild(span);
                     });
                     
-                    // Trigger magnification effect on EVIDENCE letters
+                    // Start the magnifying glass animation after letters appear
+                    const totalAppearTime = text.length * letterDelay;
                     setTimeout(() => {
-                        const evidenceLetters = taglineContainer.querySelectorAll('.magnify-target');
-                        console.log(`🎯 Found ${evidenceLetters.length} EVIDENCE letters to magnify`);
-                        evidenceLetters.forEach((letter, idx) => {
-                            setTimeout(() => {
-                                console.log(`🔎 Magnifying letter ${idx}: ${letter.textContent}`);
-                                letter.classList.add('magnified');
-                                setTimeout(() => {
-                                    letter.classList.remove('magnified');
-                                }, 600); // Magnification duration
-                            }, 1000 + (idx * 550)); // Synced with 5s linear animation
-                        });
-                    }, 1000); // Start 1s after (matches CSS animation delay)
+                        animateMagnifyingGlass(taglineContainer, magnifyGlass);
+                    }, totalAppearTime + 500); // Start after all letters appear + 500ms buffer
                     
-                    console.log(`✅ Created ${taglineContainer.children.length} elements (1 magnifying glass + letters)`);
+                    console.log(`✅ Created elements for: "${text}"`);
+                }
+                
+                // Perfectly synchronized magnifying glass animation
+                function animateMagnifyingGlass(container, glass) {
+                    const evidenceLetters = container.querySelectorAll('.magnify-target');
+                    if (evidenceLetters.length === 0) {
+                        console.warn('No evidence letters found');
+                        return;
+                    }
+                    
+                    console.log(`🎯 Starting magnifying glass animation over ${evidenceLetters.length} letters`);
+                    
+                    const containerRect = container.getBoundingClientRect();
+                    const glassSize = 60; // Width of magnifying glass
+                    const animDuration = 550; // Duration per letter (ms)
+                    let currentIndex = 0;
+                    
+                    // Show the magnifying glass
+                    glass.style.opacity = '1';
+                    glass.style.transition = 'none';
+                    
+                    function moveToLetter(index) {
+                        if (index >= evidenceLetters.length) {
+                            // Animation complete - fade out the glass
+                            glass.style.transition = 'opacity 0.5s ease-out';
+                            glass.style.opacity = '0';
+                            console.log('� Magnifying glass animation complete');
+                            return;
+                        }
+                        
+                        const letter = evidenceLetters[index];
+                        const letterRect = letter.getBoundingClientRect();
+                        
+                        // Calculate position: center the glass over the letter
+                        const letterCenterX = letterRect.left - containerRect.left + (letterRect.width / 2);
+                        const letterCenterY = letterRect.top - containerRect.top + (letterRect.height / 2);
+                        
+                        // Position glass so its center is over the letter center
+                        const glassLeft = letterCenterX - (glassSize / 2);
+                        const glassTop = letterCenterY - (glassSize / 2);
+                        
+                        // Smooth transition to this letter
+                        glass.style.transition = index === 0 ? 'none' : 'left 0.4s ease-in-out, top 0.1s ease-out';
+                        glass.style.left = glassLeft + 'px';
+                        glass.style.top = glassTop + 'px';
+                        
+                        // Apply magnification effect to the letter
+                        letter.classList.add('magnified');
+                        console.log(`🔎 Magnifying letter ${index}: "${letter.textContent}" at (${Math.round(glassLeft)}, ${Math.round(glassTop)})`);
+                        
+                        // Remove magnification after a delay, then move to next
+                        setTimeout(() => {
+                            letter.classList.remove('magnified');
+                        }, animDuration - 100);
+                        
+                        // Move to next letter
+                        setTimeout(() => {
+                            moveToLetter(index + 1);
+                        }, animDuration);
+                    }
+                    
+                    // Start with first letter
+                    moveToLetter(0);
                 }
 
                 function animateIn() {
@@ -320,8 +373,8 @@
     <!-- External Scripts - Load AFTER inline script -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>
-    <script src="{{ url_for('static', filename='js/homepage.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/role_reversal_ui.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/homepage.js') }}?v={{ range(1, 10000) | random }}"></script>
+    <script src="{{ url_for('static', filename='js/role_reversal_ui.js') }}?v={{ range(1, 10000) | random }}"></script>
 
     <script src="{{ url_for('static', filename='js/mic.js') }}?v={{ range(1,10000)|random }}"></script>
 </body>

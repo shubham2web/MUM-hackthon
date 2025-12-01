@@ -328,6 +328,104 @@ class MongoAuditLogger:
             logger.error(f"Error getting audit stats: {e}")
             return {"enabled": True, "error": str(e)}
     
+    def log_rag_retrieval(
+        self,
+        debate_id: str,
+        query: str,
+        results_count: int,
+        top_scores: List[float],
+        retrieval_method: str = "hybrid",
+        latency_ms: float = 0.0,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Log RAG retrieval quality metrics (PRD Section 2.1).
+        
+        Args:
+            debate_id: The debate session ID
+            query: The query used for retrieval
+            results_count: Number of results returned
+            top_scores: Relevance scores of top results
+            retrieval_method: Type of retrieval (hybrid, semantic, keyword)
+            latency_ms: Retrieval latency in milliseconds
+            metadata: Additional metadata
+        """
+        if not self.enabled:
+            return
+        
+        try:
+            event = {
+                "event_type": "rag_retrieval",
+                "debate_id": debate_id,
+                "query": query[:500],  # Truncate long queries
+                "results_count": results_count,
+                "top_scores": top_scores[:10],  # Top 10 scores
+                "avg_score": sum(top_scores) / len(top_scores) if top_scores else 0,
+                "retrieval_method": retrieval_method,
+                "latency_ms": latency_ms,
+                "metadata": metadata or {},
+                "timestamp": datetime.utcnow()
+            }
+            
+            self.db.memory_events.insert_one(event)
+            logger.debug(f"Logged RAG retrieval: {results_count} results, avg_score={event['avg_score']:.3f}")
+            
+        except Exception as e:
+            logger.error(f"Error logging RAG retrieval: {e}")
+    
+    def log_verdict(
+        self,
+        debate_id: str,
+        verdict: str,
+        confidence: float,
+        key_evidence: List[str],
+        winning_argument: str,
+        metadata: Optional[Dict[str, Any]] = None
+    ):
+        """
+        Log final verdict (PRD Section 2.6).
+        
+        Args:
+            debate_id: The debate session ID
+            verdict: VERIFIED, DEBUNKED, or COMPLEX
+            confidence: Confidence score 0-100
+            key_evidence: List of key evidence points
+            winning_argument: The winning argument summary
+            metadata: Additional metadata
+        """
+        if not self.enabled:
+            return
+        
+        try:
+            event = {
+                "event_type": "verdict",
+                "debate_id": debate_id,
+                "verdict": verdict,
+                "confidence": confidence,
+                "key_evidence": key_evidence[:5],  # Top 5 evidence
+                "winning_argument": winning_argument[:1000],
+                "metadata": metadata or {},
+                "timestamp": datetime.utcnow()
+            }
+            
+            self.db.memory_events.insert_one(event)
+            
+            # Also update the debate session with verdict
+            self.db.debate_sessions.update_one(
+                {"debate_id": debate_id},
+                {"$set": {
+                    "verdict": verdict,
+                    "confidence": confidence,
+                    "completed_at": datetime.utcnow(),
+                    "status": "completed"
+                }}
+            )
+            
+            logger.debug(f"Logged verdict: {verdict} (confidence={confidence})")
+            
+        except Exception as e:
+            logger.error(f"Error logging verdict: {e}")
+    
     def close(self):
         """Close MongoDB connection"""
         if self.client:

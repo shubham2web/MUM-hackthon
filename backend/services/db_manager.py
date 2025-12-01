@@ -150,7 +150,14 @@ class AsyncDbManager:
     @classmethod
     @asynccontextmanager
     async def transaction(cls):
-        async with (await cls._get_pool()) as conn: yield conn
+        """Get a connection and handle transaction commit/rollback."""
+        conn = await cls._get_pool()
+        try:
+            yield conn
+            await conn.commit()
+        except Exception:
+            await conn.rollback()
+            raise
     @classmethod
     @asynccontextmanager
     async def connection(cls):
@@ -241,14 +248,14 @@ class AsyncDbManager:
     # --- Batch Insert, Maintenance & Helpers ---
     @classmethod
     @log_query_performance
-    @retry_on_lock
+    @retry_on_lock()
     async def add_log_entries_batch(cls, log_entries: List[LogEntryPayload]):
         data = [(e['debate_id'], e.get('timestamp', datetime.now(timezone.utc).isoformat()), e['topic'], e['model_used'], e['role'], e['user_message'], e['ai_response'], json.dumps(e.get('analysis_metrics'))) for e in log_entries]
         async with cls.transaction() as conn:
             await conn.executemany("INSERT INTO conversation_logs (debate_id, timestamp, topic, model_used, role, user_message, ai_response, analysis_metrics) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", data)
     @classmethod
     @log_query_performance
-    @retry_on_lock
+    @retry_on_lock()
     async def add_evidence_batch(cls, evidence_entries: List[EvidencePayload]):
         data = [(e['debate_id'], e.get('timestamp', datetime.now(timezone.utc).isoformat()), e['topic'], e['source'], e['type'], e['region'], e['title'], e['content']) for e in evidence_entries]
         async with cls.transaction() as conn:
