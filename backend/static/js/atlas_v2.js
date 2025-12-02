@@ -9,8 +9,11 @@ const ATLASv2 = {
 
     /**
      * Run full v2.0 analysis with enhanced features
+     * @param {string} claim - The claim to analyze
+     * @param {object} options - Analysis options
+     * @param {AbortSignal} externalSignal - External abort signal from caller
      */
-    async analyzeWithV2(claim, options = {}) {
+    async analyzeWithV2(claim, options = {}, externalSignal = null) {
         const {
             num_agents = 4,
             enable_reversal = false,
@@ -23,6 +26,21 @@ const ATLASv2 = {
             // Use AbortController for timeout (5 minutes for complex analysis)
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 300000);  // 5 min timeout
+            
+            // If external signal is provided, link it to our controller
+            if (externalSignal) {
+                externalSignal.addEventListener('abort', () => {
+                    console.log('🛑 External abort signal received in ATLASv2');
+                    clearTimeout(timeoutId);
+                    controller.abort();
+                });
+                
+                // Check if already aborted
+                if (externalSignal.aborted) {
+                    clearTimeout(timeoutId);
+                    throw new DOMException('Aborted by user', 'AbortError');
+                }
+            }
             
             const response = await fetch(`${this.baseURL}/v2/analyze`, {
                 method: 'POST',

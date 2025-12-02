@@ -319,8 +319,15 @@ const Messages = {
 
     formatMarkdown(text) {
         return text
+            // Convert URLs to clickable links (must be done before other markdown processing)
+            // Matches http://, https://, and www. URLs
+            .replace(/(https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g, '<a href="$1" target="_blank" rel="noopener noreferrer" class="message-link">$1</a>')
+            .replace(/(?<!https?:\/\/)(?<!["\'>])(www\.[^\s<]+[^<.,:;"')\]\s])/g, '<a href="http://$1" target="_blank" rel="noopener noreferrer" class="message-link">$1</a>')
+            // Bold text
             .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+            // Italic text
             .replace(/\*(.*?)\*/g, '<em>$1</em>')
+            // Line breaks
             .replace(/\n/g, '<br>');
     },
 

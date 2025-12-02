@@ -2,11 +2,12 @@
 const API = {
     baseURL: 'http://127.0.0.1:8000', // Backend server port
 
-    async sendMessage(message, mode = 'analytical', conversationHistory = []) {
+    async sendMessage(message, mode = 'analytical', conversationHistory = [], signal = null) {
         console.log('=== API Call (ATLAS v4.1 Verdict Engine) ===');
         console.log('Message:', message);
         console.log('Mode:', mode);
         console.log('Conversation History:', conversationHistory);
+        console.log('Abort Signal provided:', !!signal);
         
         // Get or create session_id from localStorage for conversation continuity
         let sessionId = localStorage.getItem('atlas-session-id');
@@ -16,11 +17,13 @@ const API = {
         }
         
         try {
-            // Use new /analyze endpoint with verdict engine (v4.1)
-            const endpoint = mode === 'debate' ? `${this.baseURL}/analyze` : `${this.baseURL}/analyze_topic`;
+            // Use /rag/debate for debate mode (with thinking trace), /analyze for standard
+            const endpoint = mode === 'debate' 
+                ? `${this.baseURL}/rag/debate` 
+                : `${this.baseURL}/analyze_topic`;
             
             const requestBody = mode === 'debate' ? {
-                query: message,
+                claim: message,
                 session_id: sessionId,
                 enable_forensics: true
             } : {
@@ -31,11 +34,18 @@ const API = {
                 conversation_history: conversationHistory
             };
             
-            const response = await fetch(endpoint, {
+            const fetchOptions = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
-            });
+            };
+            
+            // Add abort signal if provided
+            if (signal) {
+                fetchOptions.signal = signal;
+            }
+            
+            const response = await fetch(endpoint, fetchOptions);
             
             console.log('Response status:', response.status);
             console.log('Response ok:', response.ok);
@@ -57,9 +67,19 @@ const API = {
             const data = JSON.parse(responseText);
             console.log('Parsed data:', data);
             
-            // For debate mode, return structured verdict response
+            // For debate mode, return structured response with trace
             if (mode === 'debate') {
-                return { isVerdict: true, verdict: data };
+                return { 
+                    isDebate: true, 
+                    trace: data.trace || [],
+                    pro: data.pro,
+                    opp: data.opp,
+                    verdict: data.verdict,
+                    evidence: data.evidence || [],
+                    nlp_explanation: data.nlp_explanation,
+                    background: data.background,
+                    explanation: data.explanation
+                };
             }
             
             return data;

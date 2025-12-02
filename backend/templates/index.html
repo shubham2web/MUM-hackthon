@@ -8,6 +8,21 @@
     <meta http-equiv="Expires" content="0">
     <title>Atlas Chat Interface</title>
     
+    <!-- CRITICAL: Clear chat mappings if coming from homepage with new query -->
+    <!-- This MUST run before any external scripts load -->
+    <script>
+        (function() {
+            var forceNewChat = sessionStorage.getItem('forceNewChat');
+            var initialPrompt = sessionStorage.getItem('initialPrompt');
+            var needsNewChat = (forceNewChat === 'true') || (initialPrompt && initialPrompt.length > 0);
+            
+            if (needsNewChat) {
+                console.log('🆕 [EARLY INLINE] Homepage query detected - clearing localStorage');
+                localStorage.removeItem('chatIdsByMode');
+            }
+        })();
+    </script>
+    
     <!-- Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&family=Audiowide&family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     
@@ -57,6 +72,15 @@
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                     </svg>
                     <span class="nav-text">Debate</span>
+                </a>
+                <a href="/game" class="nav-item" data-mode="game">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 2h4c3.3 0 6 2.7 6 6v8c0 3.3-2.7 6-6 6h-4c-3.3 0-6-2.7-6-6V8c0-3.3 2.7-6 6-6z"/>
+                        <circle cx="9" cy="12" r="1" fill="currentColor"/>
+                        <circle cx="15" cy="12" r="1" fill="currentColor"/>
+                        <path d="M9 16h6"/>
+                    </svg>
+                    <span class="nav-text">Game</span>
                 </a>
                 <div class="nav-item" id="historyBtn" role="button" tabindex="0">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -171,7 +195,9 @@
                             </svg>
                         </button>
                         <button class="input-btn stop-btn" id="stopBtn" style="display: none;" title="Stop generating">
-                            <div class="loading-spinner"></div>
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="4" y="4" width="16" height="16" rx="2"/>
+                            </svg>
                         </button>
                     </div>
                 </div>
